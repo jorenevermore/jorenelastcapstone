@@ -4,6 +4,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { auth } from '../lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import NotificationDropdown from './NotificationDropdown';
 
 const Header = () => {
   const pathname = usePathname();
@@ -31,14 +32,7 @@ const Header = () => {
       <div className="flex justify-between items-center h-full px-4">
         <h1 className="text-lg font-semibold text-gray-800">{getPageTitle()}</h1>
         <div className="flex items-center space-x-4">
-          <div className="relative">
-            <button className="text-gray-500 hover:text-gray-700">
-              <i className="fas fa-bell"></i>
-            </button>
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-              3
-            </span>
-          </div>
+          <NotificationDropdown />
 
           <div className="flex items-center">
             <div className="w-7 h-7 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 mr-2 text-xs">

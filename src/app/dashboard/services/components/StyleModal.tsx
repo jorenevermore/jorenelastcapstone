@@ -34,9 +34,16 @@ const StyleModal: React.FC<StyleModalProps> = ({
     setError(null);
   }, [initialStyle, isOpen]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setStyle(prev => ({ ...prev, [name]: value }));
+
+    // Convert price and duration to numbers
+    if (name === 'price' || name === 'duration') {
+      const numValue = parseFloat(value) || 0;
+      setStyle(prev => ({ ...prev, [name]: numValue }));
+    } else {
+      setStyle(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const processFile = (file: File) => {
@@ -95,8 +102,18 @@ const StyleModal: React.FC<StyleModalProps> = ({
       return;
     }
 
-    if (!style.price.trim()) {
-      setError('Price is required');
+    if (!style.description.trim()) {
+      setError('Description is required');
+      return;
+    }
+
+    if (!style.price || style.price <= 0) {
+      setError('Valid price is required');
+      return;
+    }
+
+    if (!style.duration || style.duration <= 0) {
+      setError('Valid duration is required');
       return;
     }
 
@@ -121,6 +138,8 @@ const StyleModal: React.FC<StyleModalProps> = ({
         const downloadURL = await getDownloadURL(snapshot.ref);
         finalStyle.featuredImage = downloadURL;
       }
+
+
 
       await onSave(finalStyle);
       onClose();
@@ -188,16 +207,50 @@ const StyleModal: React.FC<StyleModalProps> = ({
                     <span className="text-gray-500">₱</span>
                   </div>
                   <input
-                    type="text"
+                    type="number"
                     name="price"
                     value={style.price}
                     onChange={handleInputChange}
                     className="w-full border border-gray-300 rounded-lg pl-8 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 transition-shadow"
                     placeholder="0.00"
+                    min="0"
+                    step="0.01"
                     required
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                name="description"
+                value={style.description}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 transition-shadow"
+                placeholder="Short description of the haircut style"
+                rows={3}
+                required
+              />
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Duration (hours) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="duration"
+                value={style.duration}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 transition-shadow"
+                placeholder="1"
+                min="0.5"
+                step="0.5"
+                required
+              />
             </div>
 
             <div className="mb-5">

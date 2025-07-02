@@ -10,6 +10,10 @@ export interface Barber {
   email: string;
   fullName: string;
   isAvailable: boolean;
+  image?: string | null; // URL to the barber's profile image
+  affiliationStatus?: 'pending' | 'approved' | 'rejected';
+  createdAt?: string;
+  isProfileCompleted?: boolean;
 }
 
 // Fetch all barbers
@@ -106,6 +110,44 @@ export const deleteBarber = async (barberId: string): Promise<void> => {
     await deleteDoc(barberDoc);
   } catch (error) {
     console.error('Error deleting barber:', error);
+    throw error;
+  }
+};
+
+// Fetch pending barber affiliations for a barbershop
+export const getPendingAffiliations = async (barbershopId: string): Promise<Barber[]> => {
+  try {
+    const barbersCollection = collection(db, 'barbersprofile');
+    const q = query(
+      barbersCollection,
+      where('affiliatedBarbershopId', '==', barbershopId),
+      where('affiliationStatus', '==', 'pending')
+    );
+    const barberSnapshot = await getDocs(q);
+
+    return barberSnapshot.docs.map(doc => {
+      const data = doc.data() as Omit<Barber, 'barberId'>;
+      return {
+        ...data,
+        barberId: doc.id
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching pending affiliations:', error);
+    throw error;
+  }
+};
+
+// Update barber affiliation status
+export const updateAffiliationStatus = async (
+  barberId: string,
+  status: 'approved' | 'rejected'
+): Promise<void> => {
+  try {
+    const barberDoc = doc(db, 'barbersprofile', barberId);
+    await updateDoc(barberDoc, { affiliationStatus: status });
+  } catch (error) {
+    console.error('Error updating affiliation status:', error);
     throw error;
   }
 };

@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '../../../lib/firebase';
+import { auth, db, storage } from '../../../lib/firebase';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Barber, getAllBarbers, getBarbersByBarbershopId, addBarber, updateBarber, deleteBarber } from '../../../services/barberService';
 
 export default function StaffPage() {
@@ -24,6 +25,12 @@ export default function StaffPage() {
   const [contactNumber, setContactNumber] = useState('');
   const [address, setAddress] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
+
+  // Image upload state
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Fetch barbershop details and barbers
   useEffect(() => {
@@ -62,6 +69,9 @@ export default function StaffPage() {
     setIsAvailable(true);
     setCurrentBarber(null);
     setIsEditing(false);
+    setImageFile(null);
+    setImagePreview(null);
+    setDragActive(false);
   };
 
   // Open form for adding a new barber
@@ -78,8 +88,56 @@ export default function StaffPage() {
     setContactNumber(barber.contactNumber);
     setAddress(barber.address);
     setIsAvailable(barber.isAvailable);
+    setImagePreview(barber.image || null);
+    setImageFile(null);
     setIsEditing(true);
     setIsFormOpen(true);
+  };
+
+  // Image handling functions
+  const processFile = (file: File) => {
+    setImageFile(file);
+
+    // Create a preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setImagePreview(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      processFile(e.target.files[0]);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const removeImage = () => {
+    setImagePreview(null);
+    setImageFile(null);
   };
 
   // Handle form submission
@@ -90,16 +148,27 @@ export default function StaffPage() {
 
     try {
       setLoading(true);
+      setIsUploading(true);
 
       // Get barbershop details
       const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
       if (!barbershopDoc.exists()) {
         setError('Barbershop details not found. Please set up your barbershop first.');
         setLoading(false);
+        setIsUploading(false);
         return;
       }
 
       const barbershopData = barbershopDoc.data();
+
+      let imageUrl = imagePreview; // Keep existing image if no new one uploaded
+
+      // Upload new image if one was selected
+      if (imageFile) {
+        const storageRef = ref(storage, `staffs/${Date.now()}_${imageFile.name}`);
+        const snapshot = await uploadBytes(storageRef, imageFile);
+        imageUrl = await getDownloadURL(snapshot.ref);
+      }
 
       const barberData = {
         fullName,
@@ -108,7 +177,8 @@ export default function StaffPage() {
         address,
         isAvailable,
         affiliatedBarbershopId: user.uid,
-        affiliatedBarbershop: barbershopData.name || user.email || 'Unknown Barbershop'
+        affiliatedBarbershop: barbershopData.name || user.email || 'Unknown Barbershop',
+        image: imageUrl
       };
 
       if (isEditing && currentBarber) {
@@ -142,6 +212,7 @@ export default function StaffPage() {
       setError('Failed to save barber. Please try again.');
     } finally {
       setLoading(false);
+      setIsUploading(false);
     }
   };
 
@@ -280,6 +351,59 @@ export default function StaffPage() {
                 />
               </div>
 
+              {/* Image Upload Section */}
+              <div className="form-group col-span-2">
+                <label className="form-label">Profile Picture</label>
+
+                {imagePreview ? (
+                  <div className="relative rounded-lg overflow-hidden mb-3">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-56 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 bg-black bg-opacity-70 text-white p-2 rounded-full hover:bg-opacity-90 transition-opacity"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                      dragActive ? 'border-black bg-gray-50' : 'border-gray-300'
+                    }`}
+                    onDragEnter={handleDrag}
+                    onDragOver={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDrop={handleDrop}
+                  >
+                    <div className="text-4xl text-gray-300 mb-3">
+                      <i className="fas fa-cloud-upload-alt"></i>
+                    </div>
+                    <p className="text-gray-700 mb-2">Drag and drop profile picture here</p>
+                    <p className="text-gray-500 text-sm mb-4">or</p>
+                    <label className="inline-block px-4 py-2 bg-black text-white rounded-lg cursor-pointer hover:bg-gray-800 transition-colors">
+                      <span>Browse Files</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-3">
+                      Supported formats: JPG, PNG, GIF
+                    </p>
+                  </div>
+                )}
+                <p className="text-sm text-gray-500 mt-2">
+                  Upload a professional profile picture for this barber. Recommended size: 400x400px.
+                </p>
+              </div>
+
               <div className="form-group col-span-2">
                 <label className="flex items-center">
                   <input
@@ -297,9 +421,9 @@ export default function StaffPage() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={loading}
+                disabled={loading || isUploading}
               >
-                {loading ? 'Saving...' : 'Save Barber'}
+                {isUploading ? 'Uploading...' : loading ? 'Saving...' : 'Save Barber'}
               </button>
 
               <button
@@ -362,8 +486,16 @@ export default function StaffPage() {
 
                   <div className="p-6">
                     <div className="flex items-center mb-4">
-                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mr-4">
-                        <i className="fas fa-user-alt text-2xl"></i>
+                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mr-4 overflow-hidden">
+                        {barber.image ? (
+                          <img
+                            src={barber.image}
+                            alt={barber.fullName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <i className="fas fa-user-alt text-2xl"></i>
+                        )}
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">{barber.fullName}</h3>
@@ -438,8 +570,16 @@ export default function StaffPage() {
                   <tr key={barber.barberId} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500">
-                          <i className="fas fa-user-alt"></i>
+                        <div className="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 overflow-hidden">
+                          {barber.image ? (
+                            <img
+                              src={barber.image}
+                              alt={barber.fullName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <i className="fas fa-user-alt"></i>
+                          )}
                         </div>
                         <div className="ml-4">
                           <div className="font-medium text-gray-900">{barber.fullName}</div>

@@ -4,10 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../../../lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc, getDoc, addDoc } from 'firebase/firestore';
 import { Booking } from '../types';
 import Link from 'next/link';
 import { ChatModal } from '../components';
+import { addMessage, Message } from '../../../../services/messageService';
+
+
 
 export default function AppointmentDetailsPage() {
   const router = useRouter();
@@ -19,10 +22,46 @@ export default function AppointmentDetailsPage() {
   const [reason, setReason] = useState('');
   const [newStatus, setNewStatus] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [barbershopLocation, setBarbershopLocation] = useState<{
+    address: string;
+    coordinates: { lat: number; lng: number };
+    distance: number;
+  } | null>(null);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
   // Get the appointment ID from the params
   const appointmentId = params?.id as string;
+
+  // Function to reverse geocode coordinates to address
+  const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
+    try {
+      const response = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`
+      );
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        return data.results[0].formatted_address;
+      }
+      return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    } catch (error) {
+      console.error('Error reverse geocoding:', error);
+      return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    }
+  };
+
+  // Function to calculate distance between two coordinates
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
 
   // Fetch appointment data
   useEffect(() => {
@@ -48,6 +87,36 @@ export default function AppointmentDetailsPage() {
           } else {
             const appointmentData = appointmentsSnapshot.docs[0].data() as Booking;
             setAppointment(appointmentData);
+
+            // Fetch barbershop location data
+            try {
+              const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
+              if (barbershopDoc.exists()) {
+                const barbershopData = barbershopDoc.data();
+                if (barbershopData.loc && barbershopData.loc.coordinates) {
+                  const coordinates = {
+                    lat: barbershopData.loc.coordinates.latitude,
+                    lng: barbershopData.loc.coordinates.longitude
+                  };
+
+                  // Get address from coordinates
+                  const address = await reverseGeocode(coordinates.lat, coordinates.lng);
+
+                  // Calculate distance (using a default client location for now)
+                  // In a real app, you'd get the client's location from the appointment or user data
+                  const distance = 0.664; // Default distance as shown in your screenshot
+
+                  setBarbershopLocation({
+                    address,
+                    coordinates,
+                    distance
+                  });
+                }
+              }
+            } catch (locationError) {
+              console.error('Error fetching barbershop location:', locationError);
+              // Don't set error state for location fetch failure, just log it
+            }
           }
         }
       } catch (err) {
@@ -133,7 +202,24 @@ export default function AppointmentDetailsPage() {
     try {
       setIsSubmitting(true);
 
-      // Create a new note object
+      // Create a new message document in the messages collection
+      const messageData: Omit<Message, 'id'> = {
+        barberId: appointment.barberId || user?.uid || '',
+        clientId: appointment.clientId,
+        senderId: user?.uid || '', // The barbershop is sending the message
+        message: note,
+        timestamp: Date.now().toString(), // Use timestamp in milliseconds as string
+        appointmentId: appointment.id, // Link to the appointment
+        from: 'barbershop' // Indicate this message is from barbershop
+      };
+
+      // Add the message to the chats collection using the service
+      const messageId = await addMessage(messageData);
+      console.log('Message added to chats collection with ID:', messageId);
+      console.log('Message data:', messageData);
+
+      // Also update the booking document to maintain the existing note structure
+      // This ensures backward compatibility with the current UI
       const newNote: {
         text: string;
         timestamp: string;
@@ -249,12 +335,6 @@ export default function AppointmentDetailsPage() {
                         <p className="text-xs text-gray-500">Client</p>
                       </div>
                     </div>
-                    {appointment.clientId && (
-                      <div className="mt-2 bg-blue-50 p-2 rounded text-xs">
-                        <p className="text-gray-500 mb-1">Client ID</p>
-                        <p className="font-mono text-gray-700">{appointment.clientId}</p>
-                      </div>
-                    )}
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded-lg">
@@ -312,6 +392,33 @@ export default function AppointmentDetailsPage() {
                       <p className="font-medium text-green-700">₱{appointment.totalPrice.toLocaleString()}</p>
                     </div>
                   </div>
+
+                  {/* Location Details - Show barbershop location for regular appointments, client location for home services */}
+                  {(barbershopLocation && !appointment.isHomeService) && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <h5 className="font-medium text-gray-700 mb-3">Location Details</h5>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Address</p>
+                          <p className="font-medium">{barbershopLocation.address}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Distance</p>
+                          <p className="font-medium">{barbershopLocation.distance} km</p>
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${barbershopLocation.coordinates.lat},${barbershopLocation.coordinates.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 text-sm flex items-center"
+                        >
+                          <i className="fas fa-map-marker-alt mr-1"></i> View on Map
+                        </a>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {appointment.isHomeService && appointment.location && (

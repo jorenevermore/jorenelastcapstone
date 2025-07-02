@@ -62,15 +62,21 @@ const StyleGrid: React.FC<StyleGridProps> = ({ styles, onEditStyle, onDeleteStyl
           </div>
           <div className="p-5">
             <h3 className="font-semibold text-lg text-gray-900 mb-2">{style.styleName}</h3>
-            <div className="flex justify-between items-center">
+            <p className="text-sm text-gray-600 mb-3 line-clamp-2">{style.description}</p>
+            <div className="flex justify-between items-center mb-2">
               <p className="text-xl font-bold text-black">₱{style.price}</p>
-              <button
-                className="text-gray-500 hover:text-gray-700"
-                onClick={() => onEditStyle(style)}
-              >
-                <i className="fas fa-chevron-right"></i>
-              </button>
+              <span className="text-sm text-gray-500 flex items-center">
+                <i className="fas fa-clock mr-1"></i>
+                {style.duration}hr{style.duration !== 1 ? 's' : ''}
+              </span>
             </div>
+            <button
+              className="w-full text-gray-500 hover:text-gray-700 text-center py-1"
+              onClick={() => onEditStyle(style)}
+            >
+              <i className="fas fa-edit mr-1"></i>
+              Edit Style
+            </button>
           </div>
         </div>
       ))}

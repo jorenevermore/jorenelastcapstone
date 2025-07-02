@@ -8,6 +8,7 @@ interface ServiceCardProps {
   service: Service;
   styles: Style[];
   expanded: boolean;
+  globalServiceName: string;
   onToggleExpand: () => void;
   onEditService: (service: Service) => void;
   onDeleteService: (serviceId: string) => void;
@@ -20,6 +21,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
   service,
   styles,
   expanded,
+  globalServiceName,
   onToggleExpand,
   onEditService,
   onDeleteService,
@@ -51,6 +53,10 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         <td className="px-6 py-5">
           <div className="font-semibold text-lg text-gray-900">{service.title}</div>
           <div className="text-sm text-gray-500 mt-1">
+            <span className="inline-flex items-center px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium mr-2">
+              <i className="fas fa-tag mr-1"></i>
+              {globalServiceName}
+            </span>
             {styles.length} {styles.length === 1 ? 'style' : 'styles'} available
           </div>
         </td>

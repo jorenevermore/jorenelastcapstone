@@ -54,7 +54,7 @@ export default function ServiceDetailsPage() {
               const stylesQuery = query(
                 stylesCollection,
                 where('serviceId', '==', serviceId),
-                where('barbershopId', '==', user.uid)
+                where('barberOrBarbershop', '==', user.uid)
               );
 
               const stylesSnapshot = await getDocs(stylesQuery);
@@ -96,7 +96,7 @@ export default function ServiceDetailsPage() {
         const q = query(
           stylesCollection,
           where('styleId', '==', styleId),
-          where('barbershopId', '==', user?.uid)
+          where('barberOrBarbershop', '==', user?.uid)
         );
 
         const querySnapshot = await getDocs(q);

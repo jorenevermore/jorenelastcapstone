@@ -15,7 +15,7 @@ import {
   where,
   deleteDoc
 } from 'firebase/firestore';
-import { Service, Style, StylesMap } from './types';
+import { Service, Style, StylesMap, GlobalService } from './types';
 import {
   ServiceModal,
   StyleModal,
@@ -29,16 +29,21 @@ const emptyService: Service = {
   id: '',
   title: '',
   featuredImage: null,
-  status: 'Available'
+  status: 'Available',
+  serviceCategoryId: ''
 };
 
 const emptyStyle: Style = {
   styleId: '',
   styleName: '',
-  price: '',
+  description: '',
+  price: 0,
+  duration: 1,
   featuredImage: null,
   serviceId: '',
-  barbershopId: '',
+  serviceCategoryId: '',
+  barberOrBarbershop: '',
+  type: 'barbershop',
   docId: undefined
 };
 
@@ -48,6 +53,7 @@ export default function ServicesPage() {
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [stylesMap, setStylesMap] = useState<StylesMap>({});
+  const [globalServices, setGlobalServices] = useState<GlobalService[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -125,6 +131,9 @@ export default function ServicesPage() {
             setError('Barbershop not found. Please complete your profile setup.');
           }
         }
+
+        // Fetch global services
+        await fetchGlobalServices();
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to load data. Please try again.');
@@ -139,7 +148,7 @@ export default function ServicesPage() {
   // Fetch styles for the barbershop
   const fetchStyles = async (shopId: string) => {
     try {
-      const q = query(collection(db, 'styles'), where('barbershopId', '==', shopId));
+      const q = query(collection(db, 'styles'), where('barberOrBarbershop', '==', shopId));
       const querySnapshot = await getDocs(q);
       const map: StylesMap = {};
 
@@ -154,6 +163,30 @@ export default function ServicesPage() {
       console.error('Error fetching styles:', err);
       setError('Failed to load styles. Please try again.');
     }
+  };
+
+  // Fetch global services from the services collection
+  const fetchGlobalServices = async () => {
+    try {
+      const servicesCollection = collection(db, 'services');
+      const snapshot = await getDocs(servicesCollection);
+      const servicesData: GlobalService[] = [];
+
+      snapshot.forEach(doc => {
+        servicesData.push({ id: doc.id, ...doc.data() } as GlobalService);
+      });
+
+      setGlobalServices(servicesData);
+    } catch (error) {
+      console.error('Error fetching global services:', error);
+      // Don't set error here as it's not critical for the main functionality
+    }
+  };
+
+  // Helper function to get global service name by ID
+  const getGlobalServiceName = (serviceCategoryId: string): string => {
+    const globalService = globalServices.find(gs => gs.id === serviceCategoryId);
+    return globalService ? globalService.title : 'Unknown Category';
   };
 
   // Filter services based on search term
@@ -176,7 +209,8 @@ export default function ServicesPage() {
         id: isEditingService ? service.id : `service_${Date.now()}`,
         title: service.title,
         status: service.status,
-        featuredImage: service.featuredImage
+        featuredImage: service.featuredImage,
+        serviceCategoryId: service.serviceCategoryId
       };
 
       // Update the services array
@@ -255,21 +289,31 @@ export default function ServicesPage() {
       const newStyle: Style = {
         styleId: isEditingStyle ? style.styleId : `style_${Date.now()}`,
         styleName: style.styleName,
+        description: style.description,
         price: style.price,
+        duration: style.duration,
         featuredImage: style.featuredImage,
         serviceId: style.serviceId,
-        barbershopId: barbershopId,
+        serviceCategoryId: style.serviceCategoryId,
+        barberOrBarbershop: barbershopId,
+        type: 'barbershop'
       };
+
+
 
       if (isEditingStyle && style.docId) {
         // Update existing style
         await updateDoc(doc(db, 'styles', style.docId), {
           styleId: newStyle.styleId,
           styleName: newStyle.styleName,
+          description: newStyle.description,
           price: newStyle.price,
+          duration: newStyle.duration,
           featuredImage: newStyle.featuredImage,
           serviceId: newStyle.serviceId,
-          barbershopId: newStyle.barbershopId
+          serviceCategoryId: newStyle.serviceCategoryId,
+          barberOrBarbershop: newStyle.barberOrBarbershop,
+          type: newStyle.type
         });
       } else {
         // Add new style
@@ -302,7 +346,7 @@ export default function ServicesPage() {
         const q = query(
           stylesCollection,
           where('styleId', '==', styleId),
-          where('barbershopId', '==', barbershopId)
+          where('barberOrBarbershop', '==', barbershopId)
         );
 
         const querySnapshot = await getDocs(q);
@@ -342,10 +386,16 @@ export default function ServicesPage() {
   };
 
   const handleAddStyle = (serviceId?: string) => {
+    const service = services.find(s => s.id === serviceId);
     const newStyle: Style = {
       ...emptyStyle,
-      serviceId: serviceId || ''
+      serviceId: serviceId || '',
+      serviceCategoryId: service?.serviceCategoryId || '',
+      barberOrBarbershop: barbershopId || ''
     };
+
+
+
     setCurrentStyle(newStyle);
     setIsEditingStyle(false);
     setShowStyleModal(true);
@@ -419,7 +469,11 @@ export default function ServicesPage() {
 
                       <div className="ml-3 flex-1 min-w-0">
                         <h3 className="text-base font-medium text-gray-900 truncate">{service.title}</h3>
-                        <div className="flex items-center mt-1">
+                        <div className="flex items-center mt-1 space-x-2">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-xs font-medium">
+                            <i className="fas fa-tag mr-1"></i>
+                            {getGlobalServiceName(service.serviceCategoryId)}
+                          </span>
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
                             ${service.status === 'Available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
                           >
@@ -522,6 +576,7 @@ export default function ServicesPage() {
             onSave={handleSaveService}
             initialService={currentService}
             isEditing={isEditingService}
+            existingServices={services}
           />
 
           <StyleModal

@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { auth } from '../lib/firebase';
+import { useNotifications } from '../hooks/useNotifications';
 
 const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const { unreadCount } = useNotifications();
 
   const isActive = (path: string) => {
     return pathname === path;
@@ -20,6 +22,7 @@ const Sidebar = () => {
     { name: 'Services', path: '/dashboard/services', icon: 'fas fa-cut' },
     { name: 'Analytics', path: '/dashboard/analytics', icon: 'fas fa-chart-line' },
     { name: 'Staff', path: '/dashboard/staff', icon: 'fas fa-users' },
+    { name: 'Notifications', path: '/dashboard/notifications', icon: 'fas fa-bell' },
     { name: 'Settings', path: '/dashboard/settings', icon: 'fas fa-cog' },
   ];
 
@@ -40,7 +43,7 @@ const Sidebar = () => {
             <li key={item.path}>
               <Link
                 href={item.path}
-                className={`flex items-center px-4 py-3 rounded-md transition-colors ${
+                className={`flex items-center px-4 py-3 rounded-md transition-colors relative ${
                   isActive(item.path)
                     ? 'bg-gray-800 text-white'
                     : 'text-gray-400 hover:bg-gray-800 hover:text-white'
@@ -48,6 +51,11 @@ const Sidebar = () => {
               >
                 <i className={`${item.icon} w-5 mr-3`}></i>
                 <span>{item.name}</span>
+                {item.name === 'Notifications' && unreadCount > 0 && (
+                  <span className="absolute top-2 left-8 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
               </Link>
             </li>
           ))}
