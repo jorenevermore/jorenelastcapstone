@@ -12,14 +12,20 @@ export interface Booking {
   styleOrderedId: string;
   date: string;
   time: string;
-  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'canceled' | 'declined' | 'no-show';
+  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'declined' | 'no-show';
+  notificationStatus?: 'next-in-queue' | 'called-to-service';  // queue notification status
+  paymentStatus?: 'paid';  // only added after cash payment is confirmed
   reason?: string;
   barberReason?: string;
   totalPrice: number;
+  discountAmount?: number;
+  finalPrice?: number;
+  paymentMethod?: string;
   isHomeService?: boolean;
-  isEmergency?: boolean;
+  isEmergency?: boolean; // rush/priority booking flag
   isServiceOrderedPackage?: boolean;
   createdAt?: string;
+  queuePosition?: number; // calculated queue position
   location?: {
     lat: number;
     lng: number;
@@ -32,7 +38,7 @@ export interface Booking {
     createdAt: string;
   };
   statusHistory?: {
-    ongoingStatus: string; // Changed from 'status' to 'ongoingStatus' to avoid conflicts
+    ongoingStatus: string; // changed from 'status' to 'ongoingStatus' to avoid conflicts
     timestamp: string;
     reason?: string;
     updatedBy: 'client' | 'barber';
@@ -51,4 +57,17 @@ export interface Booking {
     clientId: string;
     clientName?: string;
   }[];
+}
+
+export interface Notification {
+  id?: string;
+  userId: string;                    // client ID
+  bookingId: string;                 // booking ID
+  fromId: string;                    // barbershop ID
+  type: 'next in queue' | 'called to service';
+  title: string;                     
+  message: string;                   
+  reason: string;                    
+  isRead: boolean;
+  createdAt: any;                   
 }

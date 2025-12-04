@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import SimpleDatePicker from './SimpleDatePicker';
 import { Booking } from '../types';
 
@@ -10,11 +10,14 @@ interface TodayBookingsCardProps {
   onDateChange: (date: Date) => void;
 }
 
+type StatusFilter = 'all' | 'pending' | 'ongoing' | 'completed';
+
 const TodayBookingsCard = ({
   todayBookings,
   selectedDate,
   onDateChange
 }: TodayBookingsCardProps) => {
+  const [activeTab, setActiveTab] = useState<StatusFilter>('all');
   const formattedDate = selectedDate.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
@@ -22,7 +25,28 @@ const TodayBookingsCard = ({
     year: 'numeric'
   });
 
-  // Helper function to get status badge styling
+  // filter bookings based on active tab
+  const getFilteredBookings = () => {
+    switch (activeTab) {
+      case 'pending':
+        return todayBookings.filter(b => b.status === 'pending');
+      case 'ongoing':
+        return todayBookings.filter(b => ['confirmed', 'in-progress'].includes(b.status));
+      case 'completed':
+        return todayBookings.filter(b => ['completed', 'cancelled', 'declined', 'no-show'].includes(b.status));
+      default:
+        return todayBookings;
+    }
+  };
+
+  const filteredBookings = getFilteredBookings();
+
+  // count bookings by status
+  const pendingCount = todayBookings.filter(b => b.status === 'pending').length;
+  const ongoingCount = todayBookings.filter(b => ['confirmed', 'in-progress'].includes(b.status)).length;
+  const completedCount = todayBookings.filter(b => ['completed', 'cancelled', 'declined', 'no-show'].includes(b.status)).length;
+
+  // get status badge styling
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
       case 'pending':
@@ -33,7 +57,7 @@ const TodayBookingsCard = ({
         return 'bg-purple-100 text-purple-800 border border-purple-200';
       case 'completed':
         return 'bg-green-100 text-green-800 border border-green-200';
-      case 'canceled':
+      case 'cancelled':
         return 'bg-red-100 text-red-800 border border-red-200';
       case 'no-show':
         return 'bg-gray-100 text-gray-800 border border-gray-200';
@@ -42,7 +66,7 @@ const TodayBookingsCard = ({
     }
   };
 
-  // Helper function to get status icon
+  // get status icon
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
@@ -53,7 +77,7 @@ const TodayBookingsCard = ({
         return 'fas fa-spinner fa-spin';
       case 'completed':
         return 'fas fa-check-double';
-      case 'canceled':
+      case 'cancelled':
         return 'fas fa-times-circle';
       case 'no-show':
         return 'fas fa-user-slash';
@@ -63,60 +87,159 @@ const TodayBookingsCard = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100">
-        <div className="flex items-center">
-          <i className="fas fa-calendar-day text-blue-500 mr-2"></i>
-          <span className="text-sm font-medium">Appointments for {formattedDate}</span>
-        </div>
-        <div className="flex items-center">
-          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full mr-3">
-            {todayBookings.length} {todayBookings.length === 1 ? 'appointment' : 'appointments'}
-          </span>
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 h-full flex flex-col">
+      <div className="px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <i className="fas fa-calendar-day text-gray-400 mr-2 text-sm"></i>
+            <span className="text-xs font-medium text-gray-600">Daily View</span>
+          </div>
           <SimpleDatePicker selectedDate={selectedDate} onDateChange={onDateChange} />
         </div>
+        <div className="text-xs text-gray-500">
+          {formattedDate}
+        </div>
+        <div className="mt-2">
+          <span className="bg-gray-100 text-gray-700 text-xs font-medium px-2 py-1 rounded">
+            {todayBookings.length} appointment{todayBookings.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      </div>
+      <div className="px-3 py-2 border-b border-gray-100 bg-gray-50 flex gap-1 flex-shrink-0">
+        <button
+          onClick={() => setActiveTab('all')}
+          className="px-3 py-1.5 text-xs font-medium rounded transition-colors text-white"
+          style={{
+            backgroundColor: activeTab === 'all' ? '#BF8F63' : 'white',
+            color: activeTab === 'all' ? 'white' : '#374151',
+            border: activeTab === 'all' ? 'none' : '1px solid #E5E7EB'
+          }}
+        >
+          All ({todayBookings.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('pending')}
+          className="px-3 py-1.5 text-xs font-medium rounded transition-colors"
+          style={{
+            backgroundColor: activeTab === 'pending' ? '#BF8F63' : 'white',
+            color: activeTab === 'pending' ? 'white' : '#374151',
+            border: activeTab === 'pending' ? 'none' : '1px solid #E5E7EB'
+          }}
+        >
+          Pending ({pendingCount})
+        </button>
+        <button
+          onClick={() => setActiveTab('ongoing')}
+          className="px-3 py-1.5 text-xs font-medium rounded transition-colors"
+          style={{
+            backgroundColor: activeTab === 'ongoing' ? '#BF8F63' : 'white',
+            color: activeTab === 'ongoing' ? 'white' : '#374151',
+            border: activeTab === 'ongoing' ? 'none' : '1px solid #E5E7EB'
+          }}
+        >
+          Ongoing ({ongoingCount})
+        </button>
+        <button
+          onClick={() => setActiveTab('completed')}
+          className="px-3 py-1.5 text-xs font-medium rounded transition-colors"
+          style={{
+            backgroundColor: activeTab === 'completed' ? '#BF8F63' : 'white',
+            color: activeTab === 'completed' ? 'white' : '#374151',
+            border: activeTab === 'completed' ? 'none' : '1px solid #E5E7EB'
+          }}
+        >
+          Completed ({completedCount})
+        </button>
       </div>
 
-      <div className="p-4">
-        {todayBookings.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {todayBookings.map(booking => (
+      <div className="p-3 flex-1 overflow-hidden flex flex-col">
+        {filteredBookings.length > 0 ? (
+          <div className="space-y-2 overflow-y-auto flex-1">
+            {filteredBookings.map(booking => (
               <div
                 key={booking.id}
-                className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                className={`border rounded p-2 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  booking.isEmergency
+                    ? 'border-red-300 bg-red-50'
+                    : 'border-gray-200'
+                }`}
                 onClick={() => window.location.href = `/dashboard/appointments/${booking.id}`}
               >
-                <div className="flex items-center mb-2">
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 mr-2 flex-shrink-0">
+                <div className="flex items-start gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 flex-shrink-0 text-xs">
                     {booking.clientName.charAt(0).toUpperCase()}
                   </div>
-                  <div className="truncate">
-                    <div className="font-medium text-gray-900 truncate">{booking.clientName}</div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-gray-800 text-xs truncate">{booking.clientName}</div>
+                    <div className="text-xs text-gray-500 truncate">{booking.serviceOrdered}</div>
+                    {booking.isEmergency && (
+                      <div className="text-xs text-red-600 font-medium flex items-center mt-0.5">
+                        <i className="fas fa-bolt mr-0.5 text-xs"></i> Rush
+                      </div>
+                    )}
                   </div>
-                  <div className="ml-auto">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                      ${getStatusBadgeStyle(booking.status)}`}
-                    >
-                      <i className={`${getStatusIcon(booking.status)} text-xs mr-1`}></i>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <span className="text-xs text-gray-500">
+                      {(() => {
+                        const startTime = booking.time?.split('-')[0]?.trim() || '';
+                        const hour = parseInt(startTime.split(':')[0]);
+                        return hour < 13 ? 'Morning Session' : 'Afternoon Session';
+                      })()}
                     </span>
+                    {(() => {
+                      const startTime = booking.time?.split('-')[0]?.trim() || '';
+                      const hour = parseInt(startTime.split(':')[0]);
+
+                      const now = new Date();
+                      const currentHour = now.getHours();
+
+                      // get today's date in ISO format (YYYY-MM-DD)
+                      const todayISO = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                        .toISOString().split('T')[0];
+
+                      // Parse booking date - handle both ISO format and other formats
+                      const bookingDateISO: string = booking.date.includes('-') && booking.date.length === 10
+                        ? booking.date
+                        : new Date(new Date(booking.date).getFullYear(), new Date(booking.date).getMonth(), new Date(booking.date).getDate())
+                            .toISOString().split('T')[0];
+
+                      const isBookingInPast = bookingDateISO < todayISO;
+
+                      const isPastDue =
+                        isBookingInPast &&
+                        booking.status !== 'completed' &&
+                        booking.status !== 'cancelled' &&
+                        booking.status !== 'declined' &&
+                        booking.status !== 'no-show';
+
+                      return isPastDue ? (
+                        <span className="text-xs text-red-600 font-medium">Past Due</span>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
 
-                <div className="flex justify-between items-center text-sm">
-                  <div className="text-gray-500 truncate max-w-[60%]">
-                    {booking.serviceOrdered}
-                  </div>
-                  <div className="font-medium text-gray-900">{booking.time}</div>
+                <div className="flex items-center justify-end text-xs mt-1.5 pt-1.5 border-t border-gray-100">
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
+                    ${getStatusBadgeStyle(booking.status)}`}
+                  >
+                    <i className={`${getStatusIcon(booking.status)} mr-0.5 text-xs`}></i>
+                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-gray-500 flex-1 flex flex-col items-center justify-center">
             <div className="text-3xl mb-2"><i className="far fa-calendar-check"></i></div>
-            <p className="font-medium mb-1">No appointments for this day</p>
-            <p className="text-xs">Select another date to view appointments</p>
+            <p className="font-medium mb-1">
+              {activeTab === 'all' ? 'No appointments for this day' : `No ${activeTab} appointments`}
+            </p>
+            <p className="text-xs">
+              {activeTab === 'all' ? 'Select another date to view appointments' : `Try selecting a different tab`}
+            </p>
           </div>
         )}
       </div>

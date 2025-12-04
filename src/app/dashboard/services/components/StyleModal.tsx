@@ -29,15 +29,16 @@ const StyleModal: React.FC<StyleModalProps> = ({
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
-    setStyle(initialStyle);
-    setImageFile(null);
-    setError(null);
-  }, [initialStyle, isOpen]);
+    if (isOpen) {
+      setStyle(initialStyle);
+      setImageFile(null);
+      setError(null);
+    }
+  }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
 
-    // Convert price and duration to numbers
     if (name === 'price' || name === 'duration') {
       const numValue = parseFloat(value) || 0;
       setStyle(prev => ({ ...prev, [name]: numValue }));
@@ -48,8 +49,6 @@ const StyleModal: React.FC<StyleModalProps> = ({
 
   const processFile = (file: File) => {
     setImageFile(file);
-
-    // Create a preview
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
@@ -131,16 +130,13 @@ const StyleModal: React.FC<StyleModalProps> = ({
       setIsUploading(true);
       let finalStyle = { ...style };
 
-      // Upload image if a new one was selected
       if (imageFile) {
         const storageRef = ref(storage, `styles/${Date.now()}_${imageFile.name}`);
         const snapshot = await uploadBytes(storageRef, imageFile);
         const downloadURL = await getDownloadURL(snapshot.ref);
         finalStyle.featuredImage = downloadURL;
       }
-
-
-
+      
       await onSave(finalStyle);
       onClose();
     } catch (err) {
@@ -154,37 +150,35 @@ const StyleModal: React.FC<StyleModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div
-        className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden animate-fadeIn"
+        className="bg-white rounded shadow-lg max-w-md w-full overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold text-black">
-              {isEditing ? 'Edit Style' : 'Add New Style'}
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <i className="fas fa-times"></i>
-            </button>
-          </div>
+        <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+          <h3 className="text-base font-semibold text-gray-900">
+            {isEditing ? 'Edit Style' : 'Add Style'}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+          >
+            <i className="fas fa-times text-sm"></i>
+          </button>
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="p-6 max-h-[70vh] overflow-y-auto">
+          <div className="p-4 max-h-[70vh] overflow-y-auto space-y-3">
             {error && (
-              <div className="mb-5 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-start">
-                <i className="fas fa-exclamation-circle mt-0.5 mr-2"></i>
+              <div className="p-2 bg-red-50 border border-red-200 text-red-700 rounded text-xs flex items-start gap-2">
+                <i className="fas fa-exclamation-circle mt-0.5 flex-shrink-0"></i>
                 <p>{error}</p>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Style Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -192,27 +186,27 @@ const StyleModal: React.FC<StyleModalProps> = ({
                   name="styleName"
                   value={style.styleName}
                   onChange={handleInputChange}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 transition-shadow"
-                  placeholder="e.g. Fade Haircut"
+                  className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-600"
+                  placeholder="e.g. Fade"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Price <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-gray-500">₱</span>
+                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                    <span className="text-gray-500 text-sm">₱</span>
                   </div>
                   <input
                     type="number"
                     name="price"
                     value={style.price}
                     onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-lg pl-8 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 transition-shadow"
-                    placeholder="0.00"
+                    className="w-full border border-gray-300 rounded pl-6 pr-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-600"
+                    placeholder="0"
                     min="0"
                     step="0.01"
                     required
@@ -221,15 +215,15 @@ const StyleModal: React.FC<StyleModalProps> = ({
               </div>
             </div>
 
-            <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea
                 name="description"
                 value={style.description}
                 onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black/10 focus:border-gray-400 transition-shadow"
+                className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-600"
                 placeholder="Short description of the haircut style"
                 rows={3}
                 required
@@ -334,32 +328,35 @@ const StyleModal: React.FC<StyleModalProps> = ({
             </div>
           </div>
 
-          <div className="p-5 bg-gray-50 flex justify-end space-x-3 border-t border-gray-200">
+          <div className="px-4 py-3 bg-gray-50 flex justify-end gap-2 border-t border-gray-200">
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors"
               disabled={isUploading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center"
+              className="px-3 py-1.5 text-white rounded text-sm transition-colors flex items-center gap-1.5 disabled:opacity-50"
+              style={{ backgroundColor: '#BF8F63' }}
+              onMouseEnter={(e) => !isUploading && (e.currentTarget.style.backgroundColor = '#A67C52')}
+              onMouseLeave={(e) => !isUploading && (e.currentTarget.style.backgroundColor = '#BF8F63')}
               disabled={isUploading}
             >
               {isUploading ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Saving...
+                  Saving
                 </>
               ) : (
                 <>
-                  <i className="fas fa-save mr-2"></i>
-                  Save Style
+                  <i className="fas fa-save text-xs"></i>
+                  Save
                 </>
               )}
             </button>

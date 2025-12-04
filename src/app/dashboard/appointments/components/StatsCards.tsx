@@ -13,7 +13,7 @@ const StatsCards = ({ bookings }: StatsCardsProps) => {
     const pending = bookings.filter(b => b.status === 'pending').length;
     const confirmed = bookings.filter(b => b.status === 'confirmed').length;
     const inProgress = bookings.filter(b => b.status === 'in-progress').length;
-    const canceled = bookings.filter(b => b.status === 'canceled').length;
+    const canceled = bookings.filter(b => b.status === 'cancelled').length;
     const completed = bookings.filter(b => b.status === 'completed').length;
     const noShow = bookings.filter(b => b.status === 'no-show').length;
     const total = bookings.length;
@@ -103,7 +103,7 @@ const StatsCards = ({ bookings }: StatsCardsProps) => {
   );
 };
 
-// Helper component for stat items
+// helper component for stat items
 interface StatItemProps {
   label: string;
   value: number;

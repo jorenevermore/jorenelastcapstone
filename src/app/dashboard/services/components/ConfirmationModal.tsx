@@ -7,7 +7,7 @@ import { Fragment } from 'react';
 interface ConfirmationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   title: string;
   message: string;
   confirmText?: string;
@@ -25,6 +25,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   cancelText = 'Cancel',
   type = 'danger'
 }) => {
+  const [isLoading, setIsLoading] = React.useState(false);
   const getIconClass = () => {
     switch (type) {
       case 'danger':
@@ -120,13 +121,19 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                   </button>
                   <button
                     type="button"
-                    className={`inline-flex justify-center rounded-md border border-transparent ${getButtonClass()} px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2`}
-                    onClick={() => {
-                      onConfirm();
-                      onClose();
+                    disabled={isLoading}
+                    className={`inline-flex justify-center rounded-md border border-transparent ${getButtonClass()} px-4 py-2 text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                    onClick={async () => {
+                      setIsLoading(true);
+                      try {
+                        await onConfirm();
+                      } finally {
+                        setIsLoading(false);
+                        onClose();
+                      }
                     }}
                   >
-                    {confirmText}
+                    {isLoading ? 'Deleting...' : confirmText}
                   </button>
                 </div>
               </Dialog.Panel>

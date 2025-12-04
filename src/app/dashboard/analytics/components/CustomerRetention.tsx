@@ -1,19 +1,7 @@
 'use client';
 
 import React from 'react';
-
-interface Booking {
-  id: string;
-  clientName: string;
-  serviceOrdered: string;
-  barberName: string;
-  styleOrdered: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'canceled' | 'completed';
-  barbershopId: string;
-  clientId?: string;
-}
+import type { Booking } from '../../../../lib/services/appointment/BaseAppointmentService';
 
 interface CustomerRetentionProps {
   bookings: Booking[];
@@ -29,17 +17,17 @@ const CustomerRetention: React.FC<CustomerRetentionProps> = ({ bookings }) => {
     acc[clientId].push(booking);
     return acc;
   }, {});
-  
+
   // Calculate customer metrics
   const totalCustomers = Object.keys(bookingsByClient).length;
   const repeatCustomers = Object.values(bookingsByClient).filter(bookings => bookings.length > 1).length;
   const oneTimeCustomers = totalCustomers - repeatCustomers;
-  
+
   // Calculate repeat customer rate
-  const repeatRate = totalCustomers > 0 
-    ? Math.round((repeatCustomers / totalCustomers) * 100) 
+  const repeatRate = totalCustomers > 0
+    ? Math.round((repeatCustomers / totalCustomers) * 100)
     : 0;
-  
+
   // Find top customers
   const topCustomers = Object.entries(bookingsByClient)
     .sort((a, b) => b[1].length - a[1].length)

@@ -4,16 +4,16 @@
 
 /* Custom global styles */
 :root {
-  /* Professional Black, White, Brown color scheme */
-  --primary-color: #3E2723; /* Dark Brown */
-  --primary-dark: #1B0000; /* Almost Black Brown */
-  --primary-light: #5D4037; /* Medium Brown */
-  --secondary-color: #EFEBE9; /* Off-White */
-  --text-primary: #212121; /* Almost Black */
-  --text-secondary: #424242; /* Dark Gray */
-  --text-light: #757575; /* Medium Gray */
+  /* Black and Amber color scheme */
+  --primary-color: #000000; /* Black */
+  --primary-dark: #1a1a1a; /* Dark Black */
+  --primary-light: #333333; /* Light Black */
+  --secondary-color: #BF8F63; /* Warm Brown */
+  --text-primary: #000000; /* Black */
+  --text-secondary: #333333; /* Dark Gray */
+  --text-light: #666666; /* Medium Gray */
   --success: #2E7D32; /* Forest Green */
-  --warning: #5D4037; /* Brown for warnings */
+  --warning: #BF8F63; /* Warm Brown for warnings */
   --error: #B71C1C; /* Dark Red */
   --border-radius: 0.25rem;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -24,7 +24,7 @@
 body {
   font-family: 'Inter', sans-serif;
   color: var(--text-primary);
-  background-color: #f9fafb;
+  background-color: #f3f4f6;
 }
 
 /* Animations */
@@ -52,15 +52,20 @@ body {
 }
 
 .btn-primary {
-  @apply bg-black text-white hover:bg-gray-900 focus:ring-gray-700;
+  @apply text-white focus:ring-amber-500;
+  background-color: #BF8F63;
+}
+
+.btn-primary:hover {
+  background-color: #A67C52;
 }
 
 .btn-secondary {
-  @apply bg-white text-black border border-gray-300 hover:bg-gray-100 focus:ring-gray-500;
+  @apply bg-white text-black border border-gray-300 hover:bg-gray-100 focus:ring-amber-500;
 }
 
 .btn-white {
-  @apply bg-white text-black border border-gray-300 hover:bg-gray-50 focus:ring-gray-400;
+  @apply bg-white text-black border border-gray-300 hover:bg-gray-50 focus:ring-amber-500;
 }
 
 .btn-sm {

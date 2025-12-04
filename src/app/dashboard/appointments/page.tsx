@@ -1,143 +1,105 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '../../../lib/firebase';
-import { collection, query, where, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { auth } from '../../../lib/firebase';
 import { Booking } from './types';
 import {
   TodayBookingsCard,
   BookingTable,
   ConfirmationModal,
-  StatsCards,
-  FilterBar
+  FilterBar,
+  QueueStats
 } from './components';
+import { useQueueNotifications } from './hooks/useQueueNotifications';
+import { useAppointments } from '../../../lib/hooks/useAppointments';
+import {
+  filterBookings,
+  getUniqueBarbers,
+  countBookingsByDateCategory,
+  filterBookingsByDate
+} from './utils/appointmentHelpers';
 
 export default function AppointmentsPage() {
   const [user] = useAuthState(auth);
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const {
+    bookings,
+    loading,
+    error: appointmentError,
+    subscribeToBookings,
+    updateBookingStatus,
+    deleteBooking
+  } = useAppointments();
+
   const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(appointmentError);
 
-  // Modal states
-  const [selectedBooking, setSelectedBooking] = useState<{ id: string, action: 'accept' | 'cancel' } | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<{
+    id: string;
+    action: 'accept' | 'cancel';
+  } | null>(null);
+
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
 
-  // Filter states
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [barberFilter, setBarberFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<string>('all');
 
-  // Fetch bookings
+  // activate queue notifications
+  useQueueNotifications(bookings as Booking[]);
+
+  // subscribe to real-time bookings updates
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    if (!user) {
+      return;
+    }
 
-        if (user) {
-          // Fetch bookings
-          const bookingsCollection = collection(db, 'bookings');
-          const bookingsQuery = query(bookingsCollection, where('barbershopId', '==', user.uid));
-          const bookingsSnapshot = await getDocs(bookingsQuery);
-
-          const bookingsList = bookingsSnapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id
-          })) as Booking[];
-
-          setBookings(bookingsList);
-
-          // Set today's bookings
-          updateTodayBookings(selectedDate, bookingsList);
-        }
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+    const unsubscribe = subscribeToBookings(user.uid);
+    return () => {
+      if (unsubscribe) unsubscribe();
     };
+  }, [user, subscribeToBookings]);
 
-    fetchData();
-  }, [user]);
+  useEffect(() => {
+    if (appointmentError) {
+      setError(appointmentError);
+    }
+  }, [appointmentError]);
 
-  // Update today's bookings when selected date changes
-  const updateTodayBookings = (date: Date, bookingsList: Booking[] = bookings) => {
-    const dateString = date.toDateString();
-    const filtered = bookingsList.filter(booking =>
-      new Date(booking.date).toDateString() === dateString
-    );
-    setTodayBookings(filtered);
-  };
+  // update today's bookings when selected date changes
+  const updateTodayBookings = useCallback(
+    (date: Date, bookingsList: Booking[] = bookings as Booking[]) => {
+      const filtered = filterBookingsByDate(bookingsList, date);
+      setTodayBookings(filtered);
+    },
+    [bookings]
+  );
+
+  // update today's bookings when bookings data changes
+  useEffect(() => {
+    updateTodayBookings(selectedDate, bookings as Booking[]);
+  }, [bookings, selectedDate, updateTodayBookings]);
 
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
     updateTodayBookings(date);
   };
 
-  // Update booking status
-  const updateBookingStatus = async (bookingId: string, status: Booking['status'], reason?: string) => {
-    try {
-      const bookingRef = doc(db, 'bookings', bookingId);
-      const updateData: any = { status };
-
-      // Add reason if provided
-      if (reason && status === 'canceled') {
-        updateData.barberReason = reason;
-      }
-
-      // Add status history entry
-      const timestamp = Date.now().toString();
-      const historyEntry = {
-        status,
-        timestamp,
-        updatedBy: 'barber',
-        reason: reason || ''
-      };
-
-      // Get current booking to check if statusHistory exists
-      const bookingDoc = await getDocs(query(collection(db, 'bookings'), where('id', '==', bookingId)));
-      let currentBooking: any = null;
-
-      bookingDoc.forEach(doc => {
-        currentBooking = doc.data();
-      });
-
-      if (currentBooking) {
-        if (currentBooking.statusHistory) {
-          updateData.statusHistory = [...currentBooking.statusHistory, historyEntry];
-        } else {
-          updateData.statusHistory = [historyEntry];
-        }
-      }
-
-      await updateDoc(bookingRef, updateData);
-
-      // Update local state
-      const updatedBookings = bookings.map(booking =>
-        booking.id === bookingId ? {
-          ...booking,
-          status,
-          barberReason: status === 'canceled' ? reason : booking.barberReason,
-          statusHistory: updateData.statusHistory
-        } : booking
-      );
-
-      setBookings(updatedBookings);
-      updateTodayBookings(selectedDate, updatedBookings);
-
-      // Close confirmation modal
+  // handle booking status update
+  const handleUpdateBookingStatus = async (
+    bookingId: string,
+    status: Booking['status'],
+    reason?: string
+  ) => {
+    const success = await updateBookingStatus(bookingId, status, reason);
+    if (success) {
       setSelectedBooking(null);
-
-      return true;
-    } catch (err) {
-      console.error('Error updating booking status:', err);
+    } else {
       setError('Failed to update booking status. Please try again.');
-      return false;
     }
+    return success;
   };
 
   const handleAccept = (bookingId: string) => {
@@ -156,52 +118,39 @@ export default function AppointmentsPage() {
     if (selectedBooking) {
       const { id, action } = selectedBooking;
       action === 'accept'
-        ? await updateBookingStatus(id, 'confirmed')
-        : await updateBookingStatus(id, 'canceled');
+        ? await handleUpdateBookingStatus(id, 'confirmed')
+        : await handleUpdateBookingStatus(id, 'cancelled');
     }
   };
 
   const confirmDelete = async () => {
     if (bookingToDelete) {
-      try {
-        const bookingRef = doc(db, 'bookings', bookingToDelete);
-        await deleteDoc(bookingRef);
-
-        // Update local state
-        const updatedBookings = bookings.filter(booking => booking.id !== bookingToDelete);
-        setBookings(updatedBookings);
-        updateTodayBookings(selectedDate, updatedBookings);
-
-        // Close modals
+      const success = await deleteBooking(bookingToDelete);
+      if (success) {
         setBookingToDelete(null);
-      } catch (err) {
-        console.error('Error deleting booking:', err);
+      } else {
         setError('Failed to delete booking. Please try again.');
       }
     }
   };
 
-  // Filter bookings
-  const filteredBookings = bookings.filter(booking => {
-    // Status filter
-    if (statusFilter !== 'all' && booking.status !== statusFilter) return false;
+  // filter bookings using helper function
+  const filteredBookings = filterBookings(
+    bookings as Booking[],
+    statusFilter,
+    barberFilter,
+    searchQuery
+  );
 
-    // Barber filter
-    if (barberFilter !== 'all' && booking.barberName !== barberFilter) return false;
+  // get unique barber names for filter
+  const uniqueBarbers = getUniqueBarbers(bookings as Booking[]);
 
-    // Search query
-    if (searchQuery && !booking.clientName.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !booking.serviceOrdered.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-
-    return true;
-  });
-
-  // Get unique barber names for filter
-  const uniqueBarbers = Array.from(new Set(bookings.map(b => b.barberName)));
+  // count bookings by date category
+  const { todayCount, pastCount, upcomingCount } =
+    countBookingsByDateCategory(bookings as Booking[]);
 
   return (
     <div className="p-4">
-
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
           <p>{error}</p>
@@ -215,18 +164,19 @@ export default function AppointmentsPage() {
         </div>
       ) : (
         <>
-          {/* Stats Dashboard */}
-          <StatsCards bookings={bookings} />
-
-          {/* Calendar and Today's Bookings */}
-          <TodayBookingsCard
-            todayBookings={todayBookings}
-            selectedDate={selectedDate}
-            onDateChange={handleDateChange}
-          />
-
-          {/* Filters */}
-          <div className="flex justify-between items-center mb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 mb-6">
+            <div className="lg:col-span-7">
+              <QueueStats bookings={bookings as Booking[]} />
+            </div>
+            <div className="lg:col-span-3 max-h-[60vh] overflow-y-auto">
+              <TodayBookingsCard
+                todayBookings={todayBookings}
+                selectedDate={selectedDate}
+                onDateChange={handleDateChange}
+              />
+            </div>
+          </div>
+          <div className="mb-4">
             <FilterBar
               statusFilter={statusFilter}
               setStatusFilter={setStatusFilter}
@@ -235,35 +185,39 @@ export default function AppointmentsPage() {
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               uniqueBarbers={uniqueBarbers}
+              dateFilter={dateFilter}
+              setDateFilter={setDateFilter}
+              todayCount={todayCount}
+              pastCount={pastCount}
+              upcomingCount={upcomingCount}
             />
-
-            <a
-              href="/dashboard/appointments/test"
-              className="ml-4 px-3 py-1 bg-gray-200 text-gray-700 rounded-md text-sm hover:bg-gray-300 transition-colors flex items-center"
-            >
-              <i className="fas fa-vial mr-1"></i> Test Data
-            </a>
           </div>
-
-          {/* Appointments Table */}
-          <BookingTable
-            bookings={filteredBookings}
-            handleAccept={handleAccept}
-            handleCancel={handleCancel}
-            handleDelete={handleDelete}
-          />
-
-          {/* Confirmation Modals */}
+          <div className="bg-white rounded-lg shadow-sm">
+            <BookingTable
+              bookings={filteredBookings as Booking[]}
+              handleAccept={handleAccept}
+              handleCancel={handleCancel}
+              handleDelete={handleDelete}
+              dateFilter={dateFilter}
+            />
+          </div>
           <ConfirmationModal
             title="Confirm Action"
-            message={`Are you sure you want to ${selectedBooking?.action === 'accept' ? 'accept' : 'cancel'} this booking?`}
+            message={`Are you sure you want to ${
+              selectedBooking?.action === 'accept' ? 'accept' : 'cancel'
+            } this booking?`}
             isOpen={selectedBooking !== null}
             onClose={() => setSelectedBooking(null)}
             onConfirm={confirmAction}
-            confirmText={selectedBooking?.action === 'accept' ? 'Accept' : 'Cancel'}
-            confirmColor={selectedBooking?.action === 'accept' ? 'bg-green-500' : 'bg-yellow-500'}
+            confirmText={
+              selectedBooking?.action === 'accept' ? 'Accept' : 'Cancel'
+            }
+            confirmColor={
+              selectedBooking?.action === 'accept'
+                ? 'bg-green-500'
+                : 'bg-yellow-500'
+            }
           />
-
           <ConfirmationModal
             title="Confirm Deletion"
             message="Are you sure you want to delete this booking? This action cannot be undone."
@@ -273,8 +227,6 @@ export default function AppointmentsPage() {
             confirmText="Delete"
             confirmColor="bg-red-500"
           />
-
-
         </>
       )}
     </div>

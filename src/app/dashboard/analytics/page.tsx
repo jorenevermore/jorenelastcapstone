@@ -2,114 +2,76 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '../../../lib/firebase';
-import { collection, query, where, getDocs, Timestamp } from 'firebase/firestore';
-import { 
-  SummaryCards, 
-  AppointmentTrends, 
-  ServicePopularity, 
+import { auth } from '../../../lib/firebase';
+import {
+  SummaryCards,
+  AppointmentTrends,
+  ServicePopularity,
   BarberPerformance,
   RevenueChart,
   CustomerRetention,
-  AppointmentStatusChart
+  AppointmentStatusChart,
+  CancellationReasons
 } from './components';
 import DateRangePicker from './components/DateRangePicker';
-
-interface Booking {
-  id: string;
-  clientName: string;
-  serviceOrdered: string;
-  barberName: string;
-  styleOrdered: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'canceled' | 'completed';
-  barbershopId: string;
-  price?: string;
-  clientId?: string;
-  createdAt?: Timestamp;
-}
+import { useAnalytics } from '../../../lib/hooks/useAnalytics';
 
 export default function AnalyticsPage() {
   const [user] = useAuthState(auth);
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  // Date range filter
+  const { bookings, loading, error: analyticsError, fetchBookings } = useAnalytics();
+  const [error, setError] = useState<string | null>(analyticsError);
+
+  // date range filter
   const [startDate, setStartDate] = useState<Date>(() => {
-    const date = new Date();
-    date.setDate(date.getDate() - 30); // Default to last 30 days
+    let date = new Date();
+    date.setDate(date.getDate() - 30);
     return date;
   });
   const [endDate, setEndDate] = useState<Date>(new Date());
-  
-  // Fetch bookings data
+
+  // fetch bookings
   useEffect(() => {
-    const fetchBookings = async () => {
-      if (!user) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const bookingsCollection = collection(db, 'bookings');
-        const bookingsQuery = query(
-          bookingsCollection,
-          where('barbershopId', '==', user.uid)
-        );
-        
-        const bookingsSnapshot = await getDocs(bookingsQuery);
-        const bookingsData: Booking[] = [];
-        
-        bookingsSnapshot.forEach(doc => {
-          const data = doc.data() as Booking;
-          bookingsData.push({
-            ...data,
-            id: doc.id
-          });
-        });
-        
-        setBookings(bookingsData);
-      } catch (err) {
-        console.error('Error fetching bookings:', err);
-        setError('Failed to load analytics data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchBookings();
-  }, [user]);
+    if (!user) {
+      return;
+    }
+
+    fetchBookings(user.uid);
+  }, [user, fetchBookings]);
+
+  useEffect(() => {
+    if (analyticsError) {
+      setError(analyticsError);
+    }
+  }, [analyticsError]);
   
-  // Filter bookings by date range
+    // filter bookings by date range
   const filteredBookings = bookings.filter(booking => {
-    const bookingDate = new Date(booking.date);
-    return bookingDate >= startDate && bookingDate <= endDate;
+    let bookingDate = new Date(booking.date);
+    // set time to start of day for accurate comparison
+    bookingDate.setHours(0, 0, 0, 0);
+    let filterStartDate = new Date(startDate);
+    filterStartDate.setHours(0, 0, 0, 0);
+    let filterEndDate = new Date(endDate);
+    filterEndDate.setHours(23, 59, 59, 999);
+    return bookingDate >= filterStartDate && bookingDate <= filterEndDate;
   });
-  
-  // Calculate key metrics
+
+  // calculate key metrics
   const totalAppointments = filteredBookings.length;
   const completedAppointments = filteredBookings.filter(b => b.status === 'completed').length;
-  const canceledAppointments = filteredBookings.filter(b => b.status === 'canceled').length;
+  const canceledAppointments = filteredBookings.filter(b => b.status === 'cancelled').length;
   const pendingAppointments = filteredBookings.filter(b => b.status === 'pending').length;
   const confirmedAppointments = filteredBookings.filter(b => b.status === 'confirmed').length;
-  
-  // Calculate total revenue (if price is available)
+
+  // calculate total revenue (if price is available)
   const totalRevenue = filteredBookings
-    .filter(b => b.status === 'completed' && b.price)
-    .reduce((sum, booking) => sum + (parseFloat(booking.price || '0') || 0), 0);
-  
-  // Get unique services
-  const uniqueServices = [...new Set(filteredBookings.map(b => b.serviceOrdered))];
-  
-  // Get unique barbers
-  const uniqueBarbers = [...new Set(filteredBookings.map(b => b.barberName))];
-  
-  // Get unique customers
+    .filter(b => b.status === 'completed' && (b.finalPrice || b.totalPrice))
+    .reduce((sum, booking) => sum + ((booking.finalPrice || booking.totalPrice) || 0), 0);
+
+  // get unique customers
   const uniqueCustomers = [...new Set(filteredBookings.map(b => b.clientId || b.clientName))];
-  
-  // Handle date range change
+
+  // handle date range change
   const handleDateRangeChange = (start: Date, end: Date) => {
     setStartDate(start);
     setEndDate(end);
@@ -159,9 +121,13 @@ export default function AnalyticsPage() {
             <AppointmentStatusChart bookings={filteredBookings} />
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <BarberPerformance bookings={filteredBookings} />
             <CustomerRetention bookings={filteredBookings} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <CancellationReasons bookings={filteredBookings} />
           </div>
         </>
       )}

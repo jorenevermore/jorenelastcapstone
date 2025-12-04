@@ -61,17 +61,13 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
           </div>
         </td>
         <td className="px-6 py-5 whitespace-nowrap">
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-            ${service.status === 'Available'
-              ? 'bg-green-100 text-green-800 border border-green-200'
-              : 'bg-red-100 text-red-800 border border-red-200'}`}
-          >
-            {service.status === 'Available' ? (
-              <><i className="fas fa-check-circle mr-1.5"></i> {service.status}</>
-            ) : (
-              <><i className="fas fa-times-circle mr-1.5"></i> {service.status}</>
-            )}
-          </span>
+          {service.price ? (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+              <i className="fas fa-dollar-sign mr-1.5"></i> ${service.price}
+            </span>
+          ) : (
+            <span className="text-sm text-gray-500">-</span>
+          )}
         </td>
         <td className="px-6 py-5 whitespace-nowrap">
           <div className="text-sm text-gray-900">{new Date().toLocaleDateString()}</div>

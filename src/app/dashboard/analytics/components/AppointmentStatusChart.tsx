@@ -2,18 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
-
-interface Booking {
-  id: string;
-  clientName: string;
-  serviceOrdered: string;
-  barberName: string;
-  styleOrdered: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'canceled' | 'completed';
-  barbershopId: string;
-}
+import type { Booking } from '../../../../lib/services/appointment/BaseAppointmentService';
 
 interface AppointmentStatusChartProps {
   bookings: Booking[];
@@ -22,42 +11,44 @@ interface AppointmentStatusChartProps {
 const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ bookings }) => {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
-  
+
   useEffect(() => {
     if (!chartRef.current) return;
-    
+
     // Destroy existing chart
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
-    
+
     // Count bookings by status
     const statusCounts = {
       completed: 0,
       confirmed: 0,
       pending: 0,
-      canceled: 0,
+      cancelled: 0,
     };
-    
+
     bookings.forEach(booking => {
-      statusCounts[booking.status] += 1;
+      if (booking.status in statusCounts) {
+        statusCounts[booking.status as keyof typeof statusCounts] += 1;
+      }
     });
-    
+
     // Prepare data for chart
     const data = [
       statusCounts.completed,
       statusCounts.confirmed,
       statusCounts.pending,
-      statusCounts.canceled,
+      statusCounts.cancelled,
     ];
-    
-    const labels = ['Completed', 'Confirmed', 'Pending', 'Canceled'];
-    
+
+    const labels = ['Completed', 'Confirmed', 'Pending', 'Cancelled'];
+
     const backgroundColors = [
       'rgba(16, 185, 129, 0.7)',  // Green for completed
       'rgba(59, 130, 246, 0.7)',  // Blue for confirmed
       'rgba(245, 158, 11, 0.7)',  // Yellow for pending
-      'rgba(239, 68, 68, 0.7)',   // Red for canceled
+      'rgba(239, 68, 68, 0.7)',   // Red for cancelled
     ];
     
     // Create chart
@@ -113,8 +104,8 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
   // Calculate completion rate
   const totalAppointments = bookings.length;
   const completedAppointments = bookings.filter(b => b.status === 'completed').length;
-  const completionRate = totalAppointments > 0 
-    ? Math.round((completedAppointments / totalAppointments) * 100) 
+  const completionRate = totalAppointments > 0
+    ? Math.round((completedAppointments / totalAppointments) * 100)
     : 0;
   
   return (

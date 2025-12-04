@@ -25,18 +25,17 @@ export default function SuperAdminLogin() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Generate session token and expiry
+        // generate session token and expiry
         const sessionToken = btoa(`${email}:${Date.now()}:${Math.random()}`);
-        const sessionExpiry = Date.now() + (3600000); // 1 hour from now
+        const sessionExpiry = Date.now() + (3600000); // 1 hour
 
-        // Store authentication data
+        // store authentication data
         localStorage.setItem('superadmin_token', sessionToken);
         localStorage.setItem('superadmin_session_expiry', sessionExpiry.toString());
 
-        // Also set cookie for middleware detection
+        // set cookie for middleware
         document.cookie = `superadmin_token=${sessionToken}; path=/; max-age=${3600}`; // 1 hour
 
-        // Force a full page redirect to ensure proper state update
         window.location.href = '/superadmin';
       } else {
         setError(data.message || 'Invalid credentials');
@@ -52,7 +51,7 @@ export default function SuperAdminLogin() {
   return (
     <div style={{ padding: '50px', backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
       <div style={{ maxWidth: '400px', margin: '0 auto', backgroundColor: 'white', padding: '30px', borderRadius: '8px', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-        <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>SuperAdmin Login</h1>
+        <h1 style={{ textAlign: 'center', marginBottom: '30px', color: '#333' }}>ALOT SUPERADMIN</h1>
 
         {error && (
           <div style={{ backgroundColor: '#ffebee', color: '#c62828', padding: '10px', marginBottom: '20px', borderRadius: '4px', border: '1px solid #ffcdd2' }}>
@@ -91,7 +90,7 @@ export default function SuperAdminLogin() {
             style={{
               width: '100%',
               padding: '12px',
-              backgroundColor: loading ? '#666' : '#000',
+              backgroundColor: loading ? '#A67C52' : '#BF8F63',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -99,6 +98,8 @@ export default function SuperAdminLogin() {
               fontSize: '16px',
               fontWeight: 'bold'
             }}
+            onMouseEnter={(e) => !loading && (e.currentTarget.style.backgroundColor = '#A67C52')}
+            onMouseLeave={(e) => !loading && (e.currentTarget.style.backgroundColor = '#BF8F63')}
           >
             {loading ? 'Authenticating...' : 'Login to SuperAdmin'}
           </button>

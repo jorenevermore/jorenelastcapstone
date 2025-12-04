@@ -19,7 +19,7 @@ export default function Home() {
   // Check if user is already logged in
   const [user, userLoading] = useAuthState(auth);
 
-  // Redirect to dashboard if already logged in
+  // if logged in, redirect to dashboard
   React.useEffect(() => {
     if (user && !userLoading) {
       router.push('/dashboard');
@@ -32,17 +32,16 @@ export default function Home() {
     setLoading(true);
 
     try {
-      // Sign in with Firebase
+      // sign in w/ firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      // Get the ID token
+      // get the ID token
       const idToken = await userCredential.user.getIdToken();
 
       // Store the token in a cookie for the middleware to use
-      // Using document.cookie for client-side cookie setting
-      document.cookie = `firebaseToken=${idToken}; path=/; max-age=${60 * 60 * 24 * 5}`; // 5 days
+      document.cookie = `firebaseToken=${idToken}; path=/; max-age=${60 * 60 * 24}`;
 
-      // Redirect will happen automatically due to the useEffect above
+      router.push('/dashboard');
     } catch (error) {
       setError((error as Error).message);
     } finally {
@@ -52,8 +51,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white text-gray-800">
-
-      {/* Navigation */}
       <nav className="bg-white border-b border-gray-200 w-full">
         <div className="container-custom py-3">
           <div className="flex justify-between items-center">
@@ -73,10 +70,7 @@ export default function Home() {
           </div>
         </div>
       </nav>
-
-      {/* Hero Section */}
       <section className="relative py-20 md:py-28 overflow-hidden">
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-black opacity-50 z-10"></div>
           <Image
@@ -109,8 +103,6 @@ export default function Home() {
                   Download Client App
                 </button>
               </div>
-
-              {/* Removed hero image as we're using the background image */}
             </div>
             <div className="md:w-1/2 flex justify-center">
               <div className="w-full max-w-md card animate-fadeIn">
@@ -192,8 +184,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Features Section */}
       <section className="bg-white py-20">
         <div className="container-custom">
           <div className="text-center mb-16">
@@ -233,8 +223,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* How It Works Section */}
       <section className="bg-gray-50 py-20">
         <div className="container-custom">
           <div className="text-center mb-16">
@@ -245,30 +233,28 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="text-center">
-              <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4">1</div>
+              <div className="w-12 h-12 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4" style={{ backgroundColor: '#BF8F63' }}>1</div>
               <h3 className="heading-4 mb-4">Register</h3>
               <p className="text-body">Sign up your barbershop with basic information</p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4">2</div>
+              <div className="w-12 h-12 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4" style={{ backgroundColor: '#BF8F63' }}>2</div>
               <h3 className="heading-4 mb-4">Set Up</h3>
               <p className="text-body">Add your services, staff, and business hours</p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4">3</div>
+              <div className="w-12 h-12 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4" style={{ backgroundColor: '#BF8F63' }}>3</div>
               <h3 className="heading-4 mb-4">Connect</h3>
               <p className="text-body">Clients find you through the mobile app</p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4">4</div>
+              <div className="w-12 h-12 text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-4" style={{ backgroundColor: '#BF8F63' }}>4</div>
               <h3 className="heading-4 mb-4">Manage</h3>
               <p className="text-body">Handle bookings and grow your business</p>
             </div>
           </div>
         </div>
       </section>
-
-      {/* About Section */}
       <section className="bg-white py-20">
         <div className="container-custom">
           <div className="flex flex-col md:flex-row items-center">
@@ -289,31 +275,31 @@ export default function Home() {
                 <h3 className="heading-3 mb-6">Why Choose ALOT?</h3>
                 <ul className="space-y-4">
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 h-6 w-6 bg-black rounded-full flex items-center justify-center text-white mr-3">
+                    <div className="flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-white mr-3" style={{ backgroundColor: '#BF8F63' }}>
                       <i className="fas fa-check text-sm"></i>
                     </div>
                     <span className="text-body">Easy-to-use interface designed specifically for barbershops</span>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 h-6 w-6 bg-black rounded-full flex items-center justify-center text-white mr-3">
+                    <div className="flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-white mr-3" style={{ backgroundColor: '#BF8F63' }}>
                       <i className="fas fa-check text-sm"></i>
                     </div>
                     <span className="text-body">Seamless integration between admin portal and client mobile app</span>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 h-6 w-6 bg-black rounded-full flex items-center justify-center text-white mr-3">
+                    <div className="flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-white mr-3" style={{ backgroundColor: '#BF8F63' }}>
                       <i className="fas fa-check text-sm"></i>
                     </div>
                     <span className="text-body">Real-time appointment updates and notifications</span>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 h-6 w-6 bg-black rounded-full flex items-center justify-center text-white mr-3">
+                    <div className="flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-white mr-3" style={{ backgroundColor: '#BF8F63' }}>
                       <i className="fas fa-check text-sm"></i>
                     </div>
                     <span className="text-body">Secure data storage and management</span>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 h-6 w-6 bg-black rounded-full flex items-center justify-center text-white mr-3">
+                    <div className="flex-shrink-0 h-6 w-6 rounded-full flex items-center justify-center text-white mr-3" style={{ backgroundColor: '#BF8F63' }}>
                       <i className="fas fa-check text-sm"></i>
                     </div>
                     <span className="text-body">Detailed business analytics and reporting</span>
@@ -324,8 +310,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* CTA Section */}
       <section className="bg-black text-white py-10">
         <div className="container-custom text-center">
           <h2 className="text-2xl font-bold mb-4 text-white">Ready to grow your barbershop business?</h2>
@@ -346,8 +330,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
       <footer className="bg-black text-white py-8">
         <div className="container-custom">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">

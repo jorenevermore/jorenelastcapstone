@@ -1,9 +1,15 @@
 export interface Service {
   id: string;
   title: string;
+  description?: string;
+  price?: number;
+  duration?: number;
   featuredImage: string | null;
-  status: 'Available' | 'Disabled';
   serviceCategoryId: string; // References global service ID
+  status?: string; // e.g., "Available"
+  barbershopId?: string;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 export interface GlobalService {

@@ -10,6 +10,11 @@ interface FilterBarProps {
   searchQuery: string;
   setSearchQuery: (value: string) => void;
   uniqueBarbers: string[];
+  dateFilter: string;
+  setDateFilter: (value: string) => void;
+  todayCount: number;
+  pastCount: number;
+  upcomingCount: number;
 }
 
 const FilterBar = ({
@@ -19,12 +24,18 @@ const FilterBar = ({
   setBarberFilter,
   searchQuery,
   setSearchQuery,
-  uniqueBarbers
+  uniqueBarbers,
+  dateFilter,
+  setDateFilter,
+  todayCount,
+  pastCount,
+  upcomingCount
 }: FilterBarProps) => {
   const handleReset = () => {
     setStatusFilter('all');
     setBarberFilter('all');
     setSearchQuery('');
+    setDateFilter('today');
   };
 
   return (
@@ -63,7 +74,7 @@ const FilterBar = ({
               <option value="confirmed">Confirmed</option>
               <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
-              <option value="canceled">Canceled</option>
+              <option value="cancelled">Cancelled</option>
               <option value="no-show">No Show</option>
             </select>
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
@@ -93,7 +104,25 @@ const FilterBar = ({
             </div>
           </div>
 
-          {(statusFilter !== 'all' || barberFilter !== 'all' || searchQuery) && (
+          <div className="relative">
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="appearance-none pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+            >
+              <option value="all">All Bookings ({todayCount + pastCount + upcomingCount})</option>
+              <option value="today">Today's Bookings ({todayCount})</option>
+              <option value="upcoming">Upcoming Bookings ({upcomingCount})</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+              <i className="fas fa-calendar text-gray-400 text-xs"></i>
+            </div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+              <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
+            </div>
+          </div>
+
+          {(statusFilter !== 'all' || barberFilter !== 'all' || searchQuery || dateFilter !== 'today') && (
             <button
               onClick={handleReset}
               className="p-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"

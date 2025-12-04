@@ -6,3 +6,4 @@ export { default as RevenueChart } from './RevenueChart';
 export { default as CustomerRetention } from './CustomerRetention';
 export { default as AppointmentStatusChart } from './AppointmentStatusChart';
 export { default as DateRangePicker } from './DateRangePicker';
+export { default as CancellationReasons } from './CancellationReasons';

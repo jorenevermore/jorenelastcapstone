@@ -3,9 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db, storage } from '../../../lib/firebase';
-import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Barber, getAllBarbers, getBarbersByBarbershopId, addBarber, updateBarber, deleteBarber } from '../../../services/barberService';
+import { useStaff, Barber } from '../../../lib/hooks/useStaff';
 
 export default function StaffPage() {
   const [user] = useAuthState(auth);
@@ -13,36 +13,47 @@ export default function StaffPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Form state for adding/editing barbers
+  const {
+    getBarbersByBarbershopId,
+    addBarberToBarbershop,
+    removeBarberFromBarbershop,
+    updateBarber: updateBarberService,
+    deleteBarber: deleteBarberService
+  } = useStaff();
+
+  // form state for adding/editing barbers
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentBarber, setCurrentBarber] = useState<Barber | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
-  // Form fields
+  // form fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [address, setAddress] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
 
-  // Image upload state
+  // image upload state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Fetch barbershop details and barbers
+  // fetch barbershop details and barbers
   useEffect(() => {
     const fetchBarbershopDetails = async () => {
       try {
         if (user) {
-          // First, get the barbershop details
+          // fetch barbershopId
           const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
           if (barbershopDoc.exists()) {
-            // Now fetch barbers for this barbershop
-            const fetchedBarbers = await getBarbersByBarbershopId(user.uid);
-            setBarbers(fetchedBarbers);
+            const result = await getBarbersByBarbershopId(user.uid);
+            if (result.success && result.data) {
+              setBarbers(result.data as Barber[]);
+            } else {
+              setError(result.message || 'Failed to load barbers');
+            }
           } else {
             setError("No barbershop found for this account. Please set up your barbershop first.");
           }
@@ -58,7 +69,7 @@ export default function StaffPage() {
     setLoading(true);
     setError(null);
     fetchBarbershopDetails();
-  }, [user]);
+  }, [user, getBarbersByBarbershopId]);
 
   // Reset form fields
   const resetForm = () => {
@@ -182,26 +193,33 @@ export default function StaffPage() {
       };
 
       if (isEditing && currentBarber) {
-        // Update existing barber
-        await updateBarber(currentBarber.barberId, barberData);
+        // Update existing barber using OOP hook
+        const result = await updateBarberService(currentBarber.barberId, barberData);
 
-        // Update local state
-        setBarbers(barbers.map(b =>
+        if (!result.success) {
+          setError(result.message || 'Failed to update barber');
+          return;
+        }
+
+        // Update local state - use functional update to avoid stale closure
+        setBarbers(prev => prev.map(b =>
           b.barberId === currentBarber.barberId
             ? { ...barberData, barberId: currentBarber.barberId }
             : b
         ));
       } else {
-        // Add new barber
-        const newBarberId = await addBarber(barberData);
+        // Add new barber to barbershop using OOP hook
+        const result = await addBarberToBarbershop(user.uid, barberData);
 
-        // Also update the barbershop document to include this barber
-        await updateDoc(doc(db, 'barbershops', user.uid), {
-          barbers: arrayUnion(newBarberId)
-        });
+        if (!result.success || !result.data) {
+          setError(result.message || 'Failed to add barber');
+          return;
+        }
 
-        // Update local state
-        setBarbers([...barbers, { ...barberData, barberId: newBarberId }]);
+        const newBarberId = result.data.barberId || (result.data as string);
+
+        // Update local state - use functional update to avoid stale closure
+        setBarbers(prev => [...prev, { ...barberData, barberId: newBarberId }]);
       }
 
       // Close form and reset fields
@@ -224,27 +242,24 @@ export default function StaffPage() {
       setLoading(true);
 
       if (user) {
-        // First, remove the barber from the barbershop's barbers array
-        // This requires a different approach since we can't easily remove from an array
-        // We'll need to get the current array, filter it, and set it back
-        const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
-        if (barbershopDoc.exists()) {
-          const barbershopData = barbershopDoc.data();
-          const currentBarbers = barbershopData.barbers || [];
-          const updatedBarbers = currentBarbers.filter((id: string) => id !== barberId);
-
-          // Update the barbershop document
-          await updateDoc(doc(db, 'barbershops', user.uid), {
-            barbers: updatedBarbers
-          });
+        // Remove the barber from the barbershop's barbers array using OOP hook
+        const removeResult = await removeBarberFromBarbershop(user.uid, barberId);
+        if (!removeResult.success) {
+          setError(removeResult.message || 'Failed to remove barber from barbershop');
+          return;
         }
       }
 
-      // Delete the barber document
-      await deleteBarber(barberId);
+      // Delete the barber document using OOP hook
+      const result = await deleteBarberService(barberId);
 
-      // Update local state
-      setBarbers(barbers.filter(b => b.barberId !== barberId));
+      if (!result.success) {
+        setError(result.message || 'Failed to delete barber');
+        return;
+      }
+
+      // Update local state - use functional update to avoid stale closure
+      setBarbers(prev => prev.filter(b => b.barberId !== barberId));
     } catch (err) {
       console.error('Error deleting barber:', err);
       setError('Failed to delete barber. Please try again.');
@@ -259,11 +274,16 @@ export default function StaffPage() {
       setLoading(true);
       const newAvailability = !barber.isAvailable;
 
-      // Update in database
-      await updateBarber(barber.barberId, { isAvailable: newAvailability });
+      // Update in database using OOP hook
+      const result = await updateBarberService(barber.barberId, { isAvailable: newAvailability });
 
-      // Update local state
-      setBarbers(barbers.map(b =>
+      if (!result.success) {
+        setError(result.message || 'Failed to update availability');
+        return;
+      }
+
+      // Update local state - use functional update to avoid stale closure
+      setBarbers(prev => prev.map(b =>
         b.barberId === barber.barberId
           ? { ...b, isAvailable: newAvailability }
           : b
@@ -408,7 +428,8 @@ export default function StaffPage() {
                 <label className="flex items-center">
                   <input
                     type="checkbox"
-                    className="form-checkbox h-5 w-5 text-black"
+                    className="form-checkbox h-5 w-5"
+                    style={{ accentColor: '#BF8F63' }}
                     checked={isAvailable}
                     onChange={(e) => setIsAvailable(e.target.checked)}
                   />
@@ -444,14 +465,20 @@ export default function StaffPage() {
       {/* View Toggle Buttons */}
       <div className="mb-6 flex space-x-4">
         <button
-          className="px-4 py-2 rounded-md bg-black text-white font-medium text-sm"
+          className="px-4 py-2 rounded-md text-white font-medium text-sm transition-colors"
           onClick={() => setViewMode('grid')}
+          style={{ backgroundColor: viewMode === 'grid' ? '#BF8F63' : '#E5E7EB', color: viewMode === 'grid' ? 'white' : '#4B5563' }}
+          onMouseEnter={(e) => viewMode === 'grid' && (e.currentTarget.style.backgroundColor = '#A67C52')}
+          onMouseLeave={(e) => viewMode === 'grid' && (e.currentTarget.style.backgroundColor = '#BF8F63')}
         >
           <i className="fas fa-th-large mr-2"></i> Grid View
         </button>
         <button
-          className="px-4 py-2 rounded-md bg-gray-200 text-gray-700 font-medium text-sm"
+          className="px-4 py-2 rounded-md font-medium text-sm transition-colors"
           onClick={() => setViewMode('table')}
+          style={{ backgroundColor: viewMode === 'table' ? '#BF8F63' : '#E5E7EB', color: viewMode === 'table' ? 'white' : '#4B5563' }}
+          onMouseEnter={(e) => viewMode === 'table' && (e.currentTarget.style.backgroundColor = '#A67C52')}
+          onMouseLeave={(e) => viewMode === 'table' && (e.currentTarget.style.backgroundColor = '#BF8F63')}
         >
           <i className="fas fa-list mr-2"></i> Table View
         </button>

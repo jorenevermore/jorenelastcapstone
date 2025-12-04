@@ -37,11 +37,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen">
+    <div className="bg-gray-100 min-h-screen" style={{ backgroundColor: '#f3f4f6' }}>
       <Sidebar />
-      <div className="ml-64">
+      <div className="ml-64" style={{ backgroundColor: '#f3f4f6' }}>
         <Header />
-        <main className="pt-12 min-h-screen">
+        <main className="pt-12 min-h-screen" style={{ backgroundColor: '#f3f4f6' }}>
           {children}
         </main>
       </div>

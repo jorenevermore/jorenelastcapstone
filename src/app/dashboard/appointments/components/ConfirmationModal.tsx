@@ -12,12 +12,12 @@ interface ConfirmationModalProps {
   confirmColor?: string;
 }
 
-const ConfirmationModal = ({ 
-  title, 
-  message, 
-  isOpen, 
-  onClose, 
-  onConfirm, 
+const ConfirmationModal = ({
+  title,
+  message,
+  isOpen,
+  onClose,
+  onConfirm,
   confirmText = 'Confirm',
   confirmColor = 'bg-black'
 }: ConfirmationModalProps) => {

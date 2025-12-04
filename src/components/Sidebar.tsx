@@ -5,18 +5,18 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { auth } from '../lib/firebase';
-import { useNotifications } from '../hooks/useNotifications';
+import { useNotifications } from '../lib/hooks/useNotifications';
 
-const Sidebar = () => {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { unreadCount } = useNotifications();
+let Sidebar = () => {
+  let pathname = usePathname();
+  let router = useRouter();
+  let { unreadCount } = useNotifications();
 
-  const isActive = (path: string) => {
+  let isActive = (path: string) => {
     return pathname === path;
   };
 
-  const navItems = [
+  let navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: 'fas fa-tachometer-alt' },
     { name: 'Appointments', path: '/dashboard/appointments', icon: 'fas fa-calendar-alt' },
     { name: 'Services', path: '/dashboard/services', icon: 'fas fa-cut' },
@@ -43,19 +43,27 @@ const Sidebar = () => {
             <li key={item.path}>
               <Link
                 href={item.path}
-                className={`flex items-center px-4 py-3 rounded-md transition-colors relative ${
+                className={`flex items-center px-4 py-3 rounded-md transition-colors relative text-white group ${
                   isActive(item.path)
-                    ? 'bg-gray-800 text-white'
-                    : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                    ? ''
+                    : 'text-gray-400 group-hover:text-white'
                 }`}
+                style={{
+                  backgroundColor: isActive(item.path) ? '#BF8F63' : 'transparent',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive(item.path)) {
+                    e.currentTarget.style.backgroundColor = '#BF8F63';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive(item.path)) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
               >
                 <i className={`${item.icon} w-5 mr-3`}></i>
                 <span>{item.name}</span>
-                {item.name === 'Notifications' && unreadCount > 0 && (
-                  <span className="absolute top-2 left-8 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
               </Link>
             </li>
           ))}
@@ -78,7 +86,9 @@ const Sidebar = () => {
               console.error('Error signing out:', error);
             }
           }}
-          className="flex items-center text-gray-400 hover:text-white transition-colors w-full text-left"
+          className="flex items-center text-gray-400 transition-colors w-full text-left"
+          onMouseEnter={(e) => e.currentTarget.style.color = '#BF8F63'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#9CA3AF'}
         >
           <i className="fas fa-sign-out-alt mr-3"></i>
           <span>Logout</span>

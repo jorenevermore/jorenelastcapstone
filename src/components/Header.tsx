@@ -6,15 +6,15 @@ import { auth } from '../lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import NotificationDropdown from './NotificationDropdown';
 
-const Header = () => {
-  const pathname = usePathname();
-  const [user] = useAuthState(auth);
+let Header = () => {
+  let pathname = usePathname();
+  let [user] = useAuthState(auth);
 
 
-  const getPageTitle = () => {
-    const path = pathname.split('/').pop() || '';
+  let getPageTitle = () => {
+    let path = pathname.split('/').pop() || '';
 
-    const pageTitles: Record<string, string> = {
+    let pageTitles: Record<string, string> = {
       'dashboard': 'Dashboard',
       'appointments': 'Appointments',
       'services': 'Services',
@@ -30,12 +30,12 @@ const Header = () => {
   return (
     <header className="bg-white border-b border-gray-200 h-12 fixed top-0 right-0 left-64 z-10">
       <div className="flex justify-between items-center h-full px-4">
-        <h1 className="text-lg font-semibold text-gray-800">{getPageTitle()}</h1>
+        <h1 className="text-lg font-semibold text-black">{getPageTitle()}</h1>
         <div className="flex items-center space-x-4">
           <NotificationDropdown />
 
           <div className="flex items-center">
-            <div className="w-7 h-7 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 mr-2 text-xs">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white mr-2 text-xs font-semibold" style={{ backgroundColor: '#BF8F63' }}>
               {user?.email?.charAt(0).toUpperCase() || 'U'}
             </div>
             <span className="text-xs text-gray-700">{user?.email || 'User'}</span>

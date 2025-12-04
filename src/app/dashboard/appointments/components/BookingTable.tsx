@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Booking } from '../types';
 
@@ -9,15 +9,41 @@ interface BookingTableProps {
   handleAccept: (id: string) => void;
   handleCancel: (id: string) => void;
   handleDelete: (id: string) => void;
+  dateFilter: string;
 }
 
 const BookingTable = ({
   bookings,
   handleAccept,
   handleCancel,
-  handleDelete
+  handleDelete,
+  dateFilter
 }: BookingTableProps) => {
   const router = useRouter();
+
+  // Filter bookings by date
+  const getFilteredBookings = () => {
+    const today = new Date();
+    const todayISO = today.toISOString().split('T')[0];
+
+    return bookings.filter(booking => {
+      // Extract ISO date from booking.date (handles ISO format like "2025-11-25T00:00:00.000Z")
+      const bookingDateISO = booking.date.split('T')[0];
+
+      switch (dateFilter) {
+        case 'all':
+          return true;
+        case 'today':
+          return bookingDateISO === todayISO;
+        case 'upcoming':
+          return bookingDateISO > todayISO;
+        default:
+          return true;
+      }
+    });
+  };
+
+  const filteredBookings = getFilteredBookings();
 
   // Helper function to get status badge styling
   const getStatusBadgeStyle = (status: string) => {
@@ -30,7 +56,7 @@ const BookingTable = ({
         return 'bg-purple-100 text-purple-800 border border-purple-200';
       case 'completed':
         return 'bg-green-100 text-green-800 border border-green-200';
-      case 'canceled':
+      case 'cancelled':
         return 'bg-red-100 text-red-800 border border-red-200';
       case 'no-show':
         return 'bg-gray-100 text-gray-800 border border-gray-200';
@@ -50,7 +76,7 @@ const BookingTable = ({
         return 'fas fa-spinner fa-spin';
       case 'completed':
         return 'fas fa-check-double';
-      case 'canceled':
+      case 'cancelled':
         return 'fas fa-times-circle';
       case 'no-show':
         return 'fas fa-user-slash';
@@ -60,19 +86,19 @@ const BookingTable = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-4">
-      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100">
+    <div className="bg-white rounded-lg shadow-sm overflow-hidden h-full flex flex-col">
+      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-gray-50 flex-shrink-0">
         <div className="flex items-center">
-          <i className="fas fa-list text-gray-400 mr-2"></i>
-          <span className="text-sm font-medium text-gray-700">Your List</span>
+          <i className="fas fa-th-list text-gray-600 mr-2"></i>
+          <span className="text-sm font-semibold text-gray-700">All Bookings</span>
         </div>
         <p className="text-xs text-gray-500">
-          Showing <span className="font-medium text-gray-700">{bookings.length}</span> results
+          Showing <span className="font-medium text-gray-700">{filteredBookings.length}</span> booking{filteredBookings.length !== 1 ? 's' : ''}
         </p>
       </div>
 
-      <div className="overflow-x-auto">
-        {bookings.length > 0 ? (
+      <div className="overflow-auto flex-1">
+        {filteredBookings.length > 0 ? (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100 text-xs">
               <tr>
@@ -85,10 +111,14 @@ const BookingTable = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {bookings.map(booking => (
+              {filteredBookings.map(booking => (
                 <tr
                   key={booking.id}
-                  className="hover:bg-gray-50 cursor-pointer border-l-2 border-transparent hover:border-black transition-colors"
+                  className={`hover:bg-gray-50 cursor-pointer border-l-4 transition-colors ${
+                    booking.isEmergency
+                      ? 'border-red-500 bg-red-50/30'
+                      : 'border-transparent hover:border-black'
+                  }`}
                   onClick={() => router.push(`/dashboard/appointments/${booking.id}`)}
                 >
                   <td className="px-4 py-3">
@@ -105,8 +135,8 @@ const BookingTable = ({
                             </span>
                           )}
                           {booking.isEmergency && (
-                            <span className="inline-flex items-center text-xs text-red-600">
-                              <i className="fas fa-exclamation-circle text-xs mr-1"></i> Emergency
+                            <span className="inline-flex items-center text-xs text-red-600 font-semibold">
+                              <i className="fas fa-exclamation-circle text-xs mr-1"></i> RUSH BOOKING
                             </span>
                           )}
                         </div>
@@ -126,7 +156,54 @@ const BookingTable = ({
                       day: 'numeric',
                       year: 'numeric'
                     })}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">{booking.time}</div>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="text-xs text-gray-500">
+                        {(() => {
+                          const startTime = booking.time?.split('-')[0]?.trim() || '';
+                          const hour = parseInt(startTime.split(':')[0]);
+                          return hour < 13 ? 'Morning Session' : 'Afternoon Session';
+                        })()}
+                      </span>
+                      {(() => {
+                        const startTime = booking.time?.split('-')[0]?.trim() || '';
+                        const hour = parseInt(startTime.split(':')[0]);
+
+                        const now = new Date();
+
+                        // Get today's date in ISO format (YYYY-MM-DD)
+                        const todayISO = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+                          .toISOString().split('T')[0];
+
+                        // Parse booking date - handle both ISO format and other formats
+                        let bookingDateISO: string;
+                        if (booking.date.includes('-') && booking.date.length === 10) {
+                          // Already in ISO format (YYYY-MM-DD)
+                          bookingDateISO = booking.date;
+                        } else {
+                          // Parse from other format
+                          const bookingDate = new Date(booking.date);
+                          bookingDateISO = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), bookingDate.getDate())
+                            .toISOString().split('T')[0];
+                        }
+
+                        // Simple logic: Past Due if booking date is in the past
+                        const isBookingInPast = bookingDateISO < todayISO;
+
+                        // Only show "Past Due" if:
+                        // 1. Booking date is in the past (before today)
+                        // 2. Status is not completed/cancelled/declined/no-show
+                        const isPastDue =
+                          isBookingInPast &&
+                          booking.status !== 'completed' &&
+                          booking.status !== 'cancelled' &&
+                          booking.status !== 'declined' &&
+                          booking.status !== 'no-show';
+
+                        return isPastDue ? (
+                          <span className="text-xs text-red-600 font-medium">Past Due</span>
+                        ) : null;
+                      })()}
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(booking.status)}`}>

@@ -2,18 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
-
-interface Booking {
-  id: string;
-  clientName: string;
-  serviceOrdered: string;
-  barberName: string;
-  styleOrdered: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'canceled' | 'completed';
-  barbershopId: string;
-}
+import type { Booking } from '../../../../lib/services/appointment/BaseAppointmentService';
 
 interface ServicePopularityProps {
   bookings: Booking[];
@@ -22,31 +11,31 @@ interface ServicePopularityProps {
 const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<Chart | null>(null);
-  
+
   useEffect(() => {
     if (!chartRef.current) return;
-    
+
     // Destroy existing chart
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
-    
+
     // Group bookings by service
     const bookingsByService = bookings.reduce<Record<string, number>>((acc, booking) => {
       const service = booking.serviceOrdered;
       acc[service] = (acc[service] || 0) + 1;
       return acc;
     }, {});
-    
+
     // Sort services by popularity
     const sortedServices = Object.entries(bookingsByService)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5); // Top 5 services
-    
+
     // Prepare data for chart
     const labels = sortedServices.map(([service]) => service);
     const data = sortedServices.map(([, count]) => count);
-    
+
     // Generate colors
     const backgroundColors = [
       'rgba(59, 130, 246, 0.7)', // Blue
@@ -55,7 +44,7 @@ const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
       'rgba(239, 68, 68, 0.7)',  // Red
       'rgba(139, 92, 246, 0.7)',  // Purple
     ];
-    
+
     // Create chart
     const ctx = chartRef.current.getContext('2d');
     if (ctx) {

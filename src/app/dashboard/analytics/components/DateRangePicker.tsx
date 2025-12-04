@@ -10,7 +10,7 @@ interface DateRangePickerProps {
 
 const DateRangePicker: React.FC<DateRangePickerProps> = ({ startDate, endDate, onChange }) => {
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
       month: 'short',
@@ -18,12 +18,12 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ startDate, endDate, o
       year: 'numeric'
     });
   };
-  
+
   const handleRangeSelect = (days: number) => {
-    const end = new Date();
-    const start = new Date();
+    let end = new Date();
+    let start = new Date();
     start.setDate(end.getDate() - days);
-    
+
     onChange(start, end);
     setIsOpen(false);
   };

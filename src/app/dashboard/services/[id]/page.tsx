@@ -4,10 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../../../lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { Service, Style } from '../types';
 import Link from 'next/link';
-import { ConfirmationModal } from '../components';
+import { ConfirmationModal, StyleModal } from '../components';
 
 export default function ServiceDetailsPage() {
   const router = useRouter();
@@ -18,17 +18,21 @@ export default function ServiceDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Confirmation modal states
+  // confirmation modal states
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationTitle, setConfirmationTitle] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
   const [confirmationAction, setConfirmationAction] = useState<() => Promise<void>>(() => Promise.resolve());
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  // Get the service ID from the params
+  // edit style modal states
+  const [showStyleModal, setShowStyleModal] = useState(false);
+  const [isEditingStyle, setIsEditingStyle] = useState(false);
+  const [currentStyle, setCurrentStyle] = useState<Style | null>(null);
+
+  // get the service ID from the params
   const serviceId = params?.id as string;
 
-  // Fetch service data
   useEffect(() => {
     const fetchService = async () => {
       try {
@@ -40,16 +44,16 @@ export default function ServiceDetailsPage() {
           const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
 
           if (barbershopDoc.exists()) {
-            // Get services array
+            // get services array
             const services = barbershopDoc.data().services || [];
 
-            // Find the specific service
+            // find service
             const serviceData = services.find((s: Service) => s.id === serviceId);
 
             if (serviceData) {
               setService(serviceData);
 
-              // Fetch styles for this service
+              // fetch styles for this service
               const stylesCollection = collection(db, 'styles');
               const stylesQuery = query(
                 stylesCollection,
@@ -83,6 +87,55 @@ export default function ServiceDetailsPage() {
     fetchService();
   }, [user, serviceId]);
 
+  const handleEditStyle = (style: Style) => {
+    setCurrentStyle(style);
+    setIsEditingStyle(true);
+    setShowStyleModal(true);
+  };
+
+  const handleSaveStyle = async (style: Style) => {
+    if (!user || !service) {
+      setError('You must be logged in to perform this action.');
+      return;
+    }
+
+    try {
+      const { updateDoc, doc } = await import('firebase/firestore');
+
+      if (isEditingStyle && style.docId) {
+        // Update existing style
+        await updateDoc(doc(db, 'styles', style.docId), {
+          styleId: style.styleId,
+          styleName: style.styleName,
+          description: style.description,
+          price: style.price,
+          duration: style.duration,
+          featuredImage: style.featuredImage,
+          serviceId: style.serviceId,
+          serviceCategoryId: style.serviceCategoryId,
+          barberOrBarbershop: style.barberOrBarbershop,
+          type: style.type
+        });
+
+        // Update local state
+        setStyles(prevStyles =>
+          prevStyles.map(s =>
+            s.styleId === style.styleId ? style : s
+          )
+        );
+      }
+
+      // Close modal
+      setShowStyleModal(false);
+      setCurrentStyle(null);
+      setIsEditingStyle(false);
+      setError(null);
+    } catch (err) {
+      console.error('Error saving style:', err);
+      setError('Failed to save style. Please try again.');
+    }
+  };
+
   const handleDeleteStyle = (styleId: string) => {
     if (!styleId) return;
 
@@ -104,7 +157,13 @@ export default function ServiceDetailsPage() {
         if (!querySnapshot.empty) {
           // Delete the style document
           const styleDoc = querySnapshot.docs[0];
-          await router.push(`/dashboard/services/${serviceId}`);
+          await deleteDoc(doc(db, 'styles', styleDoc.id));
+
+          // Update local state immediately
+          setStyles(prevStyles => prevStyles.filter(s => s.styleId !== styleId));
+          setError(null);
+        } else {
+          setError('Style not found.');
         }
       } catch (err) {
         console.error('Error deleting style:', err);
@@ -156,30 +215,24 @@ export default function ServiceDetailsPage() {
 
               <div>
                 <h1 className="text-2xl font-bold text-gray-900 mb-2">{service.title}</h1>
-                <div className="flex items-center">
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    ${service.status === 'Available' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`}
-                  >
-                    {service.status === 'Available' ? (
-                      <><i className="fas fa-check-circle mr-1"></i> {service.status}</>
-                    ) : (
-                      <><i className="fas fa-times-circle mr-1"></i> {service.status}</>
-                    )}
-                  </span>
+                <div className="flex items-center space-x-4">
+                  {service.price && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                      <i className="fas fa-dollar-sign mr-1"></i> ${service.price}
+                    </span>
+                  )}
+                  {service.duration && (
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                      <i className="fas fa-clock mr-1"></i> {service.duration}h
+                    </span>
+                  )}
                   <span className="ml-3 text-sm text-gray-500">
                     {styles.length} {styles.length === 1 ? 'style' : 'styles'}
                   </span>
                 </div>
               </div>
 
-              <div className="ml-auto">
-                <Link
-                  href={`/dashboard/services?edit=${service.id}`}
-                  className="inline-flex items-center px-4 py-2 bg-black text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
-                >
-                  <i className="fas fa-edit mr-2"></i> Edit Service
-                </Link>
-              </div>
+
             </div>
           </div>
 
@@ -188,12 +241,6 @@ export default function ServiceDetailsPage() {
               <h2 className="text-lg font-medium text-gray-700">
                 Available Styles
               </h2>
-              <Link
-                href={`/dashboard/services?newStyle=${service.id}`}
-                className="inline-flex items-center px-3 py-1.5 bg-black text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
-              >
-                <i className="fas fa-plus mr-1.5"></i> Add Style
-              </Link>
             </div>
 
             {styles.length > 0 ? (
@@ -217,31 +264,23 @@ export default function ServiceDetailsPage() {
                           <i className="fas fa-image text-4xl text-gray-300"></i>
                         </div>
                       )}
-                      <div className="absolute top-3 right-3 flex space-x-2">
-                        <Link
-                          href={`/dashboard/services?editStyle=${style.styleId}`}
-                          className="p-2 bg-white rounded-full shadow-md text-blue-600 hover:text-blue-800 hover:bg-blue-50 transition-colors"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </Link>
-                        <button
-                          className="p-2 bg-white rounded-full shadow-md text-red-600 hover:text-red-800 hover:bg-red-50 transition-colors"
-                          onClick={() => handleDeleteStyle(style.styleId)}
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </div>
                     </div>
                     <div className="p-5">
                       <h3 className="font-semibold text-lg text-gray-900 mb-2">{style.styleName}</h3>
-                      <div className="flex justify-between items-center">
-                        <p className="text-xl font-bold text-black">₱{style.price}</p>
-                        <Link
-                          href={`/dashboard/services?editStyle=${style.styleId}`}
-                          className="text-gray-500 hover:text-gray-700"
+                      <p className="text-xl font-bold text-black mb-4">₱{style.price}</p>
+                      <div className="flex space-x-3">
+                        <button
+                          onClick={() => handleEditStyle(style)}
+                          className="text-black hover:text-gray-700 transition-colors"
                         >
-                          <i className="fas fa-chevron-right"></i>
-                        </Link>
+                          <i className="fas fa-edit text-lg"></i>
+                        </button>
+                        <button
+                          className="text-black hover:text-gray-700 transition-colors"
+                          onClick={() => handleDeleteStyle(style.styleId)}
+                        >
+                          <i className="fas fa-trash text-lg"></i>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -253,13 +292,7 @@ export default function ServiceDetailsPage() {
                   <i className="fas fa-scissors"></i>
                 </div>
                 <h3 className="text-lg font-medium text-gray-700 mb-2">No styles available</h3>
-                <p className="text-gray-500 mb-4">Add your first style to this service to get started.</p>
-                <Link
-                  href={`/dashboard/services?newStyle=${service.id}`}
-                  className="inline-flex items-center px-4 py-2 bg-black text-white rounded-md text-sm hover:bg-gray-800 transition-colors"
-                >
-                  <i className="fas fa-plus mr-2"></i> Add Your First Style
-                </Link>
+                <p className="text-gray-500">Add styles from the Services page to get started.</p>
               </div>
             )}
           </div>
@@ -288,6 +321,21 @@ export default function ServiceDetailsPage() {
         confirmText="Delete"
         type="danger"
       />
+
+      {service && currentStyle && (
+        <StyleModal
+          isOpen={showStyleModal}
+          onClose={() => {
+            setShowStyleModal(false);
+            setCurrentStyle(null);
+            setIsEditingStyle(false);
+          }}
+          onSave={handleSaveStyle}
+          initialStyle={currentStyle}
+          isEditing={isEditingStyle}
+          services={service ? [service] : []}
+        />
+      )}
     </div>
   );
 }

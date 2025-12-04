@@ -2,24 +2,23 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { useRouter } from 'next/navigation';
 import { auth, db, storage } from '../../../lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
+import { ProfileSection, BarbershopSection, AccountActionsSection, PasswordModal } from './components';
 
 interface BarbershopData {
   name: string;
   phone: string;
   email: string;
   featuredImage?: string | null;
-  // Add other fields as needed
 }
 
 export default function SettingsPage() {
   const [user] = useAuthState(auth);
-  const router = useRouter();
 
-  // Barbershop data state
+  // barbershop data
   const [barbershopData, setBarbershopData] = useState<BarbershopData>({
     name: '',
     phone: '',
@@ -27,19 +26,26 @@ export default function SettingsPage() {
     featuredImage: null
   });
 
-  // Form state
+  // form state
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Image upload state
+  // image upload
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Load barbershop data on component mount
+  // password modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // load barbershop data
   useEffect(() => {
     const loadBarbershopData = async () => {
       if (!user) return;
@@ -66,11 +72,9 @@ export default function SettingsPage() {
     loadBarbershopData();
   }, [user]);
 
-  // Image handling functions
   const processFile = (file: File) => {
     setImageFile(file);
 
-    // Create a preview
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
@@ -112,7 +116,6 @@ export default function SettingsPage() {
     setImageFile(null);
   };
 
-  // Save profile settings
   const handleSaveProfile = async () => {
     if (!user) return;
 
@@ -121,11 +124,8 @@ export default function SettingsPage() {
       setError(null);
       setSuccess(null);
 
-      // Update display name in Firebase Auth (if needed)
-      // Note: This would require additional Firebase Auth methods
-
       setSuccess('Profile updated successfully!');
-      setTimeout(() => setSuccess(null), 3000); // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Error updating profile:', err);
       setError('Failed to update profile. Please try again.');
@@ -134,7 +134,6 @@ export default function SettingsPage() {
     }
   };
 
-  // Save barbershop information
   const handleSaveBarbershop = async () => {
     if (!user) return;
 
@@ -144,16 +143,14 @@ export default function SettingsPage() {
       setError(null);
       setSuccess(null);
 
-      let imageUrl = imagePreview; // Keep existing image if no new one uploaded
+      let imageUrl = imagePreview;
 
-      // Upload new image if one was selected
       if (imageFile) {
         const storageRef = ref(storage, `barbershop/${Date.now()}_${imageFile.name}`);
         const snapshot = await uploadBytes(storageRef, imageFile);
         imageUrl = await getDownloadURL(snapshot.ref);
       }
 
-      // Update barbershop document
       const barbershopRef = doc(db, 'barbershops', user.uid);
       await updateDoc(barbershopRef, {
         name: barbershopData.name,
@@ -162,12 +159,11 @@ export default function SettingsPage() {
         featuredImage: imageUrl
       });
 
-      // Update local state
       setBarbershopData(prev => ({ ...prev, featuredImage: imageUrl }));
       setImageFile(null);
 
       setSuccess('Barbershop information updated successfully!');
-      setTimeout(() => setSuccess(null), 3000); // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       console.error('Error updating barbershop:', err);
       setError('Failed to update barbershop information. Please try again.');
@@ -175,6 +171,57 @@ export default function SettingsPage() {
       setLoading(false);
       setIsUploading(false);
     }
+  };
+
+  const handleChangePassword = async () => {
+    if (!user || !user.email) return;
+
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+
+    try {
+      setPasswordLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+      await updatePassword(user, newPassword);
+
+      setSuccess('Password changed successfully!');
+      setShowPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (err) {
+      let errorMsg = 'Failed to change password';
+      if (err instanceof Error) {
+        if (err.message.includes('wrong-password')) {
+          errorMsg = 'Current password is incorrect';
+        } else if (err.message.includes('too-many-requests')) {
+          errorMsg = 'Too many failed attempts. Try again later';
+        }
+      }
+      setError(errorMsg);
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleClosePasswordModal = () => {
+    setShowPasswordModal(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setError(null);
   };
 
   return (
@@ -193,182 +240,45 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h2 className="text-xl font-semibold text-black mb-4">Profile Settings</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">Email Address</label>
-            <input
-              type="email"
-              id="email"
-              className="form-input"
-              value={user?.email || ''}
-              disabled
-            />
-            <p className="text-sm text-gray-500 mt-1">Email cannot be changed</p>
-          </div>
+      <ProfileSection
+        user={user}
+        displayName={displayName}
+        loading={loading}
+        onDisplayNameChange={setDisplayName}
+        onSave={handleSaveProfile}
+      />
 
-          <div className="form-group">
-            <label htmlFor="displayName" className="form-label">Display Name</label>
-            <input
-              type="text"
-              id="displayName"
-              className="form-input"
-              placeholder="Enter your display name"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-          </div>
-        </div>
+      <BarbershopSection
+        barbershopData={barbershopData}
+        imagePreview={imagePreview}
+        dragActive={dragActive}
+        loading={loading}
+        isUploading={isUploading}
+        onBarbershopDataChange={(data: Partial<BarbershopData>) => setBarbershopData(prev => ({ ...prev, ...data }))}
+        onImageChange={handleImageChange}
+        onDrag={handleDrag}
+        onDrop={handleDrop}
+        onRemoveImage={removeImage}
+        onSave={handleSaveBarbershop}
+      />
 
-        <div className="mt-6">
-          <button
-            className="btn btn-primary"
-            onClick={handleSaveProfile}
-            disabled={loading}
-          >
-            {loading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
+      <AccountActionsSection
+        onChangePasswordClick={() => setShowPasswordModal(true)}
+      />
 
-      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h2 className="text-xl font-semibold text-black mb-4">Barbershop Information</h2>
-
-        {/* Barbershop Image Upload */}
-        <div className="form-group mb-6">
-          <label className="form-label">Barbershop Photo</label>
-
-          {imagePreview ? (
-            <div className="relative rounded-lg overflow-hidden mb-3">
-              <img
-                src={imagePreview}
-                alt="Barbershop Preview"
-                className="w-full h-64 object-cover"
-              />
-              <button
-                type="button"
-                onClick={removeImage}
-                className="absolute top-2 right-2 bg-black bg-opacity-70 text-white p-2 rounded-full hover:bg-opacity-90 transition-opacity"
-              >
-                <i className="fas fa-trash"></i>
-              </button>
-            </div>
-          ) : (
-            <div
-              className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                dragActive ? 'border-black bg-gray-50' : 'border-gray-300'
-              }`}
-              onDragEnter={handleDrag}
-              onDragOver={handleDrag}
-              onDragLeave={handleDrag}
-              onDrop={handleDrop}
-            >
-              <div className="text-4xl text-gray-300 mb-3">
-                <i className="fas fa-cloud-upload-alt"></i>
-              </div>
-              <p className="text-gray-700 mb-2">Drag and drop barbershop photo here</p>
-              <p className="text-gray-500 text-sm mb-4">or</p>
-              <label className="inline-block px-4 py-2 bg-black text-white rounded-lg cursor-pointer hover:bg-gray-800 transition-colors">
-                <span>Browse Files</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </label>
-              <p className="text-xs text-gray-500 mt-3">
-                Supported formats: JPG, PNG, GIF
-              </p>
-            </div>
-          )}
-          <p className="text-sm text-gray-500 mt-2">
-            Upload a high-quality photo of your barbershop. This will be displayed to customers. Recommended size: 1200x800px.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="form-group">
-            <label htmlFor="shopName" className="form-label">Barbershop Name</label>
-            <input
-              type="text"
-              id="shopName"
-              className="form-input"
-              placeholder="Enter your barbershop name"
-              value={barbershopData.name}
-              onChange={(e) => setBarbershopData(prev => ({ ...prev, name: e.target.value }))}
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="phone" className="form-label">Phone Number</label>
-            <input
-              type="tel"
-              id="phone"
-              className="form-input"
-              placeholder="Enter your phone number"
-              value={barbershopData.phone}
-              onChange={(e) => setBarbershopData(prev => ({ ...prev, phone: e.target.value }))}
-            />
-          </div>
-
-          <div className="form-group col-span-2">
-            <label htmlFor="email" className="form-label">Business Email</label>
-            <input
-              type="email"
-              id="email"
-              className="form-input"
-              placeholder="Enter your business email"
-              value={barbershopData.email}
-              onChange={(e) => setBarbershopData(prev => ({ ...prev, email: e.target.value }))}
-            />
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <button
-            className="btn btn-primary"
-            onClick={handleSaveBarbershop}
-            disabled={loading || isUploading}
-          >
-            {isUploading ? 'Uploading...' : loading ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-black mb-4">Account Actions</h2>
-        <div className="space-y-4">
-          <div>
-            <button className="btn btn-secondary">
-              Change Password
-            </button>
-          </div>
-
-          <div>
-            <button
-              className="btn bg-red-600 text-white hover:bg-red-700"
-              onClick={async () => {
-                try {
-                  // Sign out from Firebase
-                  await auth.signOut();
-
-                  // Clear the Firebase token cookie
-                  document.cookie = "firebaseToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-
-                  // Redirect to login page
-                  router.push('/');
-                } catch (error) {
-                  console.error('Error signing out:', error);
-                }
-              }}
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </div>
+      <PasswordModal
+        isOpen={showPasswordModal}
+        currentPassword={currentPassword}
+        newPassword={newPassword}
+        confirmPassword={confirmPassword}
+        loading={passwordLoading}
+        error={error}
+        onCurrentPasswordChange={setCurrentPassword}
+        onNewPasswordChange={setNewPassword}
+        onConfirmPasswordChange={setConfirmPassword}
+        onSubmit={handleChangePassword}
+        onCancel={handleClosePasswordModal}
+      />
     </div>
   );
 }

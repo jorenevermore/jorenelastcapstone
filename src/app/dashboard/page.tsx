@@ -5,22 +5,11 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../lib/firebase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs, orderBy, limit, Timestamp } from 'firebase/firestore';
-
-interface Booking {
-  id: string;
-  clientName: string;
-  serviceOrdered: string;
-  barberName: string;
-  styleOrdered: string;
-  date: string;
-  time: string;
-  status: 'pending' | 'confirmed' | 'canceled' | 'completed';
-  barbershopId: string;
-  price?: string;
-  clientId?: string;
-  createdAt?: Timestamp;
-}
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { QueueService } from '../../lib/services/queue/QueueService';
+import StatsCards from './appointments/components/StatsCards';
+import { Booking } from './appointments/types';
+import { formatDate, getStatusBadgeStyle, getStatusIcon, calculateCompletionRate } from './utils/dashboardHelpers';
 
 export default function Dashboard() {
   const [user] = useAuthState(auth);
@@ -29,7 +18,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   // Dashboard data
-  const [todayAppointments, setTodayAppointments] = useState<Booking[]>([]);
+  const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<Booking[]>([]);
   const [recentActivity, setRecentActivity] = useState<Booking[]>([]);
   const [stats, setStats] = useState({
@@ -41,67 +30,68 @@ export default function Dashboard() {
     totalRevenue: 0
   });
 
-  // Fetch dashboard data
+  // fetch realtime data
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        setLoading(true);
-        setError(null);
+    setLoading(true);
+    setError(null);
+
+    // realtime listener
+    const bookingsCollection = collection(db, 'bookings');
+    const bookingsQuery = query(
+      bookingsCollection,
+      where('barbershopId', '==', user.uid)
+    );
+
+    const unsubscribe = onSnapshot(
+      bookingsQuery,
+      (snapshot) => {
+        const bookingsData: Booking[] = snapshot.docs.map(doc => {
+          const docData = doc.data();
+          return {
+            ...docData,
+            id: doc.id
+          } as Booking;
+        });
+
+        // add queue positions to bookings
+        const queueService = new QueueService();
+        const bookingsWithQueue = queueService.addQueuePositions(bookingsData);
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
         const todayStr = today.toISOString().split('T')[0];
 
-        // Fetch all appointments
-        const bookingsCollection = collection(db, 'bookings');
-        const bookingsQuery = query(
-          bookingsCollection,
-          where('barbershopId', '==', user.uid)
+        // calculate stats
+        const totalAppointments = bookingsWithQueue.length;
+        const pendingAppointments = bookingsWithQueue.filter(b => b.status === 'pending').length;
+        const completedAppointments = bookingsWithQueue.filter(b => b.status === 'completed').length;
+        const canceledAppointments = bookingsWithQueue.filter(b => b.status === 'cancelled').length;
+
+        // calculate total revenue
+        const totalRevenue = bookingsWithQueue
+          .filter(b => b.status === 'completed' && b.totalPrice)
+          .reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
+
+        // get today's appointments (sorted by queue)
+        const todayAppts = queueService.sortByQueuePriority(
+          bookingsWithQueue.filter(booking => booking.date === todayStr)
         );
 
-        const bookingsSnapshot = await getDocs(bookingsQuery);
-        const bookingsData: Booking[] = [];
-
-        bookingsSnapshot.forEach(doc => {
-          const data = doc.data() as Booking;
-          bookingsData.push({
-            ...data,
-            id: doc.id
-          });
-        });
-
-        // Calculate stats
-        const totalAppointments = bookingsData.length;
-        const pendingAppointments = bookingsData.filter(b => b.status === 'pending').length;
-        const completedAppointments = bookingsData.filter(b => b.status === 'completed').length;
-        const canceledAppointments = bookingsData.filter(b => b.status === 'canceled').length;
-
-        // Calculate total revenue
-        const totalRevenue = bookingsData
-          .filter(b => b.status === 'completed' && b.price)
-          .reduce((sum, booking) => sum + (parseFloat(booking.price || '0') || 0), 0);
-
-        // Get today's appointments
-        const todayAppts = bookingsData.filter(booking => booking.date === todayStr);
-
-        // Get upcoming appointments (future dates, not canceled)
-        const upcomingAppts = bookingsData
-          .filter(booking => {
+        // get upcoming appointments (future dates, not cancelled)
+        const upcomingAppts = queueService.sortByQueuePriority(
+          bookingsWithQueue.filter(booking => {
             const bookingDate = new Date(booking.date);
-            return bookingDate >= today && booking.status !== 'canceled';
+            return bookingDate >= today && booking.status !== 'cancelled';
           })
-          .sort((a, b) => {
-            const dateA = new Date(`${a.date}T${a.time}`);
-            const dateB = new Date(`${b.date}T${b.time}`);
-            return dateA.getTime() - dateB.getTime();
-          })
-          .slice(0, 5);
+        ).slice(0, 5);
 
-        // Get recent activity (latest 5 appointments)
-        const recentActs = [...bookingsData]
+        // get recent activity
+        const recentActs = [...bookingsWithQueue]
           .sort((a, b) => {
             const dateA = new Date(`${a.date}T${a.time}`);
             const dateB = new Date(`${b.date}T${b.time}`);
@@ -109,7 +99,8 @@ export default function Dashboard() {
           })
           .slice(0, 5);
 
-        // Update state
+        // update state
+        setAllBookings(bookingsWithQueue as Booking[]);
         setStats({
           totalAppointments,
           pendingAppointments,
@@ -119,62 +110,19 @@ export default function Dashboard() {
           totalRevenue
         });
 
-        setTodayAppointments(todayAppts);
-        setUpcomingAppointments(upcomingAppts);
-        setRecentActivity(recentActs);
-
-      } catch (err) {
+        setUpcomingAppointments(upcomingAppts as Booking[]);
+        setRecentActivity(recentActs as Booking[]);
+        setLoading(false);
+      },
+      (err) => {
         console.error('Error fetching dashboard data:', err);
         setError('Failed to load dashboard data. Please try again.');
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchDashboardData();
+    return () => unsubscribe();
   }, [user]);
-
-  // Format date for display
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  // Get status badge style
-  const getStatusBadgeStyle = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'canceled':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  // Get status icon
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'fas fa-check-circle';
-      case 'confirmed':
-        return 'fas fa-calendar-check';
-      case 'pending':
-        return 'fas fa-clock';
-      case 'canceled':
-        return 'fas fa-times-circle';
-      default:
-        return 'fas fa-question-circle';
-    }
-  };
 
   return (
     <div className="p-4">
@@ -191,16 +139,16 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          {/* Stats Cards */}
+          <StatsCards bookings={allBookings} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500">
+            <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Total Appointments</p>
                   <h3 className="text-2xl font-bold text-gray-900">{stats.totalAppointments}</h3>
                 </div>
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <i className="fas fa-calendar-check text-blue-500"></i>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
+                  <i className="fas fa-calendar-check" style={{ color: '#BF8F63' }}></i>
                 </div>
               </div>
               <div className="mt-2 flex items-center text-xs">
@@ -210,14 +158,14 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500">
+            <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Today's Appointments</p>
                   <h3 className="text-2xl font-bold text-gray-900">{stats.todayAppointments}</h3>
                 </div>
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <i className="fas fa-calendar-day text-green-500"></i>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
+                  <i className="fas fa-calendar-day" style={{ color: '#BF8F63' }}></i>
                 </div>
               </div>
               <div className="mt-2 flex items-center text-xs">
@@ -227,14 +175,14 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-yellow-500">
+            <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Total Revenue</p>
                   <h3 className="text-2xl font-bold text-gray-900">₱{stats.totalRevenue.toLocaleString()}</h3>
                 </div>
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <i className="fas fa-coins text-yellow-500"></i>
+                <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
+                  <i className="fas fa-coins" style={{ color: '#BF8F63' }}></i>
                 </div>
               </div>
               <div className="mt-2 flex items-center text-xs">
@@ -249,9 +197,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Completion Rate</p>
                   <h3 className="text-2xl font-bold text-gray-900">
-                    {stats.totalAppointments > 0
-                      ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100)
-                      : 0}%
+                    {calculateCompletionRate(stats.completedAppointments, stats.totalAppointments)}%
                   </h3>
                 </div>
                 <div className="p-2 bg-purple-100 rounded-lg">
@@ -266,54 +212,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
-            <h3 className="text-base font-medium text-gray-700 mb-3">Quick Actions</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Link
-                href="/dashboard/appointments"
-                className="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mb-2">
-                  <i className="fas fa-calendar-alt text-blue-500"></i>
-                </div>
-                <span className="text-sm font-medium">Appointments</span>
-              </Link>
-
-              <Link
-                href="/dashboard/services"
-                className="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2">
-                  <i className="fas fa-cut text-green-500"></i>
-                </div>
-                <span className="text-sm font-medium">Services</span>
-              </Link>
-
-              <Link
-                href="/dashboard/analytics"
-                className="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2">
-                  <i className="fas fa-chart-pie text-purple-500"></i>
-                </div>
-                <span className="text-sm font-medium">Analytics</span>
-              </Link>
-
-              <Link
-                href="/dashboard/settings"
-                className="flex flex-col items-center justify-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-2">
-                  <i className="fas fa-cog text-gray-500"></i>
-                </div>
-                <span className="text-sm font-medium">Settings</span>
-              </Link>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            {/* Upcoming Appointments */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                 <h3 className="font-medium text-gray-700">Upcoming Appointments</h3>
@@ -356,8 +255,6 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-
-            {/* Recent Activity */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center">
                 <h3 className="font-medium text-gray-700">Recent Activity</h3>
@@ -404,8 +301,6 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-
-          {/* Business Information */}
           <div className="bg-white rounded-lg shadow-sm p-4">
             <h3 className="text-base font-medium text-gray-700 mb-3">Business Information</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
