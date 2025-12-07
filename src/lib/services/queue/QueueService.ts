@@ -1,5 +1,5 @@
 
-import type { Booking } from '../appointment/BaseAppointmentService';
+import type { Booking } from '../../../app/dashboard/appointments/types';
 
 export interface QueueStats {
   totalBookings: number;
@@ -21,27 +21,31 @@ export class QueueService {
   // get bookings still in queue (pending or confirmed, not being served)
   getActiveBookings(bookings: Booking[]): Booking[] {
     return bookings.filter(b =>
-      !['completed', 'cancelled', 'declined', 'no-show', 'in-progress'].includes(b.status)
+      !['completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show', 'in-progress'].includes(b.status)
     );
   }
 
-  // Helper: Get ISO date string (YYYY-MM-DD) from booking date
   private getISODateString(dateStr: string): string {
-    // If already in ISO format (YYYY-MM-DD), return as-is
+
     if (dateStr.includes('-') && dateStr.length === 10) {
       return dateStr;
     }
-    // Otherwise parse and convert
+    // Otherwise parse and convert using local date (not UTC)
     const date = new Date(dateStr);
-    return new Date(date.getFullYear(), date.getMonth(), date.getDate())
-      .toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   // sort bookings by queue priority
   sortByQueuePriority(bookings: Booking[], todayOnly: boolean = false): Booking[] {
     const today = new Date();
-    const todayISO = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      .toISOString().split('T')[0];
+    // Use local date calculation (not UTC) to match booking date format
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayISO = `${year}-${month}-${day}`;
     const filtered = todayOnly
       ? bookings.filter(b => this.getISODateString(b.date) === todayISO)
       : bookings;
@@ -85,11 +89,18 @@ export class QueueService {
   
   getQueueStats(bookings: Booking[], todayOnly: boolean = false): QueueStats {
     const today = new Date();
-    const todayISO = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      .toISOString().split('T')[0];
-    const filtered = todayOnly
+    // Use local date calculation (not UTC) to match booking date format
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayISO = `${year}-${month}-${day}`;
+
+    let filtered = todayOnly
       ? bookings.filter(b => this.getISODateString(b.date) === todayISO)
       : bookings;
+
+    // filter to only active bookings (pending and confirmed)
+    filtered = this.getActiveBookings(filtered);
 
     const rushCount = filtered.filter(b => b.isEmergency).length;
     const totalCount = filtered.length;
@@ -100,60 +111,6 @@ export class QueueService {
       regularBookings: totalCount - rushCount
     };
   }
-  processQueueNotifications(allBookings: Booking[]): {
-    nextInQueue: Booking[];
-    calledToService: Booking[];
-    needsUpdate: Array<{ booking: Booking; newNotificationStatus: 'next-in-queue' | 'called-to-service' | undefined }>;
-  } {
-    const today = new Date();
-    const todayISO = new Date(today.getFullYear(), today.getMonth(), today.getDate())
-      .toISOString().split('T')[0];
-    const todayBookings = allBookings.filter(b => this.getISODateString(b.date) === todayISO);
-    const activeBookings = this.getActiveBookings(todayBookings);
-    const sortedBookings = this.sortByQueuePriority(activeBookings, true);
 
-    const firstInQueue = sortedBookings.length > 0 ? sortedBookings[0] : null;
-
-    const needsUpdate: Array<{ booking: Booking; newNotificationStatus: 'next-in-queue' | 'called-to-service' | undefined }> = [];
-
-    // check each booking status
-    allBookings.forEach(booking => {
-      const isFirstInQueue = firstInQueue?.id === booking.id;
-      const isBeingServed = booking.status === 'in-progress';
-
-      // notify if first in queue
-      if (isFirstInQueue && booking.notificationStatus !== 'next-in-queue') {
-        needsUpdate.push({
-          booking,
-          newNotificationStatus: 'next-in-queue'
-        });
-      }
-
-      // notify when being served
-      if (isBeingServed && booking.notificationStatus === 'next-in-queue') {
-        needsUpdate.push({
-          booking,
-          newNotificationStatus: 'called-to-service'
-        });
-      }
-
-      // clear notification if not first
-      if (!isFirstInQueue && !isBeingServed && booking.notificationStatus) {
-        needsUpdate.push({
-          booking,
-          newNotificationStatus: undefined
-        });
-      }
-    });
-
-    return {
-      nextInQueue: firstInQueue ? [firstInQueue] : [],
-      calledToService: allBookings.filter(b =>
-        b.status === 'in-progress' &&
-        b.notificationStatus === 'called-to-service'
-      ),
-      needsUpdate
-    };
-  }
 }
 

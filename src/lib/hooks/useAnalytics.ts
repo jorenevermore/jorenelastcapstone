@@ -8,7 +8,7 @@
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
 import { AnalyticsService } from '../services/analytics/AnalyticsService';
-import { Booking } from '../services/appointment/BaseAppointmentService';
+import type { Booking } from '../../app/dashboard/appointments/types';
 
 const analyticsService = new AnalyticsService(db);
 

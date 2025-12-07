@@ -65,8 +65,8 @@ export const PaymentModal = ({
           </div>
         </div>
 
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-          <p className="text-sm text-blue-800">
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+          <p className="text-sm text-amber-800">
             <i className="fas fa-info-circle mr-2"></i>
             Please confirm that you have received the cash payment of <strong>₱{appointment.finalPrice || appointment.totalPrice}</strong> from the client.
           </p>
@@ -82,14 +82,14 @@ export const PaymentModal = ({
           <button
             onClick={onClose}
             disabled={isProcessing || isSubmitting}
-            className="flex-1 px-4 py-2 border border-gray-300 rounded text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+            className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handlePaymentConfirm}
             disabled={isProcessing || isSubmitting}
-            className="flex-1 px-4 py-2 bg-green-600 text-white rounded text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center"
+            className="px-3 py-1.5 bg-green-500 text-white rounded text-xs font-medium flex items-center justify-center transition-colors hover:bg-green-600 disabled:opacity-50"
           >
             {isProcessing ? (
               <>

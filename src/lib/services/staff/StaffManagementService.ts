@@ -1,7 +1,4 @@
-/**
- * Staff Management Service
- * Handles barber/staff management operations
- */
+
 
 import { BaseStaffService, Barber, ServiceResponse } from './BaseStaffService';
 import { collection, getDocs, query, where, doc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, Unsubscribe, Firestore, arrayUnion, arrayRemove } from 'firebase/firestore';
@@ -38,13 +35,20 @@ export class StaffManagementService extends BaseStaffService {
   async getBarbersByBarbershopId(barbershopId: string): Promise<ServiceResponse> {
     try {
       let barbersCollection = collection(this.db, this.COLLECTION);
-      let q = query(barbersCollection, where('affiliatedBarbershopId', '==', barbershopId));
+      let q = query(
+        barbersCollection,
+        where('affiliatedBarbershopId', '==', barbershopId)
+      );
       let barberSnapshot = await getDocs(q);
 
-      let barbers = barberSnapshot.docs.map(doc => {
-        let data = doc.data() as Omit<Barber, 'barberId'>;
-        return { ...data, barberId: doc.id };
-      });
+      let barbers = barberSnapshot.docs
+        .map(doc => {
+          let data = doc.data() as Omit<Barber, 'barberId'>;
+          return { ...data, barberId: doc.id };
+        })
+        .filter(barber => {
+          return !barber.affiliationStatus || barber.affiliationStatus === 'confirmed';
+        });
 
       return {
         success: true,
@@ -101,21 +105,17 @@ export class StaffManagementService extends BaseStaffService {
     }
   }
 
-  /**
-   * Add barber to a specific barbershop
-   * This creates the barber profile AND appends the barber ID to the barbershop's barbers array
-   */
   async addBarberToBarbershop(barbershopId: string, barberData: Omit<Barber, 'barberId'>): Promise<ServiceResponse> {
     try {
       let validation = this.validateBarberData(barberData);
       if (!validation.success) return validation;
 
-      // 1. Create barber profile
+      // create barber profile
       let barbersCollection = collection(this.db, this.COLLECTION);
       let docRef = await addDoc(barbersCollection, barberData);
       await updateDoc(docRef, { barberId: docRef.id });
 
-      // 2. Append barber ID to barbershop's barbers array
+      // append barber ID to barbershop's barbers array
       let barbershopDoc = doc(this.db, 'barbershops', barbershopId);
       await updateDoc(barbershopDoc, {
         barbers: arrayUnion(docRef.id)
@@ -133,19 +133,15 @@ export class StaffManagementService extends BaseStaffService {
     }
   }
 
-  /**
-   * Remove barber from a specific barbershop (Hard Delete)
-   * This removes the barber ID from the barbershop's barbers array AND deletes the barber profile completely
-   */
   async removeBarberFromBarbershop(barbershopId: string, barberId: string): Promise<ServiceResponse> {
     try {
-      // 1. Remove barber ID from barbershop's barbers array
+      // remove barber ID from barbershop's barbers array
       let barbershopDoc = doc(this.db, 'barbershops', barbershopId);
       await updateDoc(barbershopDoc, {
         barbers: arrayRemove(barberId)
       });
 
-      // 2. Delete the barber profile completely
+      // delete the barber profile completely
       let barberDoc = doc(this.db, this.COLLECTION, barberId);
       await deleteDoc(barberDoc);
 
@@ -223,7 +219,8 @@ export class StaffManagementService extends BaseStaffService {
   async updateAffiliationStatus(barberId: string, status: 'approved' | 'rejected'): Promise<ServiceResponse> {
     try {
       let barberDoc = doc(this.db, this.COLLECTION, barberId);
-      await updateDoc(barberDoc, { affiliationStatus: status });
+      const affiliationStatus = status === 'approved' ? 'confirmed' : 'declined';
+      await updateDoc(barberDoc, { affiliationStatus });
 
       this.logOperation('Update Affiliation Status', barberId, true);
       return {

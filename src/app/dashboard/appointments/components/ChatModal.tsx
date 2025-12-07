@@ -46,8 +46,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
               <p className="text-xs text-gray-500">
                 {messages && messages.length > 0
                   ? `${messages.length} messages`
-                  : (appointment.clientNotes?.length || appointment.barbershopNotes?.length)
-                    ? `${(appointment.clientNotes?.length || 0) + (appointment.barbershopNotes?.length || 0)} messages`
+                  : messages.length > 0
+                    ? `${messages.length} messages`
                     : 'No messages yet'}
               </p>
             </div>
@@ -133,32 +133,10 @@ const ChatModal: React.FC<ChatModalProps> = ({
                   </div>
                 ))
               }
-              {appointment.barbershopNotes && appointment.barbershopNotes.length > 0 &&
-                appointment.barbershopNotes.map((note, index) => (
-                  <div key={`shop-msg-${index}`} className="flex justify-end">
-                    <div className="max-w-[80%]">
-                      <div className="flex items-start flex-row-reverse">
-                        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 ml-2 flex-shrink-0">
-                          <i className="fas fa-store"></i>
-                        </div>
-                        <div className="text-right">
-                          <div className="bg-green-50 p-3 rounded-lg rounded-tr-none">
-                            <p className="text-sm text-gray-700">{note.text}</p>
-                          </div>
-                          <p className="text-xs text-gray-400 mt-1 mr-2">
-                            {note.timestamp ? new Date(note.timestamp).toLocaleString() : ''}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              }
+
             </>
           )}
-          {(!messages || messages.length === 0) &&
-           (!appointment.clientNotes || appointment.clientNotes.length === 0) &&
-           (!appointment.barbershopNotes || appointment.barbershopNotes.length === 0) && (
+          {(!messages || messages.length === 0) && (
             <div className="flex flex-col items-center justify-center py-10">
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mb-3">
                 <i className="fas fa-comments text-xl"></i>

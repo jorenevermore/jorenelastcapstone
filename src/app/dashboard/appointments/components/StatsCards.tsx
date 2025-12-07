@@ -103,7 +103,6 @@ const StatsCards = ({ bookings }: StatsCardsProps) => {
   );
 };
 
-// helper component for stat items
 interface StatItemProps {
   label: string;
   value: number;

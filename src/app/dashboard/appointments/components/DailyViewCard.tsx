@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import SimpleDatePicker from './SimpleDatePicker';
 import { Booking } from '../types';
+import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
-interface TodayBookingsCardProps {
+interface DailyViewCardProps {
   todayBookings: Booking[];
   selectedDate: Date;
   onDateChange: (date: Date) => void;
@@ -12,11 +13,11 @@ interface TodayBookingsCardProps {
 
 type StatusFilter = 'all' | 'pending' | 'ongoing' | 'completed';
 
-const TodayBookingsCard = ({
+const DailyViewCard = ({
   todayBookings,
   selectedDate,
   onDateChange
-}: TodayBookingsCardProps) => {
+}: DailyViewCardProps) => {
   const [activeTab, setActiveTab] = useState<StatusFilter>('all');
   const formattedDate = selectedDate.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -33,7 +34,7 @@ const TodayBookingsCard = ({
       case 'ongoing':
         return todayBookings.filter(b => ['confirmed', 'in-progress'].includes(b.status));
       case 'completed':
-        return todayBookings.filter(b => ['completed', 'cancelled', 'declined', 'no-show'].includes(b.status));
+        return todayBookings.filter(b => ['completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show'].includes(b.status));
       default:
         return todayBookings;
     }
@@ -46,45 +47,7 @@ const TodayBookingsCard = ({
   const ongoingCount = todayBookings.filter(b => ['confirmed', 'in-progress'].includes(b.status)).length;
   const completedCount = todayBookings.filter(b => ['completed', 'cancelled', 'declined', 'no-show'].includes(b.status)).length;
 
-  // get status badge styling
-  const getStatusBadgeStyle = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case 'in-progress':
-        return 'bg-purple-100 text-purple-800 border border-purple-200';
-      case 'completed':
-        return 'bg-green-100 text-green-800 border border-green-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border border-red-200';
-      case 'no-show':
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
-    }
-  };
 
-  // get status icon
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'fas fa-clock';
-      case 'confirmed':
-        return 'fas fa-check-circle';
-      case 'in-progress':
-        return 'fas fa-spinner fa-spin';
-      case 'completed':
-        return 'fas fa-check-double';
-      case 'cancelled':
-        return 'fas fa-times-circle';
-      case 'no-show':
-        return 'fas fa-user-slash';
-      default:
-        return 'fas fa-question-circle';
-    }
-  };
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 h-full flex flex-col">
@@ -181,51 +144,18 @@ const TodayBookingsCard = ({
                   </div>
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <span className="text-xs text-gray-500">
-                      {(() => {
-                        const startTime = booking.time?.split('-')[0]?.trim() || '';
-                        const hour = parseInt(startTime.split(':')[0]);
-                        return hour < 13 ? 'Morning Session' : 'Afternoon Session';
-                      })()}
+                      {BookingUtilService.getSessionType(booking.time)}
                     </span>
-                    {(() => {
-                      const startTime = booking.time?.split('-')[0]?.trim() || '';
-                      const hour = parseInt(startTime.split(':')[0]);
-
-                      const now = new Date();
-                      const currentHour = now.getHours();
-
-                      // get today's date in ISO format (YYYY-MM-DD)
-                      const todayISO = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-                        .toISOString().split('T')[0];
-
-                      // Parse booking date - handle both ISO format and other formats
-                      const bookingDateISO: string = booking.date.includes('-') && booking.date.length === 10
-                        ? booking.date
-                        : new Date(new Date(booking.date).getFullYear(), new Date(booking.date).getMonth(), new Date(booking.date).getDate())
-                            .toISOString().split('T')[0];
-
-                      const isBookingInPast = bookingDateISO < todayISO;
-
-                      const isPastDue =
-                        isBookingInPast &&
-                        booking.status !== 'completed' &&
-                        booking.status !== 'cancelled' &&
-                        booking.status !== 'declined' &&
-                        booking.status !== 'no-show';
-
-                      return isPastDue ? (
-                        <span className="text-xs text-red-600 font-medium">Past Due</span>
-                      ) : null;
-                    })()}
+                    {BookingUtilService.isPastDue(booking) && (
+                      <span className="text-xs text-red-600 font-medium">Past Due</span>
+                    )}
                   </div>
                 </div>
 
                 <div className="flex items-center justify-end text-xs mt-1.5 pt-1.5 border-t border-gray-100">
-                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium
-                    ${getStatusBadgeStyle(booking.status)}`}
-                  >
-                    <i className={`${getStatusIcon(booking.status)} mr-0.5 text-xs`}></i>
-                    {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
+                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${BookingUtilService.getStatusBadgeStyle(booking.status)}`}>
+                    <i className={`${BookingUtilService.getStatusIcon(booking.status)} mr-0.5 text-xs`}></i>
+                    {BookingUtilService.getFormattedStatus(booking.status)}
                   </span>
                 </div>
               </div>
@@ -247,4 +177,4 @@ const TodayBookingsCard = ({
   );
 };
 
-export default TodayBookingsCard;
+export default DailyViewCard;

@@ -7,7 +7,7 @@ export interface Barber {
   email: string;
   fullName: string;
   isAvailable: boolean;
-  affiliationStatus?: 'pending' | 'approved' | 'rejected';
+  affiliationStatus?: 'pending' | 'confirmed' | 'declined';
   createdAt?: string;
   isProfileCompleted?: boolean;
 }

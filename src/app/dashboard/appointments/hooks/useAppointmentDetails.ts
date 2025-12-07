@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '../../../../lib/firebase';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { Booking } from '../types';
 import { useMessaging, Message } from '../../../../lib/hooks/useMessaging';
 
@@ -63,6 +63,7 @@ export const useAppointmentDetails = (
         setClientDetails(details);
 
         // fetch messages for appointment
+        // Note: barberId in chats collection is the individual barber's ID
         const result = await getMessagesForAppointment(
           appointmentData.id,
           appointmentData.barberId || userId,
@@ -93,17 +94,20 @@ export const useAppointmentDetails = (
 
 async function fetchAppointment(userId: string, appointmentId: string): Promise<Booking | null> {
   try {
-    const appointmentsCollection = collection(db, 'bookings');
-    const appointmentsQuery = query(
-      appointmentsCollection,
-      where('barbershopId', '==', userId),
-      where('id', '==', appointmentId)
-    );
+    // Fetch document directly by ID (no composite query needed)
+    const appointmentDoc = doc(db, 'bookings', appointmentId);
+    const snapshot = await getDoc(appointmentDoc);
 
-    const snapshot = await getDocs(appointmentsQuery);
-    if (snapshot.empty) return null;
+    if (!snapshot.exists()) return null;
 
-    return snapshot.docs[0].data() as Booking;
+    const bookingData = snapshot.data() as Booking;
+
+    // Verify it belongs to this barbershop
+    if (bookingData.barbershopId !== userId) {
+      return null;
+    }
+
+    return bookingData;
   } catch (err) {
     console.error('Error fetching appointment:', err);
     throw err;

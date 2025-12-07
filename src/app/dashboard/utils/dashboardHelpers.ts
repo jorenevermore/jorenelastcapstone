@@ -1,7 +1,3 @@
-/**
- * Dashboard Helper Functions
- * Utility functions for formatting and styling dashboard data
- */
 
 export const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);

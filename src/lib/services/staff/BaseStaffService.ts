@@ -1,7 +1,3 @@
-/**
- * Base Staff Service
- * Provides common staff/barber management functionality
- */
 
 export interface Barber {
   address: string;
@@ -13,7 +9,7 @@ export interface Barber {
   fullName: string;
   isAvailable: boolean;
   image?: string | null;
-  affiliationStatus?: 'pending' | 'approved' | 'rejected';
+  affiliationStatus?: 'pending' | 'confirmed' | 'declined';
   createdAt?: string;
   isProfileCompleted?: boolean;
 }

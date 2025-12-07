@@ -5,12 +5,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { auth } from '../lib/firebase';
-import { useNotifications } from '../lib/hooks/useNotifications';
 
 let Sidebar = () => {
   let pathname = usePathname();
   let router = useRouter();
-  let { unreadCount } = useNotifications();
 
   let isActive = (path: string) => {
     return pathname === path;

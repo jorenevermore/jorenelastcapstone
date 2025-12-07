@@ -1,10 +1,7 @@
-/**
- * Messaging Service
- * Handles message operations and real-time subscriptions
- */
+
 
 import { BaseMessagingService, Message, ServiceResponse } from './BaseMessagingService';
-import { collection, addDoc, query, where, getDocs, orderBy, doc, getDoc, onSnapshot, Unsubscribe, Firestore } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, orderBy, Firestore } from 'firebase/firestore';
 
 export class MessagingService extends BaseMessagingService {
   private readonly COLLECTION = 'chats';
@@ -29,36 +26,6 @@ export class MessagingService extends BaseMessagingService {
       };
     } catch (error) {
       this.logOperation('Add Message', 'unknown', false);
-      return this.handleError(error);
-    }
-  }
-
-  async getMessagesBetweenUsers(barberId: string, clientId: string): Promise<ServiceResponse> {
-    try {
-      const chatsCollection = collection(this.db, this.COLLECTION);
-      const q = query(
-        chatsCollection,
-        where('barberId', '==', barberId),
-        where('clientId', '==', clientId),
-        orderBy('timestamp', 'asc')
-      );
-
-      const querySnapshot = await getDocs(q);
-      let messages: Message[] = [];
-
-      querySnapshot.forEach(doc => {
-        messages.push({
-          id: doc.id,
-          ...doc.data() as Omit<Message, 'id'>
-        });
-      });
-
-      return {
-        success: true,
-        message: 'Messages retrieved successfully',
-        data: messages
-      };
-    } catch (error) {
       return this.handleError(error);
     }
   }
@@ -137,65 +104,5 @@ export class MessagingService extends BaseMessagingService {
     }
   }
 
-  async getMessagesForClient(clientId: string): Promise<ServiceResponse> {
-    try {
-      let chatsCollection = collection(this.db, this.COLLECTION);
-      let q = query(
-        chatsCollection,
-        where('clientId', '==', clientId),
-        orderBy('timestamp', 'desc')
-      );
-
-      let querySnapshot = await getDocs(q);
-      let messages: Message[] = [];
-
-      querySnapshot.forEach(doc => {
-        messages.push({
-          id: doc.id,
-          ...doc.data() as Omit<Message, 'id'>
-        });
-      });
-
-      return {
-        success: true,
-        message: 'Messages retrieved successfully',
-        data: messages
-      };
-    } catch (error) {
-      return this.handleError(error);
-    }
-  }
-
-  subscribeToClientMessages(
-    barberId: string,
-    onNewMessage: (message: Message) => void,
-    onError?: (error: Error) => void
-  ): Unsubscribe {
-    let chatsCollection = collection(this.db, this.COLLECTION);
-    let q = query(
-      chatsCollection,
-      where('barberId', '==', barberId),
-      where('from', '==', 'client')
-    );
-
-    return onSnapshot(
-      q,
-      (snapshot) => {
-        snapshot.docChanges().forEach(change => {
-          if (change.type === 'added') {
-            let messageData = change.doc.data() as Omit<Message, 'id'>;
-            onNewMessage({
-              id: change.doc.id,
-              ...messageData
-            });
-          }
-        });
-      },
-      (error) => {
-        console.error('Error in client messages listener:', error);
-        if (onError) onError(error as Error);
-      }
-    );
-  }
 }
 

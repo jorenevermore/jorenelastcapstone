@@ -2,12 +2,15 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useNotifications } from '../../../lib/hooks/useNotifications';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../../../lib/firebase';
+import { useNotificationsPage } from '../../../lib/hooks/useNotificationsPage';
 import { useStaff } from '../../../lib/hooks/useStaff';
 import { parseBookingDateTime } from '../../../lib/utils/dateParser';
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const [user] = useAuthState(auth);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const {
     notifications,
@@ -15,7 +18,7 @@ export default function NotificationsPage() {
     error,
     fetchNotifications,
     markAsRead
-  } = useNotifications();
+  } = useNotificationsPage();
 
   const { updateAffiliationStatus } = useStaff();
   // handle affiliation
@@ -25,10 +28,12 @@ export default function NotificationsPage() {
       const result = await updateAffiliationStatus(barberId, action);
 
       if (result.success) {
-        // refresh notifications
-        await fetchNotifications();
-        // mark as read
-        markAsRead(barberId);
+        // refresh notifications with user.uid
+        if (user) {
+          await fetchNotifications(user.uid);
+        }
+        // mark as read - use the notification ID format
+        markAsRead(`affiliation-${barberId}`);
       } else {
         console.error('Error updating affiliation status:', result.message);
       }
@@ -118,7 +123,12 @@ export default function NotificationsPage() {
                       </p>
                     );
                   })()}
-                  {notification.type !== 'booking' && (
+                  {notification.type === 'affiliation_request' && (
+                    <p className="text-sm text-gray-900">
+                      <span className="font-medium">{(notification.data as any).fullName}</span> has sent an affiliation request to your barbershop.
+                    </p>
+                  )}
+                  {notification.type !== 'booking' && notification.type !== 'affiliation_request' && (
                     <p className="text-sm text-gray-900">
                       {notification.message}
                     </p>
@@ -132,18 +142,43 @@ export default function NotificationsPage() {
                 )}
               </div>
 
+              {/* Barber Details - Affiliation */}
+              {notification.type === 'affiliation_request' && 'fullName' in notification.data && (
+                <div className="mt-4 ml-13 bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-500 text-xs">Name</p>
+                      <p className="text-gray-900 font-medium">{notification.data.fullName}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Email</p>
+                      <p className="text-gray-900 font-medium">{notification.data.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Phone</p>
+                      <p className="text-gray-900 font-medium">{notification.data.contactNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Address</p>
+                      <p className="text-gray-900 font-medium">{notification.data.address}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons - Affiliation */}
               {notification.type === 'affiliation_request' && (
-                <div className="flex space-x-2 mt-3 pt-3 border-t border-gray-200">
+                <div className="flex space-x-2 mt-4 ml-13">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleAffiliationAction(notification.id, 'approved');
+                      const barberId = (notification.data as any).barberId;
+                      handleAffiliationAction(barberId, 'approved');
                     }}
-                    disabled={processingId === notification.id}
+                    disabled={processingId === (notification.data as any).barberId}
                     className="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
-                    {processingId === notification.id ? (
+                    {processingId === (notification.data as any).barberId ? (
                       <i className="fas fa-spinner fa-spin mr-1"></i>
                     ) : (
                       <i className="fas fa-check mr-1"></i>
@@ -154,9 +189,10 @@ export default function NotificationsPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleAffiliationAction(notification.id, 'rejected');
+                      const barberId = (notification.data as any).barberId;
+                      handleAffiliationAction(barberId, 'rejected');
                     }}
-                    disabled={processingId === notification.id}
+                    disabled={processingId === (notification.data as any).barberId}
                     className="flex-1 bg-red-600 text-white py-2 px-3 rounded text-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
                     {processingId === notification.id ? (

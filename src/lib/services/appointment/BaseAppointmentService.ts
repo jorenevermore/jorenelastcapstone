@@ -12,7 +12,7 @@ export interface Booking {
   styleOrdered: string;
   date: string;
   time: string;
-  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'declined' | 'no-show';
+  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'completedAndReviewed' | 'cancelled' | 'declined' | 'no-show';
   barbershopId: string;
   totalPrice: number;
   discountAmount?: number;
@@ -62,7 +62,7 @@ export class BaseAppointmentService {
   }
 
   protected validateStatus(status: string): ServiceResponse {
-    const validStatuses = ['pending', 'confirmed', 'in-progress', 'completed', 'cancelled', 'declined', 'no-show'];
+    const validStatuses = ['pending', 'confirmed', 'in-progress', 'completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show'];
     if (!validStatuses.includes(status)) {
       return {
         success: false,

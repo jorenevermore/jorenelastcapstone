@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { auth } from '../lib/firebase';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import NotificationDropdown from './NotificationDropdown';
+import ShopStatusToggle from './ShopStatusToggle';
 
 let Header = () => {
   let pathname = usePathname();
@@ -31,7 +32,8 @@ let Header = () => {
     <header className="bg-white border-b border-gray-200 h-12 fixed top-0 right-0 left-64 z-10">
       <div className="flex justify-between items-center h-full px-4">
         <h1 className="text-lg font-semibold text-black">{getPageTitle()}</h1>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
+          <ShopStatusToggle />
           <NotificationDropdown />
 
           <div className="flex items-center">

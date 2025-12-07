@@ -2,12 +2,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useNotifications } from '../lib/hooks/useNotifications';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../lib/firebase';
+import { useRealtimeNotifications } from '../lib/hooks/useRealtimeNotifications';
 import { useStaff } from '../lib/hooks/useStaff';
 import { parseBookingDateTime } from '../lib/utils/dateParser';
 
 const NotificationDropdown: React.FC = () => {
   const router = useRouter();
+  const [user] = useAuthState(auth);
   const [isOpen, setIsOpen] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -17,9 +20,8 @@ const NotificationDropdown: React.FC = () => {
     unreadCount,
     loading,
     markAsRead,
-    markAllAsRead,
-    fetchNotifications
-  } = useNotifications();
+    markAllAsRead
+  } = useRealtimeNotifications();
 
   const { updateAffiliationStatus } = useStaff();
 
@@ -42,10 +44,8 @@ const NotificationDropdown: React.FC = () => {
       const result = await updateAffiliationStatus(barberId, action);
 
       if (result.success) {
-        // Refresh notifications
-        await fetchNotifications();
-        // Mark as read
-        markAsRead(barberId);
+        // Mark as read - use the notification ID format
+        markAsRead(`affiliation-${barberId}`);
       } else {
         console.error('Error updating affiliation status:', result.message);
       }
@@ -172,58 +172,7 @@ const NotificationDropdown: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Affiliation Details */}
-                      {notification.type === 'affiliation_request' && 'fullName' in notification.data && (
-                        <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                          <div className="text-xs text-gray-500 mb-1">Barber Details:</div>
-                          <div className="text-sm">
-                            <div><strong>Name:</strong> {notification.data.fullName}</div>
-                            <div><strong>Email:</strong> {notification.data.email}</div>
-                            <div><strong>Phone:</strong> {notification.data.contactNumber}</div>
-                          </div>
-                        </div>
-                      )}
 
-                      {/* Action Buttons - Affiliation */}
-                      {notification.type === 'affiliation_request' && (
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAffiliationAction(notification.id, 'approved');
-                            }}
-                            disabled={processingId === notification.id}
-                            className="flex-1 bg-green-600 text-white text-sm py-2 px-3 rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {processingId === notification.id ? (
-                              <i className="fas fa-spinner fa-spin"></i>
-                            ) : (
-                              <>
-                                <i className="fas fa-check mr-1"></i>
-                                Approve
-                              </>
-                            )}
-                          </button>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAffiliationAction(notification.id, 'rejected');
-                            }}
-                            disabled={processingId === notification.id}
-                            className="flex-1 bg-red-600 text-white text-sm py-2 px-3 rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {processingId === notification.id ? (
-                              <i className="fas fa-spinner fa-spin"></i>
-                            ) : (
-                              <>
-                                <i className="fas fa-times mr-1"></i>
-                                Reject
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      )}
 
 
 

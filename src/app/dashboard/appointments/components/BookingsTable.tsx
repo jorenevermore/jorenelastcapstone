@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Booking } from '../types';
+import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
-interface BookingTableProps {
+interface BookingsTableProps {
   bookings: Booking[];
   handleAccept: (id: string) => void;
   handleCancel: (id: string) => void;
@@ -12,22 +13,25 @@ interface BookingTableProps {
   dateFilter: string;
 }
 
-const BookingTable = ({
+const BookingsTable = ({
   bookings,
   handleAccept,
   handleCancel,
   handleDelete,
   dateFilter
-}: BookingTableProps) => {
+}: BookingsTableProps) => {
   const router = useRouter();
 
-  // Filter bookings by date
+  // Filter bookings by date - default to today and upcoming only
   const getFilteredBookings = () => {
     const today = new Date();
-    const todayISO = today.toISOString().split('T')[0];
+    // Use local date calculation (not UTC) to match booking date format
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayISO = `${year}-${month}-${day}`;
 
     return bookings.filter(booking => {
-      // Extract ISO date from booking.date (handles ISO format like "2025-11-25T00:00:00.000Z")
       const bookingDateISO = booking.date.split('T')[0];
 
       switch (dateFilter) {
@@ -38,59 +42,22 @@ const BookingTable = ({
         case 'upcoming':
           return bookingDateISO > todayISO;
         default:
-          return true;
+          // Default: show today and upcoming only
+          return bookingDateISO >= todayISO;
       }
     });
   };
 
   const filteredBookings = getFilteredBookings();
 
-  // Helper function to get status badge styling
-  const getStatusBadgeStyle = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
-      case 'confirmed':
-        return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case 'in-progress':
-        return 'bg-purple-100 text-purple-800 border border-purple-200';
-      case 'completed':
-        return 'bg-green-100 text-green-800 border border-green-200';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800 border border-red-200';
-      case 'no-show':
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border border-gray-200';
-    }
-  };
-
-  // Helper function to get status icon
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'pending':
-        return 'fas fa-clock';
-      case 'confirmed':
-        return 'fas fa-check-circle';
-      case 'in-progress':
-        return 'fas fa-spinner fa-spin';
-      case 'completed':
-        return 'fas fa-check-double';
-      case 'cancelled':
-        return 'fas fa-times-circle';
-      case 'no-show':
-        return 'fas fa-user-slash';
-      default:
-        return 'fas fa-question-circle';
-    }
-  };
-
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden h-full flex flex-col">
       <div className="flex justify-between items-center px-4 py-3 border-b border-gray-100 bg-gray-50 flex-shrink-0">
         <div className="flex items-center">
           <i className="fas fa-th-list text-gray-600 mr-2"></i>
-          <span className="text-sm font-semibold text-gray-700">All Bookings</span>
+          <span className="text-sm font-semibold text-gray-700">
+            {dateFilter === 'all' ? 'All Bookings' : dateFilter === 'today' ? "Today's Bookings" : 'Upcoming Bookings'}
+          </span>
         </div>
         <p className="text-xs text-gray-500">
           Showing <span className="font-medium text-gray-700">{filteredBookings.length}</span> booking{filteredBookings.length !== 1 ? 's' : ''}
@@ -158,63 +125,18 @@ const BookingTable = ({
                     })}</div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-xs text-gray-500">
-                        {(() => {
-                          const startTime = booking.time?.split('-')[0]?.trim() || '';
-                          const hour = parseInt(startTime.split(':')[0]);
-                          return hour < 13 ? 'Morning Session' : 'Afternoon Session';
-                        })()}
+                        {BookingUtilService.getSessionType(booking.time)}
                       </span>
-                      {(() => {
-                        const startTime = booking.time?.split('-')[0]?.trim() || '';
-                        const hour = parseInt(startTime.split(':')[0]);
-
-                        const now = new Date();
-
-                        // Get today's date in ISO format (YYYY-MM-DD)
-                        const todayISO = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-                          .toISOString().split('T')[0];
-
-                        // Parse booking date - handle both ISO format and other formats
-                        let bookingDateISO: string;
-                        if (booking.date.includes('-') && booking.date.length === 10) {
-                          // Already in ISO format (YYYY-MM-DD)
-                          bookingDateISO = booking.date;
-                        } else {
-                          // Parse from other format
-                          const bookingDate = new Date(booking.date);
-                          bookingDateISO = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), bookingDate.getDate())
-                            .toISOString().split('T')[0];
-                        }
-
-                        // Simple logic: Past Due if booking date is in the past
-                        const isBookingInPast = bookingDateISO < todayISO;
-
-                        // Only show "Past Due" if:
-                        // 1. Booking date is in the past (before today)
-                        // 2. Status is not completed/cancelled/declined/no-show
-                        const isPastDue =
-                          isBookingInPast &&
-                          booking.status !== 'completed' &&
-                          booking.status !== 'cancelled' &&
-                          booking.status !== 'declined' &&
-                          booking.status !== 'no-show';
-
-                        return isPastDue ? (
-                          <span className="text-xs text-red-600 font-medium">Past Due</span>
-                        ) : null;
-                      })()}
+                      {BookingUtilService.isPastDue(booking) && (
+                        <span className="text-xs text-red-600 font-medium">Past Due</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(booking.status)}`}>
-                      <i className={`${getStatusIcon(booking.status)} text-xs mr-1`}></i>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${BookingUtilService.getStatusBadgeStyle(booking.status)}`}>
+                      <i className={`${BookingUtilService.getStatusIcon(booking.status)} text-xs mr-1`}></i>
+                      {BookingUtilService.getFormattedStatus(booking.status)}
                     </span>
-                    {(booking.reason || booking.barberReason) && (
-                      <div className="text-xs text-gray-500 mt-1 flex items-center">
-                        <i className="fas fa-comment-alt text-xs mr-1"></i> Has notes
-                      </div>
-                    )}
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end space-x-1">
@@ -271,4 +193,4 @@ const BookingTable = ({
   );
 };
 
-export default BookingTable;
+export default BookingsTable;

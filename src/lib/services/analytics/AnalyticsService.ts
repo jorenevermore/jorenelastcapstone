@@ -3,7 +3,7 @@
  * Handles analytics data retrieval and calculations
  */
 
-import { Booking } from '../appointment/BaseAppointmentService';
+import type { Booking } from '../../../app/dashboard/appointments/types';
 import { collection, query, where, getDocs, Firestore } from 'firebase/firestore';
 
 export interface ServiceResponse {

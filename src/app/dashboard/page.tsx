@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../lib/firebase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { QueueService } from '../../lib/services/queue/QueueService';
 import StatsCards from './appointments/components/StatsCards';
 import { Booking } from './appointments/types';
@@ -17,7 +17,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Dashboard data
+  // dashboard data
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<Booking[]>([]);
   const [recentActivity, setRecentActivity] = useState<Booking[]>([]);
@@ -29,8 +29,93 @@ export default function Dashboard() {
     canceledAppointments: 0,
     totalRevenue: 0
   });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // fetch realtime data
+  // Function to process bookings data
+  const processDashboardData = useCallback((bookingsData: Booking[]) => {
+    const queueService = new QueueService();
+    const bookingsWithQueue = queueService.addQueuePositions(bookingsData);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+
+    // calculate stats
+    const totalAppointments = bookingsWithQueue.length;
+    const pendingAppointments = bookingsWithQueue.filter(b => b.status === 'pending').length;
+    const completedAppointments = bookingsWithQueue.filter(b => b.status === 'completed').length;
+    const canceledAppointments = bookingsWithQueue.filter(b => b.status === 'cancelled').length;
+
+    // calculate total revenue
+    const totalRevenue = bookingsWithQueue
+      .filter(b => b.status === 'completed' && b.totalPrice)
+      .reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
+
+    // get today's appointments (sorted by queue)
+    const todayAppts = queueService.sortByQueuePriority(
+      bookingsWithQueue.filter(booking => booking.date === todayStr)
+    );
+
+    // get upcoming appointments (future dates, excluding terminal statuses)
+    const upcomingAppts = queueService.sortByQueuePriority(
+      bookingsWithQueue.filter(booking => {
+        const bookingDate = new Date(booking.date);
+        const isTerminalStatus = ['completed', 'cancelled', 'declined', 'no-show'].includes(booking.status);
+        return bookingDate >= today && !isTerminalStatus;
+      })
+    ).slice(0, 5);
+
+    // get recent activity
+    const recentActs = [...bookingsWithQueue]
+      .sort((a, b) => {
+        const dateA = new Date(`${a.date}T${a.time}`);
+        const dateB = new Date(`${b.date}T${b.time}`);
+        return dateB.getTime() - dateA.getTime();
+      })
+      .slice(0, 5);
+
+    // update state
+    setAllBookings(bookingsWithQueue as Booking[]);
+    setStats({
+      totalAppointments,
+      pendingAppointments,
+      todayAppointments: todayAppts.length,
+      completedAppointments,
+      canceledAppointments,
+      totalRevenue
+    });
+
+    setUpcomingAppointments(upcomingAppts as Booking[]);
+    setRecentActivity(recentActs as Booking[]);
+  }, []);
+
+  // Function to fetch dashboard data (one-time fetch)
+  const fetchDashboardData = useCallback(async (barbershopId: string) => {
+    try {
+      setError(null);
+      const bookingsCollection = collection(db, 'bookings');
+      const bookingsQuery = query(
+        bookingsCollection,
+        where('barbershopId', '==', barbershopId)
+      );
+
+      const snapshot = await getDocs(bookingsQuery);
+      const bookingsData: Booking[] = snapshot.docs.map(doc => {
+        const docData = doc.data();
+        return {
+          ...docData,
+          id: doc.id
+        } as Booking;
+      });
+
+      processDashboardData(bookingsData);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
+    }
+  }, [processDashboardData]);
+
+  // Fetch data on mount
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -38,94 +123,32 @@ export default function Dashboard() {
     }
 
     setLoading(true);
-    setError(null);
+    fetchDashboardData(user.uid).finally(() => setLoading(false));
+  }, [user, fetchDashboardData]);
 
-    // realtime listener
-    const bookingsCollection = collection(db, 'bookings');
-    const bookingsQuery = query(
-      bookingsCollection,
-      where('barbershopId', '==', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(
-      bookingsQuery,
-      (snapshot) => {
-        const bookingsData: Booking[] = snapshot.docs.map(doc => {
-          const docData = doc.data();
-          return {
-            ...docData,
-            id: doc.id
-          } as Booking;
-        });
-
-        // add queue positions to bookings
-        const queueService = new QueueService();
-        const bookingsWithQueue = queueService.addQueuePositions(bookingsData);
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayStr = today.toISOString().split('T')[0];
-
-        // calculate stats
-        const totalAppointments = bookingsWithQueue.length;
-        const pendingAppointments = bookingsWithQueue.filter(b => b.status === 'pending').length;
-        const completedAppointments = bookingsWithQueue.filter(b => b.status === 'completed').length;
-        const canceledAppointments = bookingsWithQueue.filter(b => b.status === 'cancelled').length;
-
-        // calculate total revenue
-        const totalRevenue = bookingsWithQueue
-          .filter(b => b.status === 'completed' && b.totalPrice)
-          .reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
-
-        // get today's appointments (sorted by queue)
-        const todayAppts = queueService.sortByQueuePriority(
-          bookingsWithQueue.filter(booking => booking.date === todayStr)
-        );
-
-        // get upcoming appointments (future dates, not cancelled)
-        const upcomingAppts = queueService.sortByQueuePriority(
-          bookingsWithQueue.filter(booking => {
-            const bookingDate = new Date(booking.date);
-            return bookingDate >= today && booking.status !== 'cancelled';
-          })
-        ).slice(0, 5);
-
-        // get recent activity
-        const recentActs = [...bookingsWithQueue]
-          .sort((a, b) => {
-            const dateA = new Date(`${a.date}T${a.time}`);
-            const dateB = new Date(`${b.date}T${b.time}`);
-            return dateB.getTime() - dateA.getTime();
-          })
-          .slice(0, 5);
-
-        // update state
-        setAllBookings(bookingsWithQueue as Booking[]);
-        setStats({
-          totalAppointments,
-          pendingAppointments,
-          todayAppointments: todayAppts.length,
-          completedAppointments,
-          canceledAppointments,
-          totalRevenue
-        });
-
-        setUpcomingAppointments(upcomingAppts as Booking[]);
-        setRecentActivity(recentActs as Booking[]);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again.');
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [user]);
+  // Manual refresh handler
+  const handleRefresh = async () => {
+    if (!user) return;
+    setIsRefreshing(true);
+    await fetchDashboardData(user.uid);
+    setIsRefreshing(false);
+  };
 
   return (
     <div className="p-4">
+      {/* Header with Refresh Icon */}
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <button
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          title="Refresh dashboard"
+        >
+          <i className={`fas fa-sync-alt text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`}></i>
+        </button>
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
           <p>{error}</p>

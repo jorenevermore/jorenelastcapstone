@@ -9,15 +9,19 @@ import Link from 'next/link';
 import { ChatModal } from '../components';
 import { AppointmentInfoCards } from '../components/AppointmentInfoCards';
 import { StatusActionsPanel } from '../components/StatusActionsPanel';
+import { MayaReceiptModal } from '../components/MayaReceiptModal';
 import { StatusService } from '../../../../lib/services/status/StatusService';
 import { useAppointmentDetails } from '../hooks/useAppointmentDetails';
 import { useAppointmentActions } from '../hooks/useAppointmentActions';
+import { useMayaPayment } from '../../../../lib/hooks/useMayaPayment';
 import { Message } from '../../../../lib/hooks/useMessaging';
+import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
 export default function AppointmentDetailsPage() {
   const params = useParams();
   const [user] = useAuthState(auth);
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [appointment, setAppointment] = useState<Booking | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const statusService = new StatusService();
@@ -30,6 +34,8 @@ export default function AppointmentDetailsPage() {
 
   const { isSubmitting, updateBookingStatus, addNoteToBooking } =
     useAppointmentActions();
+
+  const { receipt, loading: receiptLoading, error: receiptError, fetchReceipt } = useMayaPayment();
 
   // sync appointment to local state
   useEffect(() => {
@@ -91,19 +97,15 @@ export default function AppointmentDetailsPage() {
       throw error;
     }
   };
+
+  // handle view receipt
+  const handleViewReceipt = async () => {
+    if (!appointment) return;
+    setIsReceiptModalOpen(true);
+    await fetchReceipt(appointment.id);
+  };
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-black">Appointment Details</h1>
-        <Link
-          href="/dashboard/appointments"
-          className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 flex items-center"
-        >
-          <i className="fas fa-arrow-left mr-2"></i>
-          Back to Appointments
-        </Link>
-      </div>
-
       {fetchError && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
           <p>{fetchError}</p>
@@ -118,15 +120,25 @@ export default function AppointmentDetailsPage() {
       ) : appointment ? (
         <div className="bg-white rounded-lg shadow-md border border-gray-200 mb-6 animate-fadeIn">
           <div className="p-4 border-b border-gray-200 bg-gray-50">
-            <div className="flex items-center mb-3">
-              <h3 className="text-lg font-semibold text-black">
-                Appointment #{appointment.id.substring(0, 6)}
-              </h3>
-              <span className={`ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                ${statusService.getStatusColor(appointment.status)}`}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <h3 className="text-lg font-semibold text-black">
+                  Appointment #{appointment.id.substring(0, 6)}
+                </h3>
+                <span className={`ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                  ${statusService.getStatusColor(appointment.status)}`}
+                >
+                  <i className={`${BookingUtilService.getStatusIcon(appointment.status)} mr-1.5`}></i>
+                  {BookingUtilService.getFormattedStatus(appointment.status)}
+                </span>
+              </div>
+              <Link
+                href="/dashboard/appointments"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 flex items-center"
               >
-                {appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1).replace('-', ' ')}
-              </span>
+                <i className="fas fa-arrow-left mr-2"></i>
+                Back
+              </Link>
             </div>
           </div>
           <div className="p-6">
@@ -135,6 +147,7 @@ export default function AppointmentDetailsPage() {
                 appointment={appointment}
                 clientDetails={clientDetails}
                 onChatClick={() => setIsChatModalOpen(true)}
+                onViewReceipt={handleViewReceipt}
               />
             )}
             {appointment && (
@@ -171,44 +184,25 @@ export default function AppointmentDetailsPage() {
                   </div>
                 </div>
               )}
-              {(appointment.reason || appointment.barberReason) && appointment.status === 'cancelled' && (
-                <div className="bg-red-50 p-4 rounded-lg border border-red-200 mb-4">
-                  <h4 className="font-medium text-red-700 mb-3">
-                    Cancellation Information
-                  </h4>
-
-                  <div className="space-y-3">
-                    {appointment.reason && (
-                      <div className="bg-white p-3 rounded-lg border-l-4 border-red-400">
-                        <p className="text-sm font-medium text-red-700 mb-1">Client's Reason:</p>
-                        <p className="text-gray-700">{appointment.reason}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {appointment.createdAt ? (() => {
-                            const date = typeof appointment.createdAt === 'string' ? new Date(parseInt(appointment.createdAt)) : new Date(appointment.createdAt);
-                            return date.toLocaleString();
-                          })() : ''}
-                        </p>
-                      </div>
-                    )}
-                    {appointment.barberReason && (
-                      <div className="bg-white p-3 rounded-lg border-l-4 border-red-400">
-                        <p className="text-sm font-medium text-red-700 mb-1">Barbershop's Reason:</p>
-                        <p className="text-gray-700">{appointment.barberReason}</p>
-                        {appointment.statusHistory && appointment.statusHistory.length > 0 && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            {(() => {
-                              const timestamp = appointment.statusHistory[appointment.statusHistory.length - 1].timestamp;
-                              if (!timestamp) return '';
-                              const date = typeof timestamp === 'string' ? new Date(parseInt(timestamp)) : new Date(timestamp);
-                              return date.toLocaleString();
-                            })()}
-                          </p>
-                        )}
-                      </div>
-                    )}
+              {(() => {
+                const cancellationInfo = BookingUtilService.getCancellationInfo(appointment);
+                return cancellationInfo ? (
+                  <div className="bg-red-50 p-4 rounded-lg border border-red-200 mb-4">
+                    <h4 className="font-medium text-red-700 mb-3">
+                      Cancellation Information
+                    </h4>
+                    <div className="bg-white p-3 rounded-lg border-l-4 border-red-400">
+                      <p className="text-sm font-medium text-red-700 mb-1">
+                        {appointment.barberReason ? "Barbershop's Reason:" : "Client's Reason:"}
+                      </p>
+                      <p className="text-gray-700">{cancellationInfo.reason}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {cancellationInfo.timestamp}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              )}
+                ) : null;
+              })()}
               {appointment.feedback && appointment.feedback.rating && (
                 <div className="bg-gray-50 p-4 rounded-lg">
                   <h4 className="font-medium text-gray-700 mb-3">
@@ -261,6 +255,13 @@ export default function AppointmentDetailsPage() {
             isSubmitting={isSubmitting}
             messages={messages}
           />
+          <MayaReceiptModal
+            isOpen={isReceiptModalOpen}
+            receipt={receipt}
+            loading={receiptLoading}
+            error={receiptError}
+            onClose={() => setIsReceiptModalOpen(false)}
+          />
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
@@ -272,7 +273,7 @@ export default function AppointmentDetailsPage() {
             className="px-5 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors inline-flex items-center"
           >
             <i className="fas fa-arrow-left mr-2"></i>
-            Back to Appointments
+            Back
           </Link>
         </div>
       )}

@@ -13,16 +13,24 @@ interface AppointmentInfoCardsProps {
     photo?: string;
   } | null;
   onChatClick?: () => void;
+  onNotifyNextInQueue?: () => void;
+  onViewReceipt?: () => void;
 }
 
-export const AppointmentInfoCards = ({ appointment, clientDetails, onChatClick }: AppointmentInfoCardsProps) => {
+export const AppointmentInfoCards = ({
+  appointment,
+  clientDetails,
+  onChatClick,
+  onNotifyNextInQueue,
+  onViewReceipt
+}: AppointmentInfoCardsProps) => {
   const statusService = new StatusService();
   const dateIndicator = statusService.getDateIndicator(appointment.date);
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
-      {/* Top Section: Photo, Name, Status, Chat */}
-      <div className="flex items-start justify-between mb-5 pb-5 border-b border-gray-100">
+    <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
+      {/* Top Section: Photo, Name, Status, Chat & Notify */}
+      <div className="flex items-start justify-between mb-4 pb-4 border-b border-gray-100">
         <div className="flex items-start gap-4 flex-1">
           {/* Client Photo */}
           <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -48,20 +56,40 @@ export const AppointmentInfoCards = ({ appointment, clientDetails, onChatClick }
           </div>
         </div>
 
-        {/* Chat Icon */}
-        {onChatClick && (
-          <button
-            onClick={onChatClick}
-            className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center justify-center flex-shrink-0"
-            title="Messages"
-          >
-            <i className="fas fa-comments text-sm"></i>
-          </button>
-        )}
+        {/* Action Icons: Chat & Notify & Receipt */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {onChatClick && (
+            <button
+              onClick={onChatClick}
+              className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center justify-center"
+              title="Messages"
+            >
+              <i className="fas fa-comments text-sm"></i>
+            </button>
+          )}
+          {appointment.status === 'pending' && onNotifyNextInQueue && (
+            <button
+              onClick={onNotifyNextInQueue}
+              className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center justify-center"
+              title="Notify Next in Queue"
+            >
+              <i className="fas fa-bell text-sm"></i>
+            </button>
+          )}
+          {appointment.paymentMethod === 'maya' && onViewReceipt && (
+            <button
+              onClick={onViewReceipt}
+              className="w-10 h-10 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition-colors flex items-center justify-center"
+              title="View Receipt"
+            >
+              <i className="fas fa-receipt text-sm"></i>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Main Content: 3 Columns */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         {/* Client Info */}
         <div className="space-y-3">
           <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Client</h3>
@@ -136,7 +164,7 @@ export const AppointmentInfoCards = ({ appointment, clientDetails, onChatClick }
       </div>
 
       {/* Footer: Payment Summary */}
-      <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-between text-xs">
+      <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs">
         <div className="flex gap-4">
           <div>
             <p className="text-gray-500 mb-0.5">Total</p>

@@ -12,7 +12,7 @@ export interface Booking {
   styleOrderedId: string;
   date: string;
   time: string;
-  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled' | 'declined' | 'no-show';
+  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'completedAndReviewed' | 'cancelled' | 'declined' | 'no-show';
   notificationStatus?: 'next-in-queue' | 'called-to-service';  // queue notification status
   paymentStatus?: 'paid';  // only added after cash payment is confirmed
   reason?: string;
@@ -42,13 +42,6 @@ export interface Booking {
     timestamp: string;
     reason?: string;
     updatedBy: 'client' | 'barber';
-  }[];
-  barbershopNotes?: {
-    text: string;
-    timestamp: string;
-    from: 'barbershop';
-    barbershopId: string;
-    barbershopName?: string;
   }[];
   clientNotes?: {
     text: string;

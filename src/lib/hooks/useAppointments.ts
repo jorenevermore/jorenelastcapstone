@@ -1,11 +1,10 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { db } from '../firebase';
 import { AppointmentService } from '../services/appointment/AppointmentService';
-import { Booking } from '../services/appointment/BaseAppointmentService';
-import { Unsubscribe } from 'firebase/firestore';
+import type { Booking } from '../../app/dashboard/appointments/types';
 
 const appointmentService = new AppointmentService(db);
 
@@ -14,12 +13,7 @@ export interface UseAppointmentsReturn {
   loading: boolean;
   error: string | null;
   fetchBookings: (barbershopId: string) => Promise<void>;
-  subscribeToBookings: (barbershopId: string) => Unsubscribe | null;
-  updateBookingStatus: (
-    bookingId: string,
-    status: string,
-    reason?: string
-  ) => Promise<boolean>;
+  updateBookingStatus: (bookingId: string, status: string, reason?: string) => Promise<boolean>;
   deleteBooking: (bookingId: string) => Promise<boolean>;
   clearError: () => void;
 }
@@ -29,140 +23,68 @@ export function useAppointments(): UseAppointmentsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const unsubscribeRef = useRef<Unsubscribe | null>(null);
-  const currentBarbershopRef = useRef<string | null>(null);
-  const setBookingsRef = useRef(setBookings);
-  const setErrorRef = useRef(setError);
-
-  // Keep refs in sync with state setters
-  useEffect(() => {
-    setBookingsRef.current = setBookings;
-    setErrorRef.current = setError;
-  }, []);
-
+  // fetch bookings once
   const fetchBookings = useCallback(async (barbershopId: string) => {
-    setLoading(true);
-    setError(null);
-
     try {
-      const result = await appointmentService.getBookingsByBarbershop(
-        barbershopId
-      );
+      setLoading(true);
+      setError(null);
+      const result = await appointmentService.getBookingsByBarbershop(barbershopId);
       if (result.success) {
-        setBookings(result.data || []);
+        setBookings(result.data as Booking[]);
       } else {
         setError(result.message);
       }
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to fetch bookings';
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Failed to fetch bookings');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  /**
-   * Real-time subscription to bookings for a barbershop.
-   * - If we are already subscribed to this barbershop, we just reuse the existing listener.
-   * - Only when barbershopId changes do we unsubscribe + create a new listener.
-   */
-  const subscribeToBookings = useCallback(
-    (barbershopId: string): Unsubscribe | null => {
-      try {
-        if (
-          currentBarbershopRef.current === barbershopId &&
-          unsubscribeRef.current
-        ) {
-          return unsubscribeRef.current;
-        }
-        if (unsubscribeRef.current) {
-          unsubscribeRef.current();
-          unsubscribeRef.current = null;
-        }
-
-        const unsubscribe = appointmentService.subscribeToBookings(
-          barbershopId,
-          (updatedBookings) => {
-            setBookingsRef.current(updatedBookings);
-          }
-        );
-
-        unsubscribeRef.current = unsubscribe;
-        currentBarbershopRef.current = barbershopId;
-
-        return unsubscribe;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? err.message
-            : 'Failed to subscribe to bookings';
-        setErrorRef.current(errorMessage);
-        return null;
-      }
-    },
-    []
-  );
-
+    // update booking status
   const updateBookingStatus = useCallback(
-    async (
-      bookingId: string,
-      status: string,
-      reason?: string
-    ): Promise<boolean> => {
+    async (bookingId: string, status: string, reason?: string): Promise<boolean> => {
       try {
-        const result = await appointmentService.updateBookingStatus(
-          bookingId,
-          status,
-          reason
-        );
+        const result = await appointmentService.updateBookingStatus(bookingId, status, reason);
         if (!result.success) {
           setError(result.message);
           return false;
         }
+        setBookings(prevBookings =>
+          prevBookings.map(booking =>
+            booking.id === bookingId
+              ? { ...booking, status: status as Booking['status'], barberReason: reason }
+              : booking
+          )
+        );
         return true;
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to update booking';
-        setError(errorMessage);
+        setError(err instanceof Error ? err.message : 'Failed to update booking');
         return false;
       }
     },
     []
   );
 
-  const deleteBooking = useCallback(
-    async (bookingId: string): Promise<boolean> => {
-      try {
-        const result = await appointmentService.deleteBooking(bookingId);
-        if (!result.success) {
-          setError(result.message);
-          return false;
-        }
-        return true;
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to delete booking';
-        setError(errorMessage);
+  const deleteBooking = useCallback(async (bookingId: string): Promise<boolean> => {
+    try {
+      const result = await appointmentService.deleteBooking(bookingId);
+      if (!result.success) {
+        setError(result.message);
         return false;
       }
-    },
-    []
-  );
+      setBookings(prevBookings =>
+        prevBookings.filter(booking => booking.id !== bookingId)
+      );
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete booking');
+      return false;
+    }
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);
-  }, []);
-
-  // cleanup subscription on unmount
-  useEffect(() => {
-    return () => {
-      if (unsubscribeRef.current) {
-        unsubscribeRef.current();
-        unsubscribeRef.current = null;
-      }
-      currentBarbershopRef.current = null;
-    };
   }, []);
 
   return {
@@ -170,7 +92,6 @@ export function useAppointments(): UseAppointmentsReturn {
     loading,
     error,
     fetchBookings,
-    subscribeToBookings,
     updateBookingStatus,
     deleteBooking,
     clearError,

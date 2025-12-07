@@ -5,19 +5,19 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../lib/firebase';
 import { Booking } from './types';
 import {
-  TodayBookingsCard,
-  BookingTable,
+  DailyViewCard,
+  BookingsTable,
   ConfirmationModal,
   FilterBar,
-  QueueStats
+  QueueOverviewCard
 } from './components';
-import { useQueueNotifications } from './hooks/useQueueNotifications';
+
 import { useAppointments } from '../../../lib/hooks/useAppointments';
+import { useRealtimeQueue } from '../../../lib/hooks/useRealtimeQueue';
+import { BookingUtilService } from '../../../lib/services/booking/BookingUtilService';
 import {
   filterBookings,
-  getUniqueBarbers,
-  countBookingsByDateCategory,
-  filterBookingsByDate
+  getUniqueBarbers
 } from './utils/appointmentHelpers';
 
 export default function AppointmentsPage() {
@@ -26,12 +26,14 @@ export default function AppointmentsPage() {
     bookings,
     loading,
     error: appointmentError,
-    subscribeToBookings,
+    fetchBookings,
     updateBookingStatus,
     deleteBooking
   } = useAppointments();
 
-  const [todayBookings, setTodayBookings] = useState<Booking[]>([]);
+  // Real-time queue updates ONLY for Queue Overview
+  const { bookings: realtimeQueueBookings } = useRealtimeQueue(user?.uid);
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [error, setError] = useState<string | null>(appointmentError);
 
@@ -41,26 +43,19 @@ export default function AppointmentsPage() {
   } | null>(null);
 
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState<string>('');
+  const [showCancelReasonModal, setShowCancelReasonModal] = useState<string | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [barberFilter, setBarberFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [dateFilter, setDateFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<string>('today');
 
-  // activate queue notifications
-  useQueueNotifications(bookings as Booking[]);
-
-  // subscribe to real-time bookings updates
+  // Fetch bookings once on mount
   useEffect(() => {
-    if (!user) {
-      return;
-    }
-
-    const unsubscribe = subscribeToBookings(user.uid);
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [user, subscribeToBookings]);
+    if (!user) return;
+    fetchBookings(user.uid);
+  }, [user, fetchBookings]);
 
   useEffect(() => {
     if (appointmentError) {
@@ -68,23 +63,8 @@ export default function AppointmentsPage() {
     }
   }, [appointmentError]);
 
-  // update today's bookings when selected date changes
-  const updateTodayBookings = useCallback(
-    (date: Date, bookingsList: Booking[] = bookings as Booking[]) => {
-      const filtered = filterBookingsByDate(bookingsList, date);
-      setTodayBookings(filtered);
-    },
-    [bookings]
-  );
-
-  // update today's bookings when bookings data changes
-  useEffect(() => {
-    updateTodayBookings(selectedDate, bookings as Booking[]);
-  }, [bookings, selectedDate, updateTodayBookings]);
-
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
-    updateTodayBookings(date);
   };
 
   // handle booking status update
@@ -117,9 +97,12 @@ export default function AppointmentsPage() {
   const confirmAction = async () => {
     if (selectedBooking) {
       const { id, action } = selectedBooking;
-      action === 'accept'
-        ? await handleUpdateBookingStatus(id, 'confirmed')
-        : await handleUpdateBookingStatus(id, 'cancelled');
+      if (action === 'accept') {
+        await handleUpdateBookingStatus(id, 'confirmed');
+      } else {
+        // For cancel action, show reason modal instead of directly cancelling
+        setShowCancelReasonModal(id);
+      }
     }
   };
 
@@ -134,9 +117,14 @@ export default function AppointmentsPage() {
     }
   };
 
-  // filter bookings using helper function
-  const filteredBookings = filterBookings(
+  // filter bookings: first by date category, then by other filters
+  const bookingsByDateCategory = BookingUtilService.filterBookingsByDateCategory(
     bookings as Booking[],
+    dateFilter as 'today' | 'upcoming' | 'all'
+  );
+
+  const filteredBookings = filterBookings(
+    bookingsByDateCategory,
     statusFilter,
     barberFilter,
     searchQuery
@@ -147,7 +135,7 @@ export default function AppointmentsPage() {
 
   // count bookings by date category
   const { todayCount, pastCount, upcomingCount } =
-    countBookingsByDateCategory(bookings as Booking[]);
+    BookingUtilService.countBookingsByDateCategory(bookings as Booking[]);
 
   return (
     <div className="p-4">
@@ -166,11 +154,11 @@ export default function AppointmentsPage() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 mb-6">
             <div className="lg:col-span-7">
-              <QueueStats bookings={bookings as Booking[]} />
+              <QueueOverviewCard bookings={realtimeQueueBookings as Booking[]} isRealtime={true} />
             </div>
             <div className="lg:col-span-3 max-h-[60vh] overflow-y-auto">
-              <TodayBookingsCard
-                todayBookings={todayBookings}
+              <DailyViewCard
+                todayBookings={BookingUtilService.filterBookingsByDate(bookings as Booking[], selectedDate)}
                 selectedDate={selectedDate}
                 onDateChange={handleDateChange}
               />
@@ -193,7 +181,7 @@ export default function AppointmentsPage() {
             />
           </div>
           <div className="bg-white rounded-lg shadow-sm">
-            <BookingTable
+            <BookingsTable
               bookings={filteredBookings as Booking[]}
               handleAccept={handleAccept}
               handleCancel={handleCancel}
@@ -201,32 +189,100 @@ export default function AppointmentsPage() {
               dateFilter={dateFilter}
             />
           </div>
-          <ConfirmationModal
-            title="Confirm Action"
-            message={`Are you sure you want to ${
-              selectedBooking?.action === 'accept' ? 'accept' : 'cancel'
-            } this booking?`}
-            isOpen={selectedBooking !== null}
-            onClose={() => setSelectedBooking(null)}
-            onConfirm={confirmAction}
-            confirmText={
-              selectedBooking?.action === 'accept' ? 'Accept' : 'Cancel'
-            }
-            confirmColor={
-              selectedBooking?.action === 'accept'
-                ? 'bg-green-500'
-                : 'bg-yellow-500'
-            }
-          />
-          <ConfirmationModal
-            title="Confirm Deletion"
-            message="Are you sure you want to delete this booking? This action cannot be undone."
-            isOpen={bookingToDelete !== null}
-            onClose={() => setBookingToDelete(null)}
-            onConfirm={confirmDelete}
-            confirmText="Delete"
-            confirmColor="bg-red-500"
-          />
+          {/* Confirm Action Modal */}
+          {selectedBooking && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4">Confirm Action</h3>
+                <p className="text-gray-600 mb-6 text-sm">
+                  Are you sure you want to {selectedBooking.action === 'accept' ? 'accept' : 'cancel'} this booking?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setSelectedBooking(null)}
+                    className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={confirmAction}
+                    className={`px-3 py-1.5 text-white rounded text-xs font-medium transition-colors ${
+                      selectedBooking.action === 'accept'
+                        ? 'bg-green-500 hover:bg-green-600'
+                        : 'bg-red-500 hover:bg-red-600'
+                    }`}
+                  >
+                    {selectedBooking.action === 'accept' ? 'Accept' : 'Cancel'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Delete Confirmation Modal */}
+          {bookingToDelete && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+                <p className="text-gray-600 mb-6 text-sm">
+                  Are you sure you want to delete this booking? This action cannot be undone.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setBookingToDelete(null)}
+                    className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="px-3 py-1.5 bg-red-500 text-white rounded text-xs font-medium transition-colors hover:bg-red-600"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Cancellation Reason Modal */}
+          {showCancelReasonModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4">Cancel Appointment</h3>
+                <textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Enter reason for cancellation..."
+                  className="w-full border border-gray-300 rounded p-3 mb-4 text-sm"
+                  rows={4}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowCancelReasonModal(null);
+                      setCancelReason('');
+                      setSelectedBooking(null);
+                    }}
+                    className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (showCancelReasonModal) {
+                        await handleUpdateBookingStatus(showCancelReasonModal, 'cancelled', cancelReason);
+                        setShowCancelReasonModal(null);
+                        setCancelReason('');
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-red-500 text-white rounded text-xs font-medium transition-colors hover:bg-red-600"
+                  >
+                    Confirm Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

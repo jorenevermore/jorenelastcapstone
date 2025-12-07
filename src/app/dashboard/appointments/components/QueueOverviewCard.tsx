@@ -1,24 +1,26 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Booking } from '../types';
 import { QueueService } from '../../../../lib/services/queue/QueueService';
+import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
-interface QueueStatsProps {
+interface QueueOverviewCardProps {
   bookings: Booking[];
+  isRealtime?: boolean;
 }
 
-const QueueStats = ({ bookings }: QueueStatsProps) => {
+const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardProps) => {
   const queueService = new QueueService();
 
-  // Get today's queue statistics
-  const stats = queueService.getQueueStats(bookings, true);
+  const { stats, sortedQueue } = useMemo(() => {
+    const stats = queueService.getQueueStats(bookings, true);
+    const activeBookings = queueService.getActiveBookings(bookings);
+    const sortedQueue = queueService.sortByQueuePriority(activeBookings, true);
+    return { stats, sortedQueue };
+  }, [bookings, queueService]);
 
-  // Get active bookings and sort by queue priority
-  const activeBookings = queueService.getActiveBookings(bookings);
-  const sortedQueue = queueService.sortByQueuePriority(activeBookings, true);
-
-  // Get top 3 in queue for preview (already sorted, so #1 is first)
+  // get top 3 in queue for preview
   const topInQueue = sortedQueue.slice(0, 3);
 
   return (
@@ -31,8 +33,8 @@ const QueueStats = ({ bookings }: QueueStatsProps) => {
           <div>
             <span className="text-sm font-medium text-gray-700">Queue Overview</span>
             <div className="flex items-center text-xs text-gray-500 mt-0.5">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
-              Real-time
+              <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${isRealtime ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></span>
+              {isRealtime ? 'Real-time' : 'Cached'}
             </div>
           </div>
         </div>
@@ -98,7 +100,7 @@ const QueueStats = ({ bookings }: QueueStatsProps) => {
                         ? 'bg-red-600 text-white'
                         : 'bg-blue-600 text-white'
                     }`}>
-                      #{booking.queuePosition}
+                      {booking.queuePosition}
                     </div>
                     <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 flex-shrink-0 text-xs font-medium">
                       {booking.clientName.charAt(0).toUpperCase()}
@@ -118,60 +120,17 @@ const QueueStats = ({ bookings }: QueueStatsProps) => {
                       </div>
                       <div className="flex items-center justify-between mt-0.5">
                         <span className="text-xs text-gray-500">
-                          {(() => {
-                            const startTime = booking.time?.split('-')[0]?.trim() || '';
-                            const hour = parseInt(startTime.split(':')[0]);
-                            const sessionType = hour < 13 ? 'Morning Session' : 'Afternoon Session';
-                            const bookingDate = new Date(booking.date).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric'
-                            });
-                            return `${bookingDate} - ${sessionType}`;
-                          })()}
+                          {BookingUtilService.formatBookingDate(booking.date)} - {BookingUtilService.getSessionType(booking.time)}
                         </span>
-                        {(() => {
-                          const now = new Date();
-
-                          // Get today's date in ISO format (YYYY-MM-DD)
-                          const todayISO = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-                            .toISOString().split('T')[0];
-
-                          // Parse booking date - handle both ISO format and other formats
-                          let bookingDateISO: string;
-                          if (booking.date.includes('-') && booking.date.length === 10) {
-                            // Already in ISO format (YYYY-MM-DD)
-                            bookingDateISO = booking.date;
-                          } else {
-                            // Parse from other format
-                            const bookingDate = new Date(booking.date);
-                            bookingDateISO = new Date(bookingDate.getFullYear(), bookingDate.getMonth(), bookingDate.getDate())
-                              .toISOString().split('T')[0];
-                          }
-
-                          const isBookingInPast = bookingDateISO < todayISO;
-
-                          const isPastDue =
-                            isBookingInPast &&
-                            booking.status !== 'completed' &&
-                            booking.status !== 'cancelled' &&
-                            booking.status !== 'declined' &&
-                            booking.status !== 'no-show';
-
-                          return isPastDue ? (
-                            <span className="text-xs text-red-600 font-medium">Past Due</span>
-                          ) : null;
-                        })()}
+                        {BookingUtilService.isPastDue(booking) && (
+                          <span className="text-xs text-red-600 font-medium">Past Due</span>
+                        )}
                       </div>
                     </div>
                   </div>
                   <div className="flex-shrink-0">
-                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
-                      booking.status === 'pending' ? 'bg-yellow-100 text-yellow-800 border border-yellow-200' :
-                      booking.status === 'confirmed' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
-                      booking.status === 'in-progress' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
-                      'bg-gray-100 text-gray-800 border border-gray-200'
-                    }`}>
-                      {booking.status.charAt(0).toUpperCase() + booking.status.slice(1).replace('-', ' ')}
+                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap ${BookingUtilService.getStatusBadgeStyle(booking.status)}`}>
+                      {BookingUtilService.getFormattedStatus(booking.status)}
                     </span>
                   </div>
                 </div>
@@ -198,5 +157,5 @@ const QueueStats = ({ bookings }: QueueStatsProps) => {
   );
 };
 
-export default QueueStats;
+export default QueueOverviewCard;
 

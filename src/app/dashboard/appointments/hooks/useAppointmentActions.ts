@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { db } from '../../../../lib/firebase';
-import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { Booking } from '../types';
 import { useMessaging, Message } from '../../../../lib/hooks/useMessaging';
 
@@ -42,18 +42,8 @@ export const useAppointmentActions = (): UseAppointmentActionsReturn => {
         reason: reason || ''
       };
 
-      // Get current booking
-      const bookingDoc = await getDocs(
-        query(collection(db, 'bookings'), where('id', '==', appointment.id))
-      );
-
-      let currentBooking: any = null;
-      bookingDoc.forEach(doc => {
-        currentBooking = doc.data();
-      });
-
-      if (currentBooking?.statusHistory) {
-        updateData.statusHistory = [...currentBooking.statusHistory, historyEntry];
+      if (appointment.statusHistory) {
+        updateData.statusHistory = [...appointment.statusHistory, historyEntry];
       } else {
         updateData.statusHistory = [historyEntry];
       }
@@ -85,7 +75,8 @@ export const useAppointmentActions = (): UseAppointmentActionsReturn => {
         message: note,
         timestamp: Date.now().toString(),
         appointmentId: appointment.id,
-        from: 'barbershop'
+        from: 'barbershop',
+        clientName: appointment.clientName
       };
 
       const result = await addMessage(messageData);
@@ -94,22 +85,6 @@ export const useAppointmentActions = (): UseAppointmentActionsReturn => {
         setError(result.message || 'Failed to add message');
         return { success: false };
       }
-
-      // update booking notes
-      const newNote = {
-        text: note,
-        timestamp: new Date().toISOString(),
-        from: 'barbershop' as const,
-        barbershopId: userId,
-        barbershopName: appointment.barbershopName || 'Barbershop'
-      };
-
-      const bookingRef = doc(db, 'bookings', appointment.id);
-      const existingNotes = appointment.barbershopNotes || [];
-
-      await updateDoc(bookingRef, {
-        barbershopNotes: [...existingNotes, newNote]
-      });
 
       return {
         success: true,

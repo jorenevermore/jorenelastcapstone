@@ -1,7 +1,3 @@
-/**
- * Base Messaging Service
- * Provides common messaging functionality
- */
 
 export interface Message {
   id?: string;
@@ -12,6 +8,7 @@ export interface Message {
   timestamp: string;
   appointmentId?: string;
   from: 'barbershop' | 'client';
+  clientName?: string;
 }
 
 export interface ServiceResponse {
