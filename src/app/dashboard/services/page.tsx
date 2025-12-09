@@ -49,59 +49,58 @@ export default function ServicesPage() {
   const [globalServices, setGlobalServices] = useState<GlobalService[]>([]);
   const [error, setError] = useState<string | null>(serviceError);
 
-  // UI state
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Confirmation dialog state
+  // modal states
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [showStyleModal, setShowStyleModal] = useState(false);
+  const [showStylePreview, setShowStylePreview] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showRemoveServiceConfirmation, setShowRemoveServiceConfirmation] = useState(false);
+
+  // editing states
+  const [isEditingService, setIsEditingService] = useState(false);
+  const [isEditingStyle, setIsEditingStyle] = useState(false);
+
+  // current item states
+  const [currentService, setCurrentService] = useState<Service>(emptyService);
+  const [currentStyle, setCurrentStyle] = useState<Style>(emptyStyle);
+  const [serviceToRemove, setServiceToRemove] = useState<Service | null>(null);
+
+  // confirmation states
   const [confirmationTitle, setConfirmationTitle] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
   const [confirmationAction, setConfirmationAction] = useState<() => Promise<void>>(() => Promise.resolve());
-  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  // Convert styles array to map for easier access
+  // convert styles to map structure
   const stylesMap: StylesMap = styles.reduce((map, style) => {
     if (!map[style.serviceId]) map[style.serviceId] = [];
     map[style.serviceId].push(style);
     return map;
   }, {} as StylesMap);
 
-  // Modal states
-  const [showServiceModal, setShowServiceModal] = useState(false);
-  const [showStyleModal, setShowStyleModal] = useState(false);
-  const [showStylePreview, setShowStylePreview] = useState(false);
-  const [isEditingService, setIsEditingService] = useState(false);
-  const [isEditingStyle, setIsEditingStyle] = useState(false);
-  const [currentService, setCurrentService] = useState<Service>(emptyService);
-  const [currentStyle, setCurrentStyle] = useState<Style>(emptyStyle);
-
-  // Confirmation modal states
-  const [showConfirmation, setShowConfirmation] = useState(false);
-
-  // Track if we've already processed URL params to avoid infinite loops
   const urlParamsProcessed = useRef(false);
 
-  // Helper function to clear URL parameters
+  // clear url parameters
   const clearUrlParams = () => {
     router.push('/dashboard/services', { scroll: false });
   };
 
-  // Handle URL query parameters
+  // handle url query parameters
   useEffect(() => {
     const newStyleServiceId = searchParams.get('newStyle');
     const editStyleId = searchParams.get('editStyle');
     const editServiceId = searchParams.get('edit');
 
-    // Only process if we have URL params and haven't already processed them
+    // process url params once
     if (!urlParamsProcessed.current && (newStyleServiceId || editStyleId || editServiceId)) {
       if (newStyleServiceId) {
-        // Find the service and open the add style modal
         const service = services.find(s => s.id === newStyleServiceId);
         if (service) {
           handleAddStyle(newStyleServiceId);
           urlParamsProcessed.current = true;
         }
       } else if (editStyleId) {
-        // Find the style and open the edit style modal
         for (let serviceId in stylesMap) {
           const style = stylesMap[serviceId].find(s => s.styleId === editStyleId);
           if (style) {
@@ -111,7 +110,6 @@ export default function ServicesPage() {
           }
         }
       } else if (editServiceId) {
-        // Find the service and open the edit service modal
         const service = services.find(s => s.id === editServiceId);
         if (service) {
           handleEditService(service);
@@ -119,14 +117,13 @@ export default function ServicesPage() {
         }
       }
     }
-
-    // Reset the flag when URL params are cleared
+   // reset flag when cleared
     if (!newStyleServiceId && !editStyleId && !editServiceId) {
       urlParamsProcessed.current = false;
     }
   }, [searchParams]);
 
-  // Fetch barbershop and services
+  // fetch barbershop services
   useEffect(() => {
     const fetchData = async () => {
       setError(null);
@@ -134,21 +131,17 @@ export default function ServicesPage() {
       if (user) {
         console.log('Fetching services for user:', user.uid);
         setBarbershopId(user.uid);
-        // Fetch barbershop's selected services and styles
         await fetchServices(user.uid);
         await fetchStyles(user.uid);
       } else {
         console.log('No user found');
       }
-
-      // Fetch global services (all available services)
       await fetchGlobalServices();
     };
 
     fetchData();
   }, [user, fetchServices, fetchStyles]);
 
-  // Fetch global services from the services collection
   const fetchGlobalServices = async () => {
     try {
       const servicesCollection = collection(db, 'services');
@@ -162,20 +155,13 @@ export default function ServicesPage() {
       setGlobalServices(servicesData);
     } catch (error) {
       console.error('Error fetching global services:', error);
-      // Don't set error here as it's not critical for the main functionality
     }
   };
 
-
-
-  // Filter added services based on search term
   const filteredAddedServices = services.filter(service =>
     service && service.title && service.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-
-
-  // Save service (called from ServiceModal)
   const handleSaveService = async (service: Service) => {
     if (!user || !barbershopId) {
       setError('You must be logged in to perform this action.');
@@ -183,7 +169,7 @@ export default function ServicesPage() {
     }
 
     try {
-      // Find the global service to get its details
+      // get global service details
       const globalService = globalServices.find(s => s.id === service.serviceCategoryId);
       if (!globalService) {
         setError('Global service not found.');
@@ -193,7 +179,7 @@ export default function ServicesPage() {
       let updatedServices;
 
       if (isEditingService && service.id) {
-        // Update existing service
+        // update existing service
         updatedServices = services.map(s =>
           s.id === service.id
             ? {
@@ -206,7 +192,7 @@ export default function ServicesPage() {
             : s
         );
       } else {
-        // Create new service
+        // create new service
         const newServiceId = `service_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
         const newService: Service = {
           id: newServiceId,
@@ -218,7 +204,6 @@ export default function ServicesPage() {
         updatedServices = [...services, newService];
       }
 
-      // Update using the service hook
       const success = await updateServices(barbershopId, updatedServices);
       if (success) {
         setShowServiceModal(false);
@@ -233,18 +218,25 @@ export default function ServicesPage() {
     }
   };
 
-  // Remove service
-  const handleRemoveService = async (serviceId: string) => {
-    if (!user || !barbershopId) {
+  const handleRemoveService = (service: Service) => {
+    setServiceToRemove(service);
+    setShowRemoveServiceConfirmation(true);
+  };
+
+  const confirmRemoveService = async () => {
+    if (!serviceToRemove || !user || !barbershopId) {
       setError('You must be logged in to perform this action.');
       return;
     }
 
     try {
-      const updatedServices = services.filter(s => s.id !== serviceId);
+      const updatedServices = services.filter(s => s.id !== serviceToRemove.id);
       const success = await updateServices(barbershopId, updatedServices);
       if (!success) {
         setError('Failed to remove service. Please try again.');
+      } else {
+        setShowRemoveServiceConfirmation(false);
+        setServiceToRemove(null);
       }
     } catch (err) {
       console.error('Error removing service:', err);
@@ -252,9 +244,6 @@ export default function ServicesPage() {
     }
   };
 
-
-
-  // Style CRUD operations
   const handleSaveStyle = async (style: Style) => {
     if (!user || !barbershopId) {
       setError('You must be logged in to perform this action.');
@@ -262,7 +251,7 @@ export default function ServicesPage() {
     }
 
     try {
-      // Create a new style object
+      // create new style
       const newStyle: Style = {
         styleId: isEditingStyle ? style.styleId : `style_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
         styleName: style.styleName,
@@ -276,10 +265,8 @@ export default function ServicesPage() {
         type: 'barbershop'
       };
 
-
-
       if (isEditingStyle && style.docId) {
-        // Update existing style
+        // update existing style
         await updateDoc(doc(db, 'styles', style.docId), {
           styleId: newStyle.styleId,
           styleName: newStyle.styleName,
@@ -293,14 +280,14 @@ export default function ServicesPage() {
           type: newStyle.type
         });
       } else {
-        // Add new style
+        // add new style
         await addDoc(collection(db, 'styles'), newStyle);
       }
 
-      // Refresh styles
+      // refresh styles
       await fetchStyles(barbershopId);
 
-      // Reset state
+      // reset state
       setIsEditingStyle(false);
       setShowStyleModal(false);
       setCurrentStyle(emptyStyle);
@@ -313,14 +300,11 @@ export default function ServicesPage() {
   const handleDeleteStyle = (styleId: string) => {
     if (!styleId || !barbershopId) return;
 
-    setItemToDelete(styleId);
     setConfirmationTitle('Delete Style');
     setConfirmationMessage('This will permanently delete this style. This action cannot be undone.');
 
-    // Create the async function directly without the wrapper
     const deleteAction = async () => {
       try {
-        // Find the style document with the matching styleId
         const stylesCollection = collection(db, 'styles');
         const q = query(
           stylesCollection,
@@ -331,12 +315,10 @@ export default function ServicesPage() {
         const querySnapshot = await getDocs(q);
 
         if (!querySnapshot.empty) {
-          // Delete the style document using the service hook
           const styleDoc = querySnapshot.docs[0];
           const success = await deleteStyle(styleDoc.id);
 
           if (success) {
-            // Close preview modal if open
             setShowStylePreview(false);
             setError(null);
           } else {
@@ -355,7 +337,6 @@ export default function ServicesPage() {
     setShowConfirmation(true);
   };
 
-  // UI handlers
   const handleAddService = () => {
     setCurrentService(emptyService);
     setIsEditingService(false);
@@ -377,8 +358,6 @@ export default function ServicesPage() {
       barberOrBarbershop: barbershopId || ''
     };
 
-
-
     setCurrentStyle(newStyle);
     setIsEditingStyle(false);
     setShowStyleModal(true);
@@ -388,6 +367,26 @@ export default function ServicesPage() {
     setCurrentStyle(style);
     setIsEditingStyle(true);
     setShowStyleModal(true);
+  };
+
+  // close modal helpers
+  const closeServiceModal = () => {
+    clearUrlParams();
+    setShowServiceModal(false);
+    setCurrentService(emptyService);
+    setIsEditingService(false);
+  };
+
+  const closeStyleModal = () => {
+    clearUrlParams();
+    setShowStyleModal(false);
+    setCurrentStyle(emptyStyle);
+    setIsEditingStyle(false);
+  };
+
+  const closeStylePreview = () => {
+    setShowStylePreview(false);
+    clearUrlParams();
   };
 
   return (
@@ -412,11 +411,7 @@ export default function ServicesPage() {
             onAddStyle={handleAddStyle}
           />
 
-
-
-          {/* SECTION 1: Added Services */}
           <div>
-            {/* Header */}
             <div className="flex items-center justify-between mb-8">
               <div>
                 <div className="flex items-center gap-3">
@@ -435,7 +430,6 @@ export default function ServicesPage() {
                     className="bg-white border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all duration-150"
                   >
                     <div className="flex items-center gap-4 px-6 py-4">
-                      {/* Image */}
                       <div className="w-12 h-12 flex-shrink-0 bg-gray-100 overflow-hidden">
                         {service.featuredImage ? (
                           <img
@@ -449,8 +443,6 @@ export default function ServicesPage() {
                           </div>
                         )}
                       </div>
-
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
                           <h3 className="text-sm font-semibold text-gray-900">{service.title}</h3>
@@ -472,8 +464,6 @@ export default function ServicesPage() {
                           )}
                         </div>
                       </div>
-
-                      {/* Actions */}
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleAddStyle(service.id)}
@@ -497,7 +487,7 @@ export default function ServicesPage() {
                           <i className="fas fa-arrow-right text-sm"></i>
                         </a>
                         <button
-                          onClick={() => handleRemoveService(service.id)}
+                          onClick={() => handleRemoveService(service)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                           title="Delete"
                         >
@@ -515,11 +505,7 @@ export default function ServicesPage() {
                 <p className="text-gray-500 text-sm mt-1 mb-2">Add your first service to start offering styles</p>
                 <p className="text-gray-400 text-xs mb-6">Services help organize your styles and pricing</p>
                 <button
-                  onClick={() => {
-                    setCurrentService(emptyService);
-                    setIsEditingService(false);
-                    setShowServiceModal(true);
-                  }}
+                  onClick={handleAddService}
                   className="inline-block bg-gray-950 hover:bg-gray-800 text-white px-6 py-2.5 rounded-md font-medium text-sm transition-colors"
                 >
                   + Add Service
@@ -527,16 +513,9 @@ export default function ServicesPage() {
               </div>
             )}
           </div>
-
-          {/* Modals */}
           <ServiceModal
             isOpen={showServiceModal}
-            onClose={() => {
-              clearUrlParams();
-              setShowServiceModal(false);
-              setCurrentService(emptyService);
-              setIsEditingService(false);
-            }}
+            onClose={closeServiceModal}
             onSave={handleSaveService}
             initialService={currentService}
             isEditing={isEditingService}
@@ -545,12 +524,7 @@ export default function ServicesPage() {
 
           <StyleModal
             isOpen={showStyleModal}
-            onClose={() => {
-              clearUrlParams();
-              setShowStyleModal(false);
-              setCurrentStyle(emptyStyle);
-              setIsEditingStyle(false);
-            }}
+            onClose={closeStyleModal}
             onSave={handleSaveStyle}
             initialStyle={currentStyle}
             isEditing={isEditingStyle}
@@ -559,10 +533,7 @@ export default function ServicesPage() {
 
           <StylePreviewModal
             isOpen={showStylePreview}
-            onClose={() => {
-              setShowStylePreview(false);
-              clearUrlParams();
-            }}
+            onClose={closeStylePreview}
             style={currentStyle}
             onEdit={() => {
               setShowStylePreview(false);
@@ -575,7 +546,6 @@ export default function ServicesPage() {
               }
             }}
           />
-
           <ConfirmationModal
             isOpen={showConfirmation}
             onClose={() => setShowConfirmation(false)}
@@ -586,6 +556,18 @@ export default function ServicesPage() {
             title={confirmationTitle}
             message={confirmationMessage}
             confirmText="Delete"
+            type="danger"
+          />
+          <ConfirmationModal
+            isOpen={showRemoveServiceConfirmation}
+            title="Delete Service"
+            message={`Are you sure you want to delete "${serviceToRemove?.title}"? This action cannot be undone.`}
+            confirmText="Delete"
+            onClose={() => {
+              setShowRemoveServiceConfirmation(false);
+              setServiceToRemove(null);
+            }}
+            onConfirm={confirmRemoveService}
             type="danger"
           />
         </>

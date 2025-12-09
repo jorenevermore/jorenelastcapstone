@@ -1,11 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ServicesTab } from './components/ServicesTab';
-import { SubscriptionsTab } from './components/SubscriptionsTab';
-import { TabNavigation } from './components/TabNavigation';
-import { LoadingSpinner } from './components/LoadingSpinner';
-import { ErrorAlert } from './components/ErrorAlert';
+import { ServicesTab, SubscriptionsTab, TabNavigation, LoadingSpinner, ErrorAlert } from './components';
 import { fetchServices, fetchSubscriptions } from './services/firestoreService';
 import { GlobalService, SubscriptionPackage, TabType } from './types';
 

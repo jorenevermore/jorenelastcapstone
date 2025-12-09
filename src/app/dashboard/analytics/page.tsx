@@ -11,9 +11,9 @@ import {
   RevenueChart,
   CustomerRetention,
   AppointmentStatusChart,
-  CancellationReasons
+  CancellationReasons,
+  DateRangePicker
 } from './components';
-import DateRangePicker from './components/DateRangePicker';
 import { useAnalytics } from '../../../lib/hooks/useAnalytics';
 
 export default function AnalyticsPage() {

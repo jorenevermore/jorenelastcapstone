@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Service, Style } from '../types';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../../lib/firebase';
+import { StandardModal } from '../../components';
 
 interface StyleModalProps {
   isOpen: boolean;
@@ -150,24 +151,13 @@ const StyleModal: React.FC<StyleModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div
-        className="bg-white rounded shadow-lg max-w-md w-full overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="text-base font-semibold text-gray-900">
-            {isEditing ? 'Edit Style' : 'Add Style'}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-          >
-            <i className="fas fa-times text-sm"></i>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
+    <StandardModal
+      isOpen={isOpen}
+      title={isEditing ? 'Edit Style' : 'Add Style'}
+      onClose={onClose}
+      size="md"
+    >
+      <form onSubmit={handleSubmit}>
           <div className="p-4 max-h-[70vh] overflow-y-auto space-y-3">
             {error && (
               <div className="p-2 bg-red-50 border border-red-200 text-red-700 rounded text-xs flex items-start gap-2">
@@ -362,8 +352,7 @@ const StyleModal: React.FC<StyleModalProps> = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </StandardModal>
   );
 };
 

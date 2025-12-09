@@ -22,10 +22,10 @@ const BookingsTable = ({
 }: BookingsTableProps) => {
   const router = useRouter();
 
-  // Filter bookings by date - default to today and upcoming only
+  // filter bookings by date
   const getFilteredBookings = () => {
     const today = new Date();
-    // Use local date calculation (not UTC) to match booking date format
+    // use local date calc
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
@@ -42,7 +42,6 @@ const BookingsTable = ({
         case 'upcoming':
           return bookingDateISO > todayISO;
         default:
-          // Default: show today and upcoming only
           return bookingDateISO >= todayISO;
       }
     });

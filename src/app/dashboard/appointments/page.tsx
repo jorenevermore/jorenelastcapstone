@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../lib/firebase';
 import { Booking } from './types';
@@ -43,6 +43,7 @@ export default function AppointmentsPage() {
   } | null>(null);
 
   const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState<string | null>(null);
   const [cancelReason, setCancelReason] = useState<string>('');
   const [showCancelReasonModal, setShowCancelReasonModal] = useState<string | null>(null);
 
@@ -87,7 +88,7 @@ export default function AppointmentsPage() {
   };
 
   const handleCancel = (bookingId: string) => {
-    setSelectedBooking({ id: bookingId, action: 'cancel' });
+    setShowCancelConfirmation(bookingId);
   };
 
   const handleDelete = (bookingId: string) => {
@@ -219,30 +220,31 @@ export default function AppointmentsPage() {
             </div>
           )}
           {/* Delete Confirmation Modal */}
-          {bookingToDelete && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-                <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
-                <p className="text-gray-600 mb-6 text-sm">
-                  Are you sure you want to delete this booking? This action cannot be undone.
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setBookingToDelete(null)}
-                    className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    Close
-                  </button>
-                  <button
-                    onClick={confirmDelete}
-                    className="px-3 py-1.5 bg-red-500 text-white rounded text-xs font-medium transition-colors hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
+          <ConfirmationModal
+            isOpen={!!bookingToDelete}
+            title="Delete Booking"
+            message="Are you sure you want to delete this booking? This action cannot be undone."
+            confirmText="Delete"
+            onClose={() => setBookingToDelete(null)}
+            onConfirm={confirmDelete}
+            confirmColor="bg-red-600"
+          />
+
+          {/* Cancel Confirmation Modal */}
+          <ConfirmationModal
+            isOpen={!!showCancelConfirmation}
+            title="Cancel Appointment"
+            message="Are you sure you want to cancel this appointment? You will need to provide a reason."
+            confirmText="Continue"
+            onClose={() => setShowCancelConfirmation(null)}
+            onConfirm={() => {
+              if (showCancelConfirmation) {
+                setShowCancelReasonModal(showCancelConfirmation);
+                setShowCancelConfirmation(null);
+              }
+            }}
+            confirmColor="bg-yellow-600"
+          />
 
           {/* Cancellation Reason Modal */}
           {showCancelReasonModal && (

@@ -6,6 +6,7 @@ import { auth, db, storage } from '../../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useStaff, Barber } from '../../../lib/hooks/useStaff';
+import ConfirmationModal from '../services/components/ConfirmationModal';
 
 export default function StaffPage() {
   const [user] = useAuthState(auth);
@@ -26,6 +27,8 @@ export default function StaffPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [currentBarber, setCurrentBarber] = useState<Barber | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [barberToDelete, setBarberToDelete] = useState<Barber | null>(null);
 
   // form fields
   const [fullName, setFullName] = useState('');
@@ -234,16 +237,22 @@ export default function StaffPage() {
     }
   };
 
-  // Handle barber deletion
-  const handleDeleteBarber = async (barberId: string) => {
-    if (!confirm('Are you sure you want to delete this barber?')) return;
+  // Handle barber deletion - show confirmation first
+  const handleDeleteBarber = (barber: Barber) => {
+    setBarberToDelete(barber);
+    setShowDeleteConfirmation(true);
+  };
+
+  // Execute barber deletion after confirmation
+  const confirmDeleteBarber = async () => {
+    if (!barberToDelete) return;
 
     try {
       setLoading(true);
 
       if (user) {
         // Remove the barber from the barbershop's barbers array using OOP hook
-        const removeResult = await removeBarberFromBarbershop(user.uid, barberId);
+        const removeResult = await removeBarberFromBarbershop(user.uid, barberToDelete.barberId);
         if (!removeResult.success) {
           setError(removeResult.message || 'Failed to remove barber from barbershop');
           return;
@@ -251,7 +260,7 @@ export default function StaffPage() {
       }
 
       // Delete the barber document using OOP hook
-      const result = await deleteBarberService(barberId);
+      const result = await deleteBarberService(barberToDelete.barberId);
 
       if (!result.success) {
         setError(result.message || 'Failed to delete barber');
@@ -259,7 +268,9 @@ export default function StaffPage() {
       }
 
       // Update local state - use functional update to avoid stale closure
-      setBarbers(prev => prev.filter(b => b.barberId !== barberId));
+      setBarbers(prev => prev.filter(b => b.barberId !== barberToDelete.barberId));
+      setShowDeleteConfirmation(false);
+      setBarberToDelete(null);
     } catch (err) {
       console.error('Error deleting barber:', err);
       setError('Failed to delete barber. Please try again.');
@@ -570,7 +581,7 @@ export default function StaffPage() {
                       </button>
                       <button
                         className="p-2 text-red-600 hover:text-red-900 rounded-full hover:bg-red-50"
-                        onClick={() => handleDeleteBarber(barber.barberId)}
+                        onClick={() => handleDeleteBarber(barber)}
                       >
                         <i className="fas fa-trash"></i>
                       </button>
@@ -646,7 +657,7 @@ export default function StaffPage() {
                       </button>
                       <button
                         className="text-red-600 hover:text-red-900"
-                        onClick={() => handleDeleteBarber(barber.barberId)}
+                        onClick={() => handleDeleteBarber(barber)}
                       >
                         <i className="fas fa-trash"></i>
                       </button>
@@ -658,6 +669,20 @@ export default function StaffPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirmation}
+        title="Delete Barber"
+        message={`Are you sure you want to delete ${barberToDelete?.fullName}? This action cannot be undone.`}
+        confirmText="Delete"
+        onClose={() => {
+          setShowDeleteConfirmation(false);
+          setBarberToDelete(null);
+        }}
+        onConfirm={confirmDeleteBarber}
+        type="danger"
+      />
     </div>
   );
 }

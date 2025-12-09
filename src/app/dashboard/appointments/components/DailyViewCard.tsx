@@ -47,8 +47,6 @@ const DailyViewCard = ({
   const ongoingCount = todayBookings.filter(b => ['confirmed', 'in-progress'].includes(b.status)).length;
   const completedCount = todayBookings.filter(b => ['completed', 'cancelled', 'declined', 'no-show'].includes(b.status)).length;
 
-
-
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 h-full flex flex-col">
       <div className="px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0">

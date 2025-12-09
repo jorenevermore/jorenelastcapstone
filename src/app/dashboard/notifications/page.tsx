@@ -7,11 +7,14 @@ import { auth } from '../../../lib/firebase';
 import { useNotificationsPage } from '../../../lib/hooks/useNotificationsPage';
 import { useStaff } from '../../../lib/hooks/useStaff';
 import { parseBookingDateTime } from '../../../lib/utils/dateParser';
+import ConfirmationModal from '../services/components/ConfirmationModal';
 
 export default function NotificationsPage() {
   const router = useRouter();
   const [user] = useAuthState(auth);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationData, setConfirmationData] = useState<{ barberId: string; action: 'approved' | 'rejected'; barberName: string } | null>(null);
   const {
     notifications,
     loading,
@@ -21,19 +24,27 @@ export default function NotificationsPage() {
   } = useNotificationsPage();
 
   const { updateAffiliationStatus } = useStaff();
+
   // handle affiliation
-  const handleAffiliationAction = async (barberId: string, action: 'approved' | 'rejected') => {
+  const handleAffiliationAction = (barberId: string, action: 'approved' | 'rejected', barberName: string) => {
+    setConfirmationData({ barberId, action, barberName });
+    setShowConfirmation(true);
+  };
+
+  const confirmAffiliationAction = async () => {
+    if (!confirmationData) return;
+
     try {
-      setProcessingId(barberId);
-      const result = await updateAffiliationStatus(barberId, action);
+      setProcessingId(confirmationData.barberId);
+      const result = await updateAffiliationStatus(confirmationData.barberId, confirmationData.action);
 
       if (result.success) {
-        // refresh notifications with user.uid
+        // refresh notifications
         if (user) {
           await fetchNotifications(user.uid);
         }
-        // mark as read - use the notification ID format
-        markAsRead(`affiliation-${barberId}`);
+        // mark as read
+        markAsRead(`affiliation-${confirmationData.barberId}`);
       } else {
         console.error('Error updating affiliation status:', result.message);
       }
@@ -41,6 +52,8 @@ export default function NotificationsPage() {
       console.error('Error updating affiliation status:', error);
     } finally {
       setProcessingId(null);
+      setShowConfirmation(false);
+      setConfirmationData(null);
     }
   };
 
@@ -142,7 +155,6 @@ export default function NotificationsPage() {
                 )}
               </div>
 
-              {/* Barber Details - Affiliation */}
               {notification.type === 'affiliation_request' && 'fullName' in notification.data && (
                 <div className="mt-4 ml-13 bg-gray-50 rounded-lg p-4 space-y-2">
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -166,14 +178,14 @@ export default function NotificationsPage() {
                 </div>
               )}
 
-              {/* Action Buttons - Affiliation */}
               {notification.type === 'affiliation_request' && (
                 <div className="flex space-x-2 mt-4 ml-13">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       const barberId = (notification.data as any).barberId;
-                      handleAffiliationAction(barberId, 'approved');
+                      const barberName = (notification.data as any).fullName;
+                      handleAffiliationAction(barberId, 'approved', barberName);
                     }}
                     disabled={processingId === (notification.data as any).barberId}
                     className="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
@@ -190,7 +202,8 @@ export default function NotificationsPage() {
                     onClick={(e) => {
                       e.stopPropagation();
                       const barberId = (notification.data as any).barberId;
-                      handleAffiliationAction(barberId, 'rejected');
+                      const barberName = (notification.data as any).fullName;
+                      handleAffiliationAction(barberId, 'rejected', barberName);
                     }}
                     disabled={processingId === (notification.data as any).barberId}
                     className="flex-1 bg-red-600 text-white py-2 px-3 rounded text-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
@@ -208,6 +221,22 @@ export default function NotificationsPage() {
           ))}
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={showConfirmation}
+        onClose={() => {
+          setShowConfirmation(false);
+          setConfirmationData(null);
+        }}
+        onConfirm={confirmAffiliationAction}
+        title={confirmationData?.action === 'approved' ? 'Approve Affiliation' : 'Reject Affiliation'}
+        message={confirmationData?.action === 'approved'
+          ? `Are you sure you want to approve ${confirmationData?.barberName}'s affiliation request?`
+          : `Are you sure you want to reject ${confirmationData?.barberName}'s affiliation request?`
+        }
+        confirmText={confirmationData?.action === 'approved' ? 'Approve' : 'Reject'}
+        type={confirmationData?.action === 'approved' ? 'info' : 'danger'}
+      />
     </div>
   );
 }

@@ -8,7 +8,7 @@ interface StatsCardsProps {
 }
 
 const StatsCards = ({ bookings }: StatsCardsProps) => {
-  // Calculate statistics
+  // calculate statistics
   const getStatistics = () => {
     const pending = bookings.filter(b => b.status === 'pending').length;
     const confirmed = bookings.filter(b => b.status === 'confirmed').length;
@@ -18,7 +18,7 @@ const StatsCards = ({ bookings }: StatsCardsProps) => {
     const noShow = bookings.filter(b => b.status === 'no-show').length;
     const total = bookings.length;
 
-    // Calculate today's appointments
+    // calculate today's appointments
     const today = new Date().toDateString();
     const todayTotal = bookings.filter(b => new Date(b.date).toDateString() === today).length;
 

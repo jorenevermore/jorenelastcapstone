@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { StandardModal, ModalButtons } from '../../components';
 
 interface PasswordModalProps {
   isOpen: boolean;
@@ -36,11 +37,13 @@ export default function PasswordModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold text-black mb-4">Change Password</h3>
-
-        <div className="space-y-4">
+    <StandardModal
+      isOpen={isOpen}
+      title="Change Password"
+      onClose={onCancel}
+      size="md"
+    >
+      <div className="space-y-4">
           <div className="form-group">
             <label htmlFor="currentPassword" className="form-label">Current Password</label>
             <div className="relative">
@@ -107,31 +110,23 @@ export default function PasswordModal({
             </div>
           </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
-              {error}
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-4">
-            <button
-              className="flex-1 btn btn-secondary"
-              onClick={onCancel}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              className="flex-1 btn btn-primary"
-              onClick={onSubmit}
-              disabled={loading}
-            >
-              {loading ? 'Updating...' : 'Update Password'}
-            </button>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+            {error}
           </div>
-        </div>
+        )}
+
+        <ModalButtons
+          onCancel={onCancel}
+          onConfirm={onSubmit}
+          cancelText="Cancel"
+          confirmText={loading ? 'Updating...' : 'Update Password'}
+          confirmType="primary"
+          isLoading={loading}
+          disabled={loading}
+        />
       </div>
-    </div>
+    </StandardModal>
   );
 }
 

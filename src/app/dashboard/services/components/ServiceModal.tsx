@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Service, GlobalService } from '../types';
 import { db } from '../../../../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { StandardModal } from '../../components';
 
 interface ServiceModalProps {
   isOpen: boolean;
@@ -11,7 +12,7 @@ interface ServiceModalProps {
   onSave: (service: Service) => Promise<void>;
   initialService: Service;
   isEditing: boolean;
-  existingServices: Service[]; // Current barbershop's services to filter out duplicates
+  existingServices: Service[]; // current services
 }
 
 const ServiceModal: React.FC<ServiceModalProps> = ({
@@ -32,7 +33,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
     setService(initialService);
     setError(null);
 
-    // Fetch global services when modal opens
+    // fetch global services
     if (isOpen) {
       fetchGlobalServices();
     }
@@ -62,7 +63,6 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
     const { name, value } = e.target;
 
     if (name === 'serviceCategoryId') {
-      // When service category is selected, auto-fill other fields
       const selectedGlobalService = globalServices.find(gs => gs.id === value);
       if (selectedGlobalService) {
         setService(prev => ({
@@ -91,8 +91,6 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
 
     try {
       setIsUploading(true);
-
-      // Service data comes from selected global service
       await onSave(service);
       onClose();
     } catch (err) {
@@ -103,29 +101,16 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
     }
   };
 
-
-
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div
-        className="bg-white rounded shadow-lg max-w-lg w-full overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="text-base font-semibold text-gray-900">
-            {isEditing ? 'Edit Service' : 'Add Service'}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1"
-          >
-            <i className="fas fa-times text-sm"></i>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
+    <StandardModal
+      isOpen={isOpen}
+      title={isEditing ? 'Edit Service' : 'Add Service'}
+      onClose={onClose}
+      size="lg"
+    >
+      <form onSubmit={handleSubmit}>
           <div className="px-4 py-4 max-h-[70vh] overflow-y-auto space-y-3">
             {error && (
               <div className="p-2 bg-red-50 border border-red-200 text-red-700 rounded text-xs flex items-start gap-2">
@@ -133,8 +118,6 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
                 <p>{error}</p>
               </div>
             )}
-
-            {/* Service Category Dropdown */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Select Service <span className="text-red-500">*</span>
@@ -173,8 +156,6 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
                 </select>
               )}
             </div>
-
-            {/* Show selected service details */}
             {service.serviceCategoryId && (
               <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
@@ -201,8 +182,6 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
                 </div>
               </div>
             )}
-
-            {/* Availability Toggle Switch */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Availability
@@ -224,7 +203,6 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
                 {service.status === 'Available' ? '✓ Available' : '✗ Unavailable'}
               </p>
             </div>
-
 
           </div>
 
@@ -266,8 +244,7 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </StandardModal>
   );
 };
 

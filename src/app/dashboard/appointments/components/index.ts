@@ -8,3 +8,6 @@ export { default as ChatModal } from './ChatModal';
 export { default as QueueOverviewCard } from './QueueOverviewCard';
 export { default as NotificationBadge } from './NotificationBadge';
 export { MayaReceiptModal } from './MayaReceiptModal';
+export { AppointmentInfoCards } from './AppointmentInfoCards';
+export { StatusActionsPanel } from './StatusActionsPanel';
+export { PaymentModal } from './PaymentModal';
