@@ -7,15 +7,15 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import NotificationDropdown from './NotificationDropdown';
 import ShopStatusToggle from './ShopStatusToggle';
 
-let Header = () => {
-  let pathname = usePathname();
-  let [user] = useAuthState(auth);
+const Header = () => {
+  const pathname = usePathname();
+  const [user] = useAuthState(auth);
 
 
-  let getPageTitle = () => {
-    let path = pathname.split('/').pop() || '';
+  const getPageTitle = () => {
+    const path = pathname.split('/').pop() || '';
 
-    let pageTitles: Record<string, string> = {
+    const pageTitles: Record<string, string> = {
       'dashboard': 'Dashboard',
       'appointments': 'Appointments',
       'services': 'Services',

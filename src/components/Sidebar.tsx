@@ -6,15 +6,15 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { auth } from '../lib/firebase';
 
-let Sidebar = () => {
-  let pathname = usePathname();
-  let router = useRouter();
+const Sidebar = () => {
+  const pathname = usePathname();
+  const router = useRouter();
 
-  let isActive = (path: string) => {
+  const isActive = (path: string) => {
     return pathname === path;
   };
 
-  let navItems = [
+  const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: 'fas fa-tachometer-alt' },
     { name: 'Appointments', path: '/dashboard/appointments', icon: 'fas fa-calendar-alt' },
     { name: 'Services', path: '/dashboard/services', icon: 'fas fa-cut' },

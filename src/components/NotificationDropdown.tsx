@@ -2,17 +2,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../lib/firebase';
 import { useRealtimeNotifications } from '../lib/hooks/useRealtimeNotifications';
-import { useStaff } from '../lib/hooks/useStaff';
 import { parseBookingDateTime } from '../lib/utils/dateParser';
 
 const NotificationDropdown: React.FC = () => {
   const router = useRouter();
-  const [user] = useAuthState(auth);
   const [isOpen, setIsOpen] = useState(false);
-  const [processingId, setProcessingId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -23,9 +18,7 @@ const NotificationDropdown: React.FC = () => {
     markAllAsRead
   } = useRealtimeNotifications();
 
-  const { updateAffiliationStatus } = useStaff();
-
-  // Close dropdown when clicking outside
+  // close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -37,26 +30,7 @@ const NotificationDropdown: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Handle affiliation approval/rejection using OOP hook
-  const handleAffiliationAction = async (barberId: string, action: 'approved' | 'rejected') => {
-    try {
-      setProcessingId(barberId);
-      const result = await updateAffiliationStatus(barberId, action);
-
-      if (result.success) {
-        // Mark as read - use the notification ID format
-        markAsRead(`affiliation-${barberId}`);
-      } else {
-        console.error('Error updating affiliation status:', result.message);
-      }
-    } catch (error) {
-      console.error('Error updating affiliation status:', error);
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  // Format timestamp to relative time (e.g., "5m ago", "2h ago")
+  // format timestamp
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
     const time = new Date(timestamp);
@@ -70,7 +44,6 @@ const NotificationDropdown: React.FC = () => {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Notification Bell Button */}
       <button
         className="text-gray-500 hover:text-gray-700 transition-colors relative"
         onClick={() => setIsOpen(!isOpen)}
@@ -82,11 +55,9 @@ const NotificationDropdown: React.FC = () => {
           </span>
         )}
       </button>
-
-      {/* Dropdown Menu */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden">
-          {/* Header */}
+
           <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
             <h3 className="font-semibold text-gray-900">Notifications</h3>
             {unreadCount > 0 && (
@@ -98,8 +69,6 @@ const NotificationDropdown: React.FC = () => {
               </button>
             )}
           </div>
-
-          {/* Notifications List */}
           <div className="max-h-80 overflow-y-auto">
             {loading ? (
               <div className="p-4 text-center">
@@ -120,7 +89,6 @@ const NotificationDropdown: React.FC = () => {
                   }`}
                   onClick={() => {
                     markAsRead(notification.id);
-                    // Navigate to appointments page for booking or message notifications
                     if (notification.type === 'booking' && 'bookingId' in notification.data) {
                       router.push(`/dashboard/appointments`);
                       setIsOpen(false);
@@ -131,7 +99,6 @@ const NotificationDropdown: React.FC = () => {
                   }}
                 >
                   <div className="flex items-start space-x-3">
-                    {/* Avatar */}
                     <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-100">
                       <i className={`${
                         notification.type === 'message_reply'
@@ -141,8 +108,6 @@ const NotificationDropdown: React.FC = () => {
                           : 'fas fa-user-plus text-slate-600'
                       }`}></i>
                     </div>
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
@@ -172,11 +137,6 @@ const NotificationDropdown: React.FC = () => {
                         )}
                       </div>
 
-
-
-
-
-                      {/* Action Button - Message */}
                       {notification.type === 'message_reply' && (
                         <button
                           onClick={(e) => {
@@ -194,7 +154,6 @@ const NotificationDropdown: React.FC = () => {
                       )}
                     </div>
 
-                    {/* Unread indicator */}
                     {!notification.read && (
                       <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-2"></div>
                     )}
@@ -204,7 +163,6 @@ const NotificationDropdown: React.FC = () => {
             )}
           </div>
 
-          {/* Footer */}
           {notifications.length > 0 && (
             <div className="px-4 py-3 border-t border-gray-200 text-center">
               <Link

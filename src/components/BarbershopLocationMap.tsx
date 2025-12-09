@@ -189,7 +189,7 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
         mapInstanceRef.current = map;
 
         // Create marker with default red pin
-        let marker = new window.google.maps.Marker({
+        const marker = new window.google.maps.Marker({
           position: initialLocation || DEFAULT_LOCATION,
           map: map,
           draggable: true,
@@ -212,8 +212,8 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
         }
 
         marker.addListener('dragend', function() {
-          let position = marker.getPosition();
-          let newLocation = {
+          const position = marker.getPosition();
+          const newLocation = {
             lat: position.lat(),
             lng: position.lng()
           };
@@ -222,7 +222,7 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
         });
 
         map.addListener('click', function(event: any) {
-          let clickedLocation = {
+          const clickedLocation = {
             lat: event.latLng.lat(),
             lng: event.latLng.lng()
           };
@@ -251,7 +251,7 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
   }, []);
 
   // display coordinates
-  let formatCoordinate = (coord: number): string => {
+  const formatCoordinate = (coord: number): string => {
     return coord.toFixed(6);
   };
 
