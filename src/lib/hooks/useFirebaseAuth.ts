@@ -1,7 +1,3 @@
-/**
- * Custom Hook: useFirebaseAuth
- * Provides Firebase authentication functionality with session management
- */
 
 import { useState, useCallback } from 'react';
 import { auth } from '../firebase';

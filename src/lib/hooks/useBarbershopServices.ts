@@ -1,7 +1,3 @@
-/**
- * Custom Hook: useBarbershopServices
- * Provides barbershop service management functionality
- */
 
 'use client';
 

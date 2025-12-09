@@ -1,7 +1,3 @@
-/**
- * Custom Hook: useAnalytics
- * Provides analytics functionality using AnalyticsService
- */
 
 'use client';
 

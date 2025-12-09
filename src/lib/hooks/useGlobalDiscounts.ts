@@ -1,5 +1,4 @@
 
-
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
 import { GlobalDiscountService, CreateDiscountInput, UpdateDiscountInput } from '../services/discount/GlobalDiscountService';

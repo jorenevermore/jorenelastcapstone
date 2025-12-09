@@ -5,7 +5,7 @@ import { db } from '../firebase';
 import { StaffManagementService } from '../services/staff/StaffManagementService';
 import { ServiceResponse, Barber } from '../services/staff/BaseStaffService';
 
-// Export Barber type for consumers
+
 export type { Barber } from '../services/staff/BaseStaffService';
 
 const staffService = new StaffManagementService(db);
