@@ -45,10 +45,10 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
     const labels = ['Completed', 'Confirmed', 'Pending', 'Cancelled'];
 
     const backgroundColors = [
-      'rgba(16, 185, 129, 0.7)',  // Green for completed
-      'rgba(59, 130, 246, 0.7)',  // Blue for confirmed
-      'rgba(245, 158, 11, 0.7)',  // Yellow for pending
-      'rgba(239, 68, 68, 0.7)',   // Red for cancelled
+      'rgba(16, 185, 129, 0.7)',  
+      'rgba(59, 130, 246, 0.7)',  
+      'rgba(245, 158, 11, 0.7)',  
+      'rgba(239, 68, 68, 0.7)',  
     ];
     
     // Create chart
