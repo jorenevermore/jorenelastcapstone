@@ -18,7 +18,7 @@ export class QueueService {
     return bookings.filter(b => b.isEmergency !== true);
   }
 
-  // get bookings still in queue (pending or confirmed, not being served)
+  // get bookings still in queue
   getActiveBookings(bookings: Booking[]): Booking[] {
     return bookings.filter(b =>
       !['completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show', 'in-progress'].includes(b.status)
@@ -30,7 +30,7 @@ export class QueueService {
     if (dateStr.includes('-') && dateStr.length === 10) {
       return dateStr;
     }
-    // Otherwise parse and convert using local date (not UTC)
+
     const date = new Date(dateStr);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -41,7 +41,7 @@ export class QueueService {
   // sort bookings by queue priority
   sortByQueuePriority(bookings: Booking[], todayOnly: boolean = false): Booking[] {
     const today = new Date();
-    // Use local date calculation (not UTC) to match booking date format
+ 
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
@@ -71,7 +71,6 @@ export class QueueService {
       return createdA - createdB;
     });
 
-    // Add queue positions
     return sorted.map((booking, index) => {
       const bookingWithPosition = booking as any;
       bookingWithPosition.queuePosition = index + 1;
@@ -89,7 +88,7 @@ export class QueueService {
   
   getQueueStats(bookings: Booking[], todayOnly: boolean = false): QueueStats {
     const today = new Date();
-    // Use local date calculation (not UTC) to match booking date format
+
     const year = today.getFullYear();
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
@@ -99,7 +98,7 @@ export class QueueService {
       ? bookings.filter(b => this.getISODateString(b.date) === todayISO)
       : bookings;
 
-    // filter to only active bookings (pending and confirmed)
+    // filter active bookings
     filtered = this.getActiveBookings(filtered);
 
     const rushCount = filtered.filter(b => b.isEmergency).length;
