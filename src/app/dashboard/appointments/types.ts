@@ -22,10 +22,10 @@ export interface Booking {
   finalPrice?: number;
   paymentMethod?: string;
   isHomeService?: boolean;
-  isEmergency?: boolean; // rush/priority booking flag
+  isEmergency?: boolean; // rush indicator
   isServiceOrderedPackage?: boolean;
   createdAt?: string;
-  queuePosition?: number; // calculated queue position
+  queuePosition?: number; // queue position
   location?: {
     lat: number;
     lng: number;
@@ -38,7 +38,7 @@ export interface Booking {
     createdAt: string;
   };
   statusHistory?: {
-    ongoingStatus: string; // changed from 'status' to 'ongoingStatus' to avoid conflicts
+    ongoingStatus: string;
     timestamp: string;
     reason?: string;
     updatedBy: 'client' | 'barber';

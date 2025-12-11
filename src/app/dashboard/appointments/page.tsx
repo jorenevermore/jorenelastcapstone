@@ -31,7 +31,7 @@ export default function AppointmentsPage() {
     deleteBooking
   } = useAppointments();
 
-  // Real-time queue updates ONLY for Queue Overview
+  // queue overview
   const { bookings: realtimeQueueBookings } = useRealtimeQueue(user?.uid);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -101,7 +101,6 @@ export default function AppointmentsPage() {
       if (action === 'accept') {
         await handleUpdateBookingStatus(id, 'confirmed');
       } else {
-        // For cancel action, show reason modal instead of directly cancelling
         setShowCancelReasonModal(id);
       }
     }
@@ -118,7 +117,6 @@ export default function AppointmentsPage() {
     }
   };
 
-  // filter bookings: first by date category, then by other filters
   const bookingsByDateCategory = BookingUtilService.filterBookingsByDateCategory(
     bookings as Booking[],
     dateFilter as 'today' | 'upcoming' | 'all'
@@ -131,7 +129,7 @@ export default function AppointmentsPage() {
     searchQuery
   );
 
-  // get unique barber names for filter
+  // get barber names for filter
   const uniqueBarbers = getUniqueBarbers(bookings as Booking[]);
 
   // count bookings by date category
@@ -190,7 +188,7 @@ export default function AppointmentsPage() {
               dateFilter={dateFilter}
             />
           </div>
-          {/* Confirm Action Modal */}
+
           {selectedBooking && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
@@ -219,7 +217,6 @@ export default function AppointmentsPage() {
               </div>
             </div>
           )}
-          {/* Delete Confirmation Modal */}
           <ConfirmationModal
             isOpen={!!bookingToDelete}
             title="Delete Booking"
@@ -229,8 +226,6 @@ export default function AppointmentsPage() {
             onConfirm={confirmDelete}
             confirmColor="bg-red-600"
           />
-
-          {/* Cancel Confirmation Modal */}
           <ConfirmationModal
             isOpen={!!showCancelConfirmation}
             title="Cancel Appointment"
@@ -245,8 +240,7 @@ export default function AppointmentsPage() {
             }}
             confirmColor="bg-yellow-600"
           />
-
-          {/* Cancellation Reason Modal */}
+          
           {showCancelReasonModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
