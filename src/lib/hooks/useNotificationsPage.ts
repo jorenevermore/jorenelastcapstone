@@ -24,7 +24,6 @@ export const useNotificationsPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch notifications once (one-time fetch, no real-time listener)
   const fetchNotifications = useCallback(async (barbershopId: string) => {
     try {
       setLoading(true);
