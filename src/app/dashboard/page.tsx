@@ -31,7 +31,7 @@ export default function Dashboard() {
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Function to process bookings data
+  // process bookings 
   const processDashboardData = useCallback((bookingsData: Booking[]) => {
     const queueService = new QueueService();
     const bookingsWithQueue = queueService.addQueuePositions(bookingsData);
@@ -51,12 +51,12 @@ export default function Dashboard() {
       .filter(b => b.status === 'completed' && b.totalPrice)
       .reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
 
-    // get today's appointments (sorted by queue)
+    // get todays appointments
     const todayAppts = queueService.sortByQueuePriority(
       bookingsWithQueue.filter(booking => booking.date === todayStr)
     );
 
-    // get upcoming appointments (future dates, excluding terminal statuses)
+    // get upcoming appointments
     const upcomingAppts = queueService.sortByQueuePriority(
       bookingsWithQueue.filter(booking => {
         const bookingDate = new Date(booking.date);
@@ -89,7 +89,7 @@ export default function Dashboard() {
     setRecentActivity(recentActs as Booking[]);
   }, []);
 
-  // Function to fetch dashboard data (one-time fetch)
+  // function to fetch dashboard data
   const fetchDashboardData = useCallback(async (barbershopId: string) => {
     try {
       setError(null);
@@ -115,7 +115,7 @@ export default function Dashboard() {
     }
   }, [processDashboardData]);
 
-  // Fetch data on mount
+  // fetch data on mount
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -126,7 +126,7 @@ export default function Dashboard() {
     fetchDashboardData(user.uid).finally(() => setLoading(false));
   }, [user, fetchDashboardData]);
 
-  // Manual refresh handler
+  // manual refresh
   const handleRefresh = async () => {
     if (!user) return;
     setIsRefreshing(true);
@@ -136,7 +136,6 @@ export default function Dashboard() {
 
   return (
     <div className="p-4">
-      {/* Header with Refresh Icon */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <button
