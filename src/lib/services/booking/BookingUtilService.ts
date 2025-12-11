@@ -111,13 +111,36 @@ export class BookingUtilService {
 
     const reason = booking.barberReason || booking.reason || 'No reason provided';
 
-    const timestamp = booking.statusHistory && booking.statusHistory.length > 0
-      ? booking.statusHistory[booking.statusHistory.length - 1].timestamp
-      : booking.date;
+    // find cancelled status in history
+    const cancelledEntry = booking.statusHistory?.find(
+      (entry: any) => entry.ongoingStatus === 'cancelled'
+    );
+    const timestamp = cancelledEntry?.timestamp;
 
     const formattedTimestamp = (() => {
-      if (!timestamp) return new Date(booking.date).toLocaleString();
-      const date = typeof timestamp === 'string' ? new Date(parseInt(timestamp)) : new Date(timestamp);
+      if (!timestamp) return new Date().toLocaleString();
+
+      let date: Date;
+      if (typeof timestamp === 'string') {
+        const parsed = parseInt(timestamp);
+        // check if parsed is valid milliseconds
+        if (!isNaN(parsed) && parsed > 0) {
+          date = new Date(parsed);
+        } else {
+          // try parsing as ISO string
+          date = new Date(timestamp);
+        }
+      } else if (typeof timestamp === 'number') {
+        date = new Date(timestamp);
+      } else {
+        date = new Date();
+      }
+
+      // validate date
+      if (isNaN(date.getTime())) {
+        return new Date().toLocaleString();
+      }
+
       return date.toLocaleString();
     })();
 

@@ -1,9 +1,10 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { db } from '../firebase';
 import { AppointmentService } from '../services/appointment/AppointmentService';
+import { collection, query, where, onSnapshot, Unsubscribe } from 'firebase/firestore';
 import type { Booking } from '../../app/dashboard/appointments/types';
 
 const appointmentService = new AppointmentService(db);
@@ -12,7 +13,7 @@ export interface UseAppointmentsReturn {
   bookings: Booking[];
   loading: boolean;
   error: string | null;
-  fetchBookings: (barbershopId: string) => Promise<void>;
+  fetchBookings: (barbershopId: string) => void;
   updateBookingStatus: (bookingId: string, status: string, reason?: string) => Promise<boolean>;
   deleteBooking: (bookingId: string) => Promise<boolean>;
   clearError: () => void;
@@ -22,21 +23,53 @@ export function useAppointments(): UseAppointmentsReturn {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unsubscribe, setUnsubscribe] = useState<Unsubscribe | null>(null);
 
-  // fetch bookings once
-  const fetchBookings = useCallback(async (barbershopId: string) => {
+  // realtime listener for bookings
+  const fetchBookings = useCallback((barbershopId: string) => {
     try {
       setLoading(true);
       setError(null);
-      const result = await appointmentService.getBookingsByBarbershop(barbershopId);
-      if (result.success) {
-        setBookings(result.data as Booking[]);
-      } else {
-        setError(result.message);
-      }
+
+      const bookingsCollection = collection(db, 'bookings');
+      const q = query(
+        bookingsCollection,
+        where('barbershopId', '==', barbershopId)
+      );
+
+      const newUnsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          try {
+            const bookingsData = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            })) as Booking[];
+
+            setBookings(bookingsData);
+            setError(null);
+            setLoading(false);
+          } catch (err) {
+            console.error('Error processing bookings snapshot:', err);
+            setError(err instanceof Error ? err.message : 'Failed to process bookings');
+            setLoading(false);
+          }
+        },
+        (err) => {
+          console.error('Error listening to bookings:', err);
+          setError(err instanceof Error ? err.message : 'Failed to listen to bookings');
+          setLoading(false);
+        }
+      );
+
+      // cleanup previous listener
+      setUnsubscribe(prev => {
+        if (prev) prev();
+        return newUnsubscribe;
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch bookings');
-    } finally {
+      console.error('Error setting up real-time listener:', err);
+      setError(err instanceof Error ? err.message : 'Failed to set up real-time listener');
       setLoading(false);
     }
   }, []);
@@ -86,6 +119,15 @@ export function useAppointments(): UseAppointmentsReturn {
   const clearError = useCallback(() => {
     setError(null);
   }, []);
+
+  // cleanup listener on unmount
+  useEffect(() => {
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, [unsubscribe]);
 
   return {
     bookings,

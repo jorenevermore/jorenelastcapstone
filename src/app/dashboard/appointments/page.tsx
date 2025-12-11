@@ -12,7 +12,6 @@ import {
   QueueOverviewCard
 } from './components';
 import { useAppointments } from '../../../lib/hooks/useAppointments';
-import { useRealtimeQueue } from '../../../lib/hooks/useRealtimeQueue';
 import { BookingUtilService } from '../../../lib/services/booking/BookingUtilService';
 import {
   filterBookings,
@@ -29,9 +28,6 @@ export default function AppointmentsPage() {
     updateBookingStatus,
     deleteBooking
   } = useAppointments();
-
-  // queue overview
-  const { bookings: realtimeQueueBookings } = useRealtimeQueue(user?.uid);
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [error, setError] = useState<string | null>(appointmentError);
@@ -51,7 +47,7 @@ export default function AppointmentsPage() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [dateFilter, setDateFilter] = useState<string>('today');
 
-  // Fetch bookings once on mount
+  // setup realtime listener for bookings
   useEffect(() => {
     if (!user) return;
     fetchBookings(user.uid);
@@ -152,7 +148,7 @@ export default function AppointmentsPage() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 mb-6">
             <div className="lg:col-span-7">
-              <QueueOverviewCard bookings={realtimeQueueBookings as Booking[]} isRealtime={true} />
+              <QueueOverviewCard bookings={bookings as Booking[]} isRealtime={true} />
             </div>
             <div className="lg:col-span-3 max-h-[60vh] overflow-y-auto">
               <DailyViewCard
