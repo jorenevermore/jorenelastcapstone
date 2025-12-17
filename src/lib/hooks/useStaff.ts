@@ -10,10 +10,8 @@ export type { Barber } from '../../types';
 const staffService = new StaffManagementService(db);
 
 export interface UseStaffReturn {
-  getAllBarbers: () => Promise<ServiceResponse>;
   getBarbersByBarbershopId: (barbershopId: string) => Promise<ServiceResponse>;
   getBarberById: (barberId: string) => Promise<ServiceResponse>;
-  addBarber: (barberData: Omit<Barber, 'barberId'>) => Promise<ServiceResponse>;
   addBarberToBarbershop: (barbershopId: string, barberData: Omit<Barber, 'barberId'>) => Promise<ServiceResponse>;
   removeBarberFromBarbershop: (barbershopId: string, barberId: string) => Promise<ServiceResponse>;
   updateBarber: (barberId: string, barberData: Partial<Omit<Barber, 'barberId'>>) => Promise<ServiceResponse>;
@@ -33,22 +31,6 @@ export interface UseStaffReturn {
 export function useStaff(): UseStaffReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const getAllBarbers = useCallback(async (): Promise<ServiceResponse> => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await staffService.getAllBarbers();
-      if (!result.success) setError(result.message);
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch barbers';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
   const getBarbersByBarbershopId = useCallback(async (barbershopId: string): Promise<ServiceResponse> => {
     setIsLoading(true);
@@ -77,22 +59,6 @@ export function useStaff(): UseStaffReturn {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch barber';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  const addBarber = useCallback(async (barberData: Omit<Barber, 'barberId'>): Promise<ServiceResponse> => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const result = await staffService.addBarber(barberData);
-      if (!result.success) setError(result.message);
-      return result;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add barber';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'ADD_ERROR' };
     } finally {
       setIsLoading(false);
     }
@@ -207,10 +173,8 @@ export function useStaff(): UseStaffReturn {
   }, []);
 
   return {
-    getAllBarbers,
     getBarbersByBarbershopId,
     getBarberById,
-    addBarber,
     addBarberToBarbershop,
     removeBarberFromBarbershop,
     updateBarber,
