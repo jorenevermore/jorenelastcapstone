@@ -17,7 +17,6 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
     initialLocation
   );
 
-  // default loc cebu city
   const DEFAULT_LOCATION = { lat: 10.3157, lng: 123.8854 };
   const ZOOM_LEVEL = 15;
 
@@ -81,7 +80,6 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
 
     setIsLoading(true);
 
-    // helper to set default location on error
   const setDefaultLocationOnError = () => {
     if (!selectedLocation) {
       setSelectedLocation(DEFAULT_LOCATION);
@@ -89,16 +87,13 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
     }
   };
 
-  // map init
   const initializeMap = () => {
     try {
-      // check googlemaps api
       if (window.google && window.google.maps) {
         initMap();
         return;
       }
 
-      // check script
       const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
       if (existingScript) {
         // wait script to load if ever
@@ -119,12 +114,11 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
       script.async = true;
       script.defer = true;
 
-      // set a timeout
       const timeoutId = setTimeout(() => {
         setError('Google Maps is taking too long to load. You can continue without setting a location and update it later.');
         setIsLoading(false);
         setDefaultLocationOnError();
-      }, 5000); // 5 second timeout
+      }, 5000)
 
       script.onload = () => {
         clearTimeout(timeoutId);

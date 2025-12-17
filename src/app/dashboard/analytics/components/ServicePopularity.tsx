@@ -36,16 +36,14 @@ const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
     const labels = sortedServices.map(([service]) => service);
     const data = sortedServices.map(([, count]) => count);
 
-    // Generate colors
     const backgroundColors = [
-      'rgba(59, 130, 246, 0.7)', // Blue
-      'rgba(16, 185, 129, 0.7)', // Green
-      'rgba(245, 158, 11, 0.7)', // Yellow
-      'rgba(239, 68, 68, 0.7)',  // Red
-      'rgba(139, 92, 246, 0.7)',  // Purple
+      'rgba(59, 130, 246, 0.7)', 
+      'rgba(16, 185, 129, 0.7)', 
+      'rgba(245, 158, 11, 0.7)', 
+      'rgba(239, 68, 68, 0.7)',  
+      'rgba(139, 92, 246, 0.7)',  
     ];
-
-    // Create chart
+    
     const ctx = chartRef.current.getContext('2d');
     if (ctx) {
       chartInstance.current = new Chart(ctx, {
