@@ -1,15 +1,12 @@
+
 import { DocumentReference, doc } from 'firebase/firestore';
 import { db } from '../firebase';
+import type { Notification } from '../../types/notifications';
+import type { Booking } from '../../types/appointments';
+import type { Message } from '../../types/messaging';
+import type { Barber } from '../../types/barber';
 
-export interface Notification {
-  id: string;
-  type: 'affiliation_request' | 'message_reply' | 'booking';
-  title: string;
-  message: string;
-  data: any;
-  timestamp: string;
-  read: boolean;
-}
+export type { Notification };
 
 export const sortNotificationsByTimestamp = (notifs: Notification[]): Notification[] => {
   return [...notifs].sort((a, b) => {
@@ -50,21 +47,19 @@ export const getNotificationRef = (parsed: { type: string; id: string }): Docume
   }
 };
 
-// Transform barber data to affiliation notification
-export const transformAffiliationToNotification = (barber: any): Notification => {
+export const transformAffiliationToNotification = (barber: Barber & { markedAsRead?: boolean }): Notification => {
   return {
     id: `affiliation-${barber.barberId}`,
     type: 'affiliation_request' as const,
     title: 'New Barber Affiliation Request',
     message: `${barber.fullName || 'A barber'} has sent an affiliation request to your barbershop.`,
-    data: { barberId: barber.barberId, fullName: barber.fullName, ...barber },
+    data: { ...barber },
     timestamp: barber.createdAt || new Date().toISOString(),
     read: barber.markedAsRead === true
   };
 };
 
-// Transform message data to message notification
-export const transformMessageToNotification = (msg: any): Notification => {
+export const transformMessageToNotification = (msg: Message & { clientName?: string; appointmentId?: string; markedAsRead?: boolean }): Notification => {
   return {
     id: `msg-${msg.id}`,
     type: 'message_reply' as const,
@@ -76,18 +71,8 @@ export const transformMessageToNotification = (msg: any): Notification => {
   };
 };
 
-// Transform booking data to booking notification
-export const transformBookingToNotification = (booking: any): Notification => {
-  let timestamp = new Date().toISOString();
-  try {
-    if (booking.createdAt) {
-      timestamp = typeof booking.createdAt === 'string'
-        ? new Date(parseInt(booking.createdAt)).toISOString()
-        : booking.createdAt.toDate().toISOString();
-    }
-  } catch (err) {
-    console.warn('Invalid timestamp for booking:', booking.id);
-  }
+export const transformBookingToNotification = (booking: Booking & { markedAsRead?: boolean }): Notification => {
+  const timestamp = booking.createdAt || new Date().toISOString();
   return {
     id: `booking-${booking.id}`,
     type: 'booking' as const,

@@ -35,8 +35,8 @@ export function useFirebaseAuth(): UseFirebaseAuthReturn {
       }
 
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
       setError(errorMessage);
       return {
         success: false,
@@ -62,8 +62,8 @@ export function useFirebaseAuth(): UseFirebaseAuthReturn {
       }
 
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Signup failed';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Signup failed';
       setError(errorMessage);
       return {
         success: false,

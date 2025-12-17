@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 import { PaymentModal } from './PaymentModal';
 import { db } from '../../../../lib/firebase';
 import { NotificationService } from '../../../../lib/services/notification/NotificationService';
@@ -163,7 +163,7 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
           <button
             className="px-3 py-1 bg-green-500 text-white rounded text-xs font-medium transition-colors hover:bg-green-600 disabled:opacity-50"
             onClick={() => {
-              // check if cash payment needed
+              // check if cash payment
               const isCashPayment = appointment.paymentMethod?.toLowerCase() === 'cash';
               const isNotPaid = !appointment.paymentStatus;
 

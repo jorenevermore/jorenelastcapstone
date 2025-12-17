@@ -1,43 +1,25 @@
-/**
- * Global Discount Service
- * Handles global discount packages (SuperAdmin only)
- */
 
-import { BaseDiscountService, DiscountPackage, DiscountInfo, ServiceResponse } from './BaseDiscountService';
 import { collection, addDoc, updateDoc, deleteDoc, getDocs, doc, Firestore } from 'firebase/firestore';
+import type { ServiceResponse } from '../../../types/api';
+import type {DiscountPackage, CreateDiscountInput, UpdateDiscountInput } from '../../../types/discount';
 
-export interface CreateDiscountInput {
-  title: string;
-  description: string;
-  amount: number;
-  overall_discount: DiscountInfo;
-}
-
-export interface UpdateDiscountInput {
-  title?: string;
-  description?: string;
-  amount?: number;
-  overall_discount?: DiscountInfo;
-}
-
-export class GlobalDiscountService extends BaseDiscountService {
+export class GlobalDiscountService {
   private readonly COLLECTION = 'discountPackages';
 
-  constructor(private db: Firestore) {
-    super();
+  constructor(private db: Firestore) {}
+
+  private handleError(error: unknown): ServiceResponse {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Discount service error:', errorMessage);
+    return {
+      success: false,
+      message: 'Operation failed',
+      error: errorMessage
+    };
   }
 
   async createDiscount(input: CreateDiscountInput): Promise<ServiceResponse> {
     try {
-      const titleValidation = this.validateTitle(input.title);
-      if (!titleValidation.success) return titleValidation;
-
-      const amountValidation = this.validateAmount(input.amount);
-      if (!amountValidation.success) return amountValidation;
-
-      const discountValidation = this.validateDiscount(input.overall_discount);
-      if (!discountValidation.success) return discountValidation;
-
       const now = Date.now();
       const discountData = {
         title: input.title.trim(),
@@ -50,37 +32,19 @@ export class GlobalDiscountService extends BaseDiscountService {
 
       const docRef = await addDoc(collection(this.db, this.COLLECTION), discountData);
 
-      this.logOperation('Create Discount Package', docRef.id, true);
-
       return {
         success: true,
         message: 'Discount package created successfully',
         data: { id: docRef.id, ...discountData }
       };
     } catch (error) {
-      this.logOperation('Create Discount Package', 'unknown', false);
       return this.handleError(error);
     }
   }
 
   async updateDiscount(discountId: string, input: UpdateDiscountInput): Promise<ServiceResponse> {
     try {
-      if (input.title) {
-        const titleValidation = this.validateTitle(input.title);
-        if (!titleValidation.success) return titleValidation;
-      }
-
-      if (input.amount !== undefined) {
-        const amountValidation = this.validateAmount(input.amount);
-        if (!amountValidation.success) return amountValidation;
-      }
-
-      if (input.overall_discount) {
-        const discountValidation = this.validateDiscount(input.overall_discount);
-        if (!discountValidation.success) return discountValidation;
-      }
-
-      let updateData: any = {};
+      const updateData: any = {};
       if (input.title) updateData.title = input.title.trim();
       if (input.description !== undefined) updateData.description = input.description.trim();
       if (input.amount !== undefined) updateData.amount = input.amount;
@@ -89,14 +53,11 @@ export class GlobalDiscountService extends BaseDiscountService {
 
       await updateDoc(doc(this.db, this.COLLECTION, discountId), updateData);
 
-      this.logOperation('Update Discount Package', discountId, true);
-
       return {
         success: true,
         message: 'Discount package updated successfully'
       };
     } catch (error) {
-      this.logOperation('Update Discount Package', discountId, false);
       return this.handleError(error);
     }
   }
@@ -105,14 +66,11 @@ export class GlobalDiscountService extends BaseDiscountService {
     try {
       await deleteDoc(doc(this.db, this.COLLECTION, discountId));
 
-      this.logOperation('Delete Discount Package', discountId, true);
-
       return {
         success: true,
         message: 'Discount package deleted successfully'
       };
     } catch (error) {
-      this.logOperation('Delete Discount Package', discountId, false);
       return this.handleError(error);
     }
   }
@@ -120,7 +78,7 @@ export class GlobalDiscountService extends BaseDiscountService {
   async getAllDiscounts(): Promise<ServiceResponse> {
     try {
       const querySnapshot = await getDocs(collection(this.db, this.COLLECTION));
-      let discounts: DiscountPackage[] = [];
+      const discounts: DiscountPackage[] = [];
 
       querySnapshot.forEach((doc) => {
         discounts.push({

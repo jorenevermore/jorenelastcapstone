@@ -1,38 +1,27 @@
 
-import { BaseServiceManagement, ServiceItem, ServiceResponse } from './BaseServiceManagement';
-import { collection, addDoc, updateDoc, deleteDoc, getDocs, query, where, doc, Firestore, getDoc } from 'firebase/firestore';
+import { collection, updateDoc, deleteDoc, getDocs, query, where, doc, Firestore, getDoc } from 'firebase/firestore';
+import type { ServiceResponse } from '../../../types/api';
+import type { Service, Style } from '../../../types/services';
 
-export interface CreateBarbershopServiceInput {
-  barbershopId: string;
-  serviceCategoryId: string;
-  title: string;
-  description?: string;
-  price: number;
-  duration: number;
-  featuredImage?: string;
-}
-
-export interface UpdateBarbershopServiceInput {
-  title?: string;
-  description?: string;
-  price?: number;
-  duration?: number;
-  featuredImage?: string;
-}
-
-export class BarbershopServiceManagement extends BaseServiceManagement {
+export class BarbershopServiceManagement {
   private readonly COLLECTION = 'services';
 
-  constructor(private db: Firestore) {
-    super();
+  constructor(private db: Firestore) {}
+
+  private handleError(error: unknown): ServiceResponse {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Service management error:', errorMessage);
+    return {
+      success: false,
+      message: 'Operation failed',
+      error: errorMessage
+    };
   }
-
-
 
   async getServicesByBarbershop(barbershopId: string): Promise<ServiceResponse> {
     try {
-      // get barbershop profile to get their services array
-      let barbershopDoc = await getDoc(doc(this.db, 'barbershops', barbershopId));
+
+      const barbershopDoc = await getDoc(doc(this.db, 'barbershops', barbershopId));
 
       if (!barbershopDoc.exists()) {
         return {
@@ -42,8 +31,8 @@ export class BarbershopServiceManagement extends BaseServiceManagement {
         };
       }
 
-      let barbershopData = barbershopDoc.data();
-      let services = barbershopData?.services || [];
+      const barbershopData = barbershopDoc.data();
+      const services = barbershopData?.services || [];
 
       return {
         success: true,
@@ -55,19 +44,16 @@ export class BarbershopServiceManagement extends BaseServiceManagement {
     }
   }
 
-  async updateBarbershopServices(barbershopId: string, services: any[]): Promise<ServiceResponse> {
+  async updateBarbershopServices(barbershopId: string, services: Service[]): Promise<ServiceResponse> {
     try {
-      let barbershopRef = doc(this.db, 'barbershops', barbershopId);
+      const barbershopRef = doc(this.db, 'barbershops', barbershopId);
       await updateDoc(barbershopRef, { services });
-
-      this.logOperation('Update Barbershop Services', barbershopId, true);
 
       return {
         success: true,
-        message: 'Barbershop services updated successfully'
+        message: 'Services updated successfully'
       };
     } catch (error) {
-      this.logOperation('Update Barbershop Services', barbershopId, false);
       return this.handleError(error);
     }
   }
@@ -78,15 +64,15 @@ export class BarbershopServiceManagement extends BaseServiceManagement {
 
   async getStyles(barbershopId: string): Promise<ServiceResponse> {
     try {
-      let q = query(collection(this.db, 'styles'), where('barberOrBarbershop', '==', barbershopId));
-      let querySnapshot = await getDocs(q);
-      let styles: any[] = [];
+      const stylesQuery = query(collection(this.db, 'styles'), where('barberOrBarbershop', '==', barbershopId));
+      const querySnapshot = await getDocs(stylesQuery);
+      const styles: Style[] = [];
 
-      querySnapshot.forEach((doc) => {
+      querySnapshot.forEach((styleDoc) => {
         styles.push({
-          docId: doc.id,
-          ...doc.data()
-        });
+          docId: styleDoc.id,
+          ...styleDoc.data()
+        } as Style);
       });
 
       return {
@@ -99,7 +85,7 @@ export class BarbershopServiceManagement extends BaseServiceManagement {
     }
   }
 
-  async updateServices(barbershopId: string, services: any[]): Promise<ServiceResponse> {
+  async updateServices(barbershopId: string, services: Service[]): Promise<ServiceResponse> {
     return this.updateBarbershopServices(barbershopId, services);
   }
 
@@ -107,14 +93,11 @@ export class BarbershopServiceManagement extends BaseServiceManagement {
     try {
       await deleteDoc(doc(this.db, 'styles', styleDocId));
 
-      this.logOperation('Delete Style', styleDocId, true);
-
       return {
         success: true,
         message: 'Style deleted successfully'
       };
     } catch (error) {
-      this.logOperation('Delete Style', styleDocId, false);
       return this.handleError(error);
     }
   }

@@ -1,4 +1,6 @@
+
 import { Firestore, collection, query, where, getDocs } from 'firebase/firestore';
+import type { ServiceResponse } from '../../../types/api';
 
 export interface MayaPaymentReceipt {
   id: string;
@@ -22,13 +24,6 @@ export interface MayaPaymentReceipt {
     };
   };
   isPaid: boolean;
-}
-
-export interface ServiceResponse {
-  success: boolean;
-  message: string;
-  data?: any;
-  error?: string;
 }
 
 export class MayaPaymentService {

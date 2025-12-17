@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
-import type { Booking } from '../../../../lib/services/appointment/BaseAppointmentService';
+import type { Booking } from '../../../../types/appointments';
 
 interface BarberPerformanceProps {
   bookings: Booking[];

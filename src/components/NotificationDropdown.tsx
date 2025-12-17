@@ -33,7 +33,7 @@ const NotificationDropdown: React.FC = () => {
   // format timestamp
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
-    const time = new Date(timestamp);
+    const time = new Date(parseInt(timestamp));
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
 
     if (diffInMinutes < 1) return 'Just now';

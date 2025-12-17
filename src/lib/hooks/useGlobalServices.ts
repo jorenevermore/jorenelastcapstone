@@ -1,8 +1,8 @@
 
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
-import { GlobalServiceManagement, CreateGlobalServiceInput, UpdateGlobalServiceInput } from '../services/service/GlobalServiceManagement';
-import { ServiceResponse } from '../services/service/BaseServiceManagement';
+import { GlobalServiceManagement } from '../services/service/GlobalServiceManagement';
+import type { ServiceResponse, CreateGlobalServiceInput, UpdateGlobalServiceInput } from '../../types';
 
 const serviceManagement = new GlobalServiceManagement(db);
 
@@ -28,8 +28,8 @@ export function useGlobalServices(): UseGlobalServicesReturn {
       const result = await serviceManagement.createService(input);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create service';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create service';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'CREATE_ERROR' };
     } finally {
@@ -45,8 +45,8 @@ export function useGlobalServices(): UseGlobalServicesReturn {
       const result = await serviceManagement.updateService(serviceId, input);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update service';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update service';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'UPDATE_ERROR' };
     } finally {
@@ -62,8 +62,8 @@ export function useGlobalServices(): UseGlobalServicesReturn {
       const result = await serviceManagement.deleteService(serviceId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete service';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete service';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'DELETE_ERROR' };
     } finally {
@@ -79,8 +79,8 @@ export function useGlobalServices(): UseGlobalServicesReturn {
       const result = await serviceManagement.getAllServices();
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch services';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch services';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
     } finally {

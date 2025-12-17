@@ -1,12 +1,8 @@
-/**
- * Base Authentication Service
- * Provides common authentication functionality and error handling
- */
 
-export interface AuthResponse {
+export interface AuthResponse<T = unknown> {
   success: boolean;
   message: string;
-  data?: any;
+  data?: T;
   error?: string;
 }
 
@@ -16,39 +12,6 @@ export interface AuthCredentials {
 }
 
 export class BaseAuthService {
-  protected validateCredentials(credentials: AuthCredentials): AuthResponse {
-    if (!credentials.email || !credentials.password) {
-      return {
-        success: false,
-        message: 'Email and password are required',
-        error: 'MISSING_CREDENTIALS'
-      };
-    }
-
-    if (!this.isValidEmail(credentials.email)) {
-      return {
-        success: false,
-        message: 'Invalid email format',
-        error: 'INVALID_EMAIL'
-      };
-    }
-
-    if (credentials.password.length < 6) {
-      return {
-        success: false,
-        message: 'Password must be at least 6 characters',
-        error: 'WEAK_PASSWORD'
-      };
-    }
-
-    return { success: true, message: 'Credentials valid' };
-  }
-
-  protected isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
   protected handleError(error: unknown): AuthResponse {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('Auth error:', errorMessage);

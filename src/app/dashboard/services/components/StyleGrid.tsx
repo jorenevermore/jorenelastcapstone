@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Style } from '../types';
+import { Style } from '../../../../types/services';
 
 interface StyleGridProps {
   styles: Style[];

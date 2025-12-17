@@ -1,5 +1,4 @@
 
-
 import { useState, useCallback } from 'react';
 import { SuperAdminAuthService } from '../services/auth/SuperAdminAuthService';
 import { SessionManager } from '../services/auth/SessionManager';
@@ -36,8 +35,8 @@ export function useSuperAdminAuth(): UseSuperAdminAuthReturn {
       }
 
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Login failed';
       setError(errorMessage);
       return {
         success: false,

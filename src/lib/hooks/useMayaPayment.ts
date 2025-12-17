@@ -32,8 +32,8 @@ export function useMayaPayment(): UseMayaPaymentReturn {
       } else {
         setError(result.message);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch payment receipt');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to fetch payment receipt');
     } finally {
       setLoading(false);
     }

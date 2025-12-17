@@ -1,8 +1,8 @@
 
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
-import { GlobalDiscountService, CreateDiscountInput, UpdateDiscountInput } from '../services/discount/GlobalDiscountService';
-import { ServiceResponse } from '../services/discount/BaseDiscountService';
+import { GlobalDiscountService } from '../services/discount/GlobalDiscountService';
+import type { ServiceResponse, CreateDiscountInput, UpdateDiscountInput } from '../../types';
 
 const discountService = new GlobalDiscountService(db);
 
@@ -28,8 +28,8 @@ export function useGlobalDiscounts(): UseGlobalDiscountsReturn {
       const result = await discountService.createDiscount(input);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create discount';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create discount';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'CREATE_ERROR' };
     } finally {
@@ -45,8 +45,8 @@ export function useGlobalDiscounts(): UseGlobalDiscountsReturn {
       const result = await discountService.updateDiscount(discountId, input);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update discount';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update discount';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'UPDATE_ERROR' };
     } finally {
@@ -62,8 +62,8 @@ export function useGlobalDiscounts(): UseGlobalDiscountsReturn {
       const result = await discountService.deleteDiscount(discountId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete discount';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete discount';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'DELETE_ERROR' };
     } finally {
@@ -79,8 +79,8 @@ export function useGlobalDiscounts(): UseGlobalDiscountsReturn {
       const result = await discountService.getAllDiscounts();
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch discounts';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch discounts';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
     } finally {

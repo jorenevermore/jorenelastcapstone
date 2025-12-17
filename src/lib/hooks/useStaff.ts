@@ -3,10 +3,9 @@ import { useState, useCallback } from 'react';
 import { Unsubscribe } from 'firebase/firestore';
 import { db } from '../firebase';
 import { StaffManagementService } from '../services/staff/StaffManagementService';
-import { ServiceResponse, Barber } from '../services/staff/BaseStaffService';
+import type { Barber, ServiceResponse } from '../../types';
 
-
-export type { Barber } from '../services/staff/BaseStaffService';
+export type { Barber } from '../../types';
 
 const staffService = new StaffManagementService(db);
 
@@ -58,8 +57,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.getBarbersByBarbershopId(barbershopId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch barbers';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch barbers';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
     } finally {
@@ -74,8 +73,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.getBarberById(barberId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch barber';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch barber';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
     } finally {
@@ -90,8 +89,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.addBarber(barberData);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add barber';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add barber';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'ADD_ERROR' };
     } finally {
@@ -106,8 +105,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.addBarberToBarbershop(barbershopId, barberData);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add barber to barbershop';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to add barber to barbershop';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'ADD_ERROR' };
     } finally {
@@ -122,8 +121,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.removeBarberFromBarbershop(barbershopId, barberId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to remove barber from barbershop';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to remove barber from barbershop';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'REMOVE_ERROR' };
     } finally {
@@ -138,8 +137,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.updateBarber(barberId, barberData);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update barber';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update barber';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'UPDATE_ERROR' };
     } finally {
@@ -154,8 +153,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.deleteBarber(barberId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete barber';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete barber';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'DELETE_ERROR' };
     } finally {
@@ -170,8 +169,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.getPendingAffiliations(barbershopId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch pending affiliations';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch pending affiliations';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
     } finally {
@@ -186,8 +185,8 @@ export function useStaff(): UseStaffReturn {
       const result = await staffService.updateAffiliationStatus(barberId, status);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update affiliation status';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update affiliation status';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'UPDATE_ERROR' };
     } finally {

@@ -67,7 +67,7 @@ const FilterBar = ({
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="appearance-none pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+              className="appearance-none pl-3 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
             >
               <option value="all">All Statuses</option>
               <option value="pending">Pending</option>
@@ -77,9 +77,6 @@ const FilterBar = ({
               <option value="cancelled">Cancelled</option>
               <option value="no-show">No Show</option>
             </select>
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-              <i className="fas fa-filter text-gray-400 text-xs"></i>
-            </div>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
               <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
             </div>
@@ -89,16 +86,13 @@ const FilterBar = ({
             <select
               value={barberFilter}
               onChange={(e) => setBarberFilter(e.target.value)}
-              className="appearance-none pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+              className="appearance-none pl-3 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
             >
               <option value="all">All Barbers</option>
               {uniqueBarbers.map(barber => (
                 <option key={barber} value={barber}>{barber}</option>
               ))}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-              <i className="fas fa-user-tie text-gray-400 text-xs"></i>
-            </div>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
               <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
             </div>
@@ -108,15 +102,12 @@ const FilterBar = ({
             <select
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="appearance-none pl-8 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+              className="appearance-none pl-3 pr-8 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
             >
               <option value="all">All Bookings ({todayCount + pastCount + upcomingCount})</option>
               <option value="today">Today's Bookings ({todayCount})</option>
               <option value="upcoming">Upcoming Bookings ({upcomingCount})</option>
             </select>
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
-              <i className="fas fa-calendar text-gray-400 text-xs"></i>
-            </div>
             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
               <i className="fas fa-chevron-down text-gray-400 text-xs"></i>
             </div>

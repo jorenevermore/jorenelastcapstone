@@ -93,7 +93,7 @@ export default function AnalyticsPage() {
       ) : (
         <>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-700">Business Analytics</h2>
+            <h2 className="text-lg font-medium text-gray-700">Your Business Insights!</h2>
             <DateRangePicker 
               startDate={startDate}
               endDate={endDate}

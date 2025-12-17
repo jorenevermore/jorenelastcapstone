@@ -4,7 +4,7 @@
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
 import { BarbershopServiceManagement } from '../services/service/BarbershopServiceManagement';
-import { Service, Style } from '../../app/dashboard/services/types';
+import type { Service, Style } from '../../types/services';
 
 const serviceManagement = new BarbershopServiceManagement(db);
 
@@ -37,8 +37,8 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
       } else {
         setError(result.message);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch services';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch services';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -56,8 +56,8 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
       } else {
         setError(result.message);
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch styles';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch styles';
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -68,15 +68,14 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
     try {
       const result = await serviceManagement.updateServices(barbershopId, services);
       if (result.success) {
-        // Re-fetch services after update
         await fetchServices(barbershopId);
         return true;
       } else {
         setError(result.message);
         return false;
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update services';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update services';
       setError(errorMessage);
       return false;
     }
@@ -86,19 +85,18 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
     try {
       const result = await serviceManagement.deleteStyle(styleDocId);
       if (result.success) {
-        // Use functional update to avoid stale closure
-        setStyles(prev => prev.filter(s => s.docId !== styleDocId));
+        setStyles(prev => prev.filter(style => style.docId !== styleDocId));
         return true;
       } else {
         setError(result.message);
         return false;
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to delete style';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete style';
       setError(errorMessage);
       return false;
     }
-  }, []); // Removed styles from dependency - using functional update instead
+  }, []);
 
   const clearError = useCallback(() => {
     setError(null);

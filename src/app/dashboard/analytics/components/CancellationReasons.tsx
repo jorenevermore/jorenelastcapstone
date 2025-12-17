@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Booking } from '../../../../lib/services/appointment/BaseAppointmentService';
+import type { Booking } from '../../../../types/appointments';
 import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
 interface CancellationReasonsProps {

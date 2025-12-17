@@ -16,13 +16,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
 
   useEffect(() => {
-    // If not loading and no user, redirect to login
     if (!loading && !user) {
       router.push('/');
     }
   }, [user, loading, router]);
 
-  // Show loading state while checking authentication
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -31,7 +29,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     );
   }
 
-  // If no user and not loading, don't render anything (will redirect)
   if (!user && !loading) {
     return null;
   }

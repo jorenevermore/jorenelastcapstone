@@ -23,7 +23,6 @@ export default function SignupStep1({
 }: BarbershopInfoFormParams) {
   return (
     <div className="space-y-6">
-      {/* Barbershop Name */}
       <div className="mb-5">
         <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Barbershop Name*</label>
         <div className="relative group">
@@ -43,7 +42,6 @@ export default function SignupStep1({
         </div>
       </div>
 
-      {/* Phone Number */}
       <div className="mb-5">
         <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">Phone Number*</label>
         <div className="relative group">
@@ -63,7 +61,6 @@ export default function SignupStep1({
         </div>
       </div>
 
-      {/* Location Map */}
       <div className="mb-5">
         <label className="block text-sm font-medium text-gray-700 mb-1">Barbershop Location on Map*</label>
         <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
@@ -71,7 +68,6 @@ export default function SignupStep1({
         </div>
       </div>
 
-      {/* Next Button */}
       <div className="flex justify-end">
         <button
           type="button"

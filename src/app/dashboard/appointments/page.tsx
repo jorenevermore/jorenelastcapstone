@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../lib/firebase';
-import { Booking } from './types';
+import type { Booking } from '../../../types/appointments';
 import {
   DailyViewCard,
   BookingsTable,

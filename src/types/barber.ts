@@ -1,3 +1,4 @@
+
 export interface Barber {
   address: string;
   affiliatedBarbershop: string;
@@ -7,6 +8,7 @@ export interface Barber {
   email: string;
   fullName: string;
   isAvailable: boolean;
+  image?: string | null;
   affiliationStatus?: 'pending' | 'confirmed' | 'declined';
   createdAt?: string;
   isProfileCompleted?: boolean;

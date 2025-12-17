@@ -22,15 +22,12 @@ export default function StaffPage() {
     deleteBarber: deleteBarberService
   } = useStaff();
 
-  // form state for adding/editing barbers
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentBarber, setCurrentBarber] = useState<Barber | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [barberToDelete, setBarberToDelete] = useState<Barber | null>(null);
 
-  // form fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [contactNumber, setContactNumber] = useState('');
@@ -48,7 +45,6 @@ export default function StaffPage() {
     const fetchBarbershopDetails = async () => {
       try {
         if (user) {
-          // fetch barbershopId
           const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
           if (barbershopDoc.exists()) {
             const result = await getBarbersByBarbershopId(user.uid);
@@ -74,7 +70,6 @@ export default function StaffPage() {
     fetchBarbershopDetails();
   }, [user, getBarbersByBarbershopId]);
 
-  // Reset form fields
   const resetForm = () => {
     setFullName('');
     setEmail('');
@@ -88,13 +83,11 @@ export default function StaffPage() {
     setDragActive(false);
   };
 
-  // Open form for adding a new barber
   const handleAddBarber = () => {
     resetForm();
     setIsFormOpen(true);
   };
-
-  // Open form for editing an existing barber
+  
   const handleEditBarber = (barber: Barber) => {
     setCurrentBarber(barber);
     setFullName(barber.fullName);
@@ -108,11 +101,9 @@ export default function StaffPage() {
     setIsFormOpen(true);
   };
 
-  // Image handling functions
   const processFile = (file: File) => {
     setImageFile(file);
-
-    // Create a preview
+    
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
@@ -310,7 +301,7 @@ export default function StaffPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-black">Staff Management</h1>
+        <h1 className="text-2xl font-bold text-black">Staff Management.</h1>
         <button
           className="btn btn-primary"
           onClick={handleAddBarber}
@@ -473,28 +464,6 @@ export default function StaffPage() {
         </div>
       )}
 
-      {/* View Toggle Buttons */}
-      <div className="mb-6 flex space-x-4">
-        <button
-          className="px-4 py-2 rounded-md text-white font-medium text-sm transition-colors"
-          onClick={() => setViewMode('grid')}
-          style={{ backgroundColor: viewMode === 'grid' ? '#BF8F63' : '#E5E7EB', color: viewMode === 'grid' ? 'white' : '#4B5563' }}
-          onMouseEnter={(e) => viewMode === 'grid' && (e.currentTarget.style.backgroundColor = '#A67C52')}
-          onMouseLeave={(e) => viewMode === 'grid' && (e.currentTarget.style.backgroundColor = '#BF8F63')}
-        >
-          <i className="fas fa-th-large mr-2"></i> Grid View
-        </button>
-        <button
-          className="px-4 py-2 rounded-md font-medium text-sm transition-colors"
-          onClick={() => setViewMode('table')}
-          style={{ backgroundColor: viewMode === 'table' ? '#BF8F63' : '#E5E7EB', color: viewMode === 'table' ? 'white' : '#4B5563' }}
-          onMouseEnter={(e) => viewMode === 'table' && (e.currentTarget.style.backgroundColor = '#A67C52')}
-          onMouseLeave={(e) => viewMode === 'table' && (e.currentTarget.style.backgroundColor = '#BF8F63')}
-        >
-          <i className="fas fa-list mr-2"></i> Table View
-        </button>
-      </div>
-
       {/* Barbers List */}
       <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         {loading && !isFormOpen ? (
@@ -505,91 +474,6 @@ export default function StaffPage() {
         ) : barbers.length === 0 ? (
           <div className="p-6 text-center">
             <p className="text-gray-500">No barbers found. Add your first barber to get started.</p>
-          </div>
-        ) : viewMode === 'grid' ? (
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {barbers.map((barber) => (
-                <div key={barber.barberId} className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
-                  <div className="p-1 bg-gray-50 border-b border-gray-200">
-                    <div className="flex justify-end">
-                      <button
-                        className={`w-12 h-6 rounded-full flex items-center ${barber.isAvailable ? 'bg-green-500 justify-end' : 'bg-gray-300 justify-start'} p-1 transition-all duration-200 ease-in-out`}
-                        onClick={() => toggleAvailability(barber)}
-                      >
-                        <div className="w-4 h-4 bg-white rounded-full shadow-sm"></div>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="p-6">
-                    <div className="flex items-center mb-4">
-                      <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 mr-4 overflow-hidden">
-                        {barber.image ? (
-                          <img
-                            src={barber.image}
-                            alt={barber.fullName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <i className="fas fa-user-alt text-2xl"></i>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900">{barber.fullName}</h3>
-                        <p className="text-sm text-gray-500">{barber.email}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mb-6">
-                      <div className="flex items-start">
-                        <div className="text-gray-500 w-5 mt-0.5 mr-2">
-                          <i className="fas fa-phone-alt"></i>
-                        </div>
-                        <div className="text-sm text-gray-700">{barber.contactNumber}</div>
-                      </div>
-
-                      <div className="flex items-start">
-                        <div className="text-gray-500 w-5 mt-0.5 mr-2">
-                          <i className="fas fa-map-marker-alt"></i>
-                        </div>
-                        <div className="text-sm text-gray-700">{barber.address}</div>
-                      </div>
-
-                      <div className="flex items-center">
-                        <div className="text-gray-500 w-5 mr-2">
-                          <i className="fas fa-circle"></i>
-                        </div>
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            barber.isAvailable
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {barber.isAvailable ? 'Available' : 'Unavailable'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end space-x-2 pt-4 border-t border-gray-100">
-                      <button
-                        className="p-2 text-gray-600 hover:text-black rounded-full hover:bg-gray-100"
-                        onClick={() => handleEditBarber(barber)}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
-                      <button
-                        className="p-2 text-red-600 hover:text-red-900 rounded-full hover:bg-red-50"
-                        onClick={() => handleDeleteBarber(barber)}
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 import { useMessaging, Message } from '../../../../lib/hooks/useMessaging';
 
 export interface ClientDetails {

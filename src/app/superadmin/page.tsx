@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { ServicesTab, SubscriptionsTab, TabNavigation, LoadingSpinner, ErrorAlert } from './components';
-import { fetchServices, fetchSubscriptions } from './services/firestoreService';
-import { GlobalService, SubscriptionPackage, TabType } from './types';
+import { fetchServices, fetchSubscriptions } from './services/superAdminService';
+import type { GlobalService } from '../../types/services';
+import { SubscriptionPackage, TabType } from './types';
 
 export default function SuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('services');

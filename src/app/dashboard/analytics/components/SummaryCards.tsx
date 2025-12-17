@@ -33,14 +33,14 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
   
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-      <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
+      <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-gray-500 mb-1">Total Appointments</p>
             <h3 className="text-2xl font-bold text-gray-900">{totalAppointments}</h3>
           </div>
-          <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
-            <i className="fas fa-calendar-check" style={{ color: '#BF8F63' }}></i>
+          <div className="p-2 rounded-lg bg-gray-100">
+            <i className="fas fa-calendar-check text-gray-600"></i>
           </div>
         </div>
         <div className="mt-2 flex items-center text-xs">
@@ -50,14 +50,14 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
+      <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-gray-500 mb-1">Completion Rate</p>
             <h3 className="text-2xl font-bold text-gray-900">{completionRate}%</h3>
           </div>
-          <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
-            <i className="fas fa-check-circle" style={{ color: '#BF8F63' }}></i>
+          <div className="p-2 rounded-lg bg-gray-100">
+            <i className="fas fa-check-circle text-gray-600"></i>
           </div>
         </div>
         <div className="mt-2 flex items-center text-xs">
@@ -67,14 +67,14 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
+      <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-gray-500 mb-1">Total Revenue</p>
             <h3 className="text-2xl font-bold text-gray-900">₱{totalRevenue.toLocaleString()}</h3>
           </div>
-          <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
-            <i className="fas fa-coins" style={{ color: '#BF8F63' }}></i>
+          <div className="p-2 rounded-lg bg-gray-100">
+            <i className="fas fa-coins text-gray-600"></i>
           </div>
         </div>
         <div className="mt-2 flex items-center text-xs">
@@ -84,14 +84,14 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
+      <div className="bg-white rounded-lg shadow-sm p-4">
         <div className="flex justify-between items-start">
           <div>
             <p className="text-sm text-gray-500 mb-1">Unique Customers</p>
             <h3 className="text-2xl font-bold text-gray-900">{uniqueCustomers}</h3>
           </div>
-          <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
-            <i className="fas fa-users" style={{ color: '#BF8F63' }}></i>
+          <div className="p-2 rounded-lg bg-gray-100">
+            <i className="fas fa-users text-gray-600"></i>
           </div>
         </div>
         <div className="mt-2 flex items-center text-xs">

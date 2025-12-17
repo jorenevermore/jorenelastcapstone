@@ -1,3 +1,4 @@
+
 export interface ParsedDateTime {
   date: string;
   time: string;
@@ -19,41 +20,15 @@ const parseDate = (dateString: string): string => {
 };
 
 const parseTime = (timeString: string): { time: string; session: 'morning' | 'afternoon' | 'evening'; sessionLabel: string } => {
-  try {
-    const [hours, minutes] = timeString.split(':').map(Number);
+  const [hours, minutes] = timeString.split(':').map(Number);
+  const hour12 = hours % 12 || 12;
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const formattedTime = `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
 
-    // determine session
-    let session: 'morning' | 'afternoon' | 'evening';
-    let sessionLabel: string;
+  const session = hours < 12 ? 'morning' : hours < 17 ? 'afternoon' : 'evening';
+  const sessionLabel = session.charAt(0).toUpperCase() + session.slice(1);
 
-    if (hours >= 5 && hours < 12) {
-      session = 'morning';
-      sessionLabel = 'Morning';
-    } else if (hours >= 12 && hours < 17) {
-      session = 'afternoon';
-      sessionLabel = 'Afternoon';
-    } else {
-      session = 'evening';
-      sessionLabel = 'Evening';
-    }
-
-    // format time to 12-hour format
-    const hour12 = hours % 12 || 12;
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const formattedTime = `${hour12}:${String(minutes).padStart(2, '0')} ${ampm}`;
-
-    return {
-      time: formattedTime,
-      session,
-      sessionLabel
-    };
-  } catch {
-    return {
-      time: timeString,
-      session: 'morning',
-      sessionLabel: 'Morning'
-    };
-  }
+  return { time: formattedTime, session, sessionLabel };
 };
 
 export const parseBookingDateTime = (date: string, time: string): ParsedDateTime => {

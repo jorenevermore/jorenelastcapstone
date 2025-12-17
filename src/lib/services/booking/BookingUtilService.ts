@@ -1,4 +1,5 @@
-import type { Booking } from '../../../app/dashboard/appointments/types';
+
+import type { Booking } from '../../../types/appointments';
 
 export class BookingUtilService {
  
@@ -7,25 +8,11 @@ export class BookingUtilService {
     const hour = parseInt(startTime.split(':')[0]);
     return hour < 13 ? 'Morning Session' : 'Afternoon Session';
   }
+  
   static isPastDue(booking: Booking): boolean {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const todayISO = `${year}-${month}-${day}`;
-
-    let bookingDateISO: string;
-    if (booking.date.includes('-') && booking.date.length === 10) {
-      bookingDateISO = booking.date;
-    } else {
-      const bookingDate = new Date(booking.date);
-      const bookingYear = bookingDate.getFullYear();
-      const bookingMonth = String(bookingDate.getMonth() + 1).padStart(2, '0');
-      const bookingDay = String(bookingDate.getDate()).padStart(2, '0');
-      bookingDateISO = `${bookingYear}-${bookingMonth}-${bookingDay}`;
-    }
-
-    const isBookingInPast = bookingDateISO < todayISO;
+    const bookingDate = booking.date.split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    const isBookingInPast = bookingDate < today;
 
     return (
       isBookingInPast &&
@@ -105,49 +92,14 @@ export class BookingUtilService {
   }
 
   static getCancellationInfo(booking: any): { reason: string; timestamp: string } | null {
-    if (booking.status !== 'cancelled' || (!booking.reason && !booking.barberReason)) {
+    if (booking.status !== 'cancelled') {
       return null;
     }
 
     const reason = booking.barberReason || booking.reason || 'No reason provided';
+    const timestamp = new Date().toLocaleString();
 
-    // find cancelled status in history
-    const cancelledEntry = booking.statusHistory?.find(
-      (entry: any) => entry.ongoingStatus === 'cancelled'
-    );
-    const timestamp = cancelledEntry?.timestamp;
-
-    const formattedTimestamp = (() => {
-      if (!timestamp) return new Date().toLocaleString();
-
-      let date: Date;
-      if (typeof timestamp === 'string') {
-        const parsed = parseInt(timestamp);
-        // check if parsed is valid milliseconds
-        if (!isNaN(parsed) && parsed > 0) {
-          date = new Date(parsed);
-        } else {
-          // try parsing as ISO string
-          date = new Date(timestamp);
-        }
-      } else if (typeof timestamp === 'number') {
-        date = new Date(timestamp);
-      } else {
-        date = new Date();
-      }
-
-      // validate date
-      if (isNaN(date.getTime())) {
-        return new Date().toLocaleString();
-      }
-
-      return date.toLocaleString();
-    })();
-
-    return {
-      reason,
-      timestamp: formattedTimestamp
-    };
+    return { reason, timestamp };
   }
 
   static formatDate(dateStr: string): string {
@@ -174,11 +126,11 @@ export class BookingUtilService {
 
     switch (category) {
       case 'today':
-        return bookings.filter(b => b.date.split('T')[0] === todayISO);
+        return bookings.filter(booking => booking.date.split('T')[0] === todayISO);
       case 'upcoming':
-        return bookings.filter(b => b.date.split('T')[0] > todayISO);
+        return bookings.filter(booking => booking.date.split('T')[0] > todayISO);
       case 'past':
-        return bookings.filter(b => b.date.split('T')[0] < todayISO);
+        return bookings.filter(booking => booking.date.split('T')[0] < todayISO);
       case 'all':
       default:
         return bookings;
@@ -193,11 +145,15 @@ export class BookingUtilService {
   static countBookingsByDateCategory(bookings: Booking[]): { todayCount: number; pastCount: number; upcomingCount: number } {
     const todayISO = this.toISO(new Date());
 
-    const todayCount = bookings.filter(b => b.date.split('T')[0] === todayISO).length;
-    const pastCount = bookings.filter(b => b.date.split('T')[0] < todayISO).length;
-    const upcomingCount = bookings.filter(b => b.date.split('T')[0] > todayISO).length;
+    const todayCount = bookings.filter(booking => booking.date.split('T')[0] === todayISO).length;
+    const pastCount = bookings.filter(booking => booking.date.split('T')[0] < todayISO).length;
+    const upcomingCount = bookings.filter(booking => booking.date.split('T')[0] > todayISO).length;
 
     return { todayCount, pastCount, upcomingCount };
+  }
+
+  static calculateCompletionRate(completed: number, total: number): number {
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
   }
 }
 

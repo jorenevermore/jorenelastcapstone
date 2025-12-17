@@ -4,8 +4,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { auth, db } from '../../../lib/firebase';
-import { collection, getDocs, doc, updateDoc, addDoc, query, where } from 'firebase/firestore';
-import { Service, Style, StylesMap, GlobalService } from './types';
+import {
+  collection,
+  getDocs,
+  doc,
+  updateDoc,
+  query,
+  where,
+  setDoc
+} from 'firebase/firestore';
+import type { Service, Style, StylesMap, GlobalService } from '../../../types/services';
 import {
   ServiceModal,
   StyleModal,
@@ -44,7 +52,18 @@ export default function ServicesPage() {
   const [user] = useAuthState(auth);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { services, styles, loading, error: serviceError, fetchServices, fetchStyles, updateServices, deleteStyle } = useBarbershopServices();
+
+  const {
+    services,
+    styles,
+    loading,
+    error: serviceError,
+    fetchServices,
+    fetchStyles,
+    updateServices,
+    deleteStyle
+  } = useBarbershopServices();
+
   const [barbershopId, setBarbershopId] = useState<string | null>(null);
   const [globalServices, setGlobalServices] = useState<GlobalService[]>([]);
   const [error, setError] = useState<string | null>(serviceError);
@@ -70,7 +89,9 @@ export default function ServicesPage() {
   // confirmation states
   const [confirmationTitle, setConfirmationTitle] = useState('');
   const [confirmationMessage, setConfirmationMessage] = useState('');
-  const [confirmationAction, setConfirmationAction] = useState<() => Promise<void>>(() => Promise.resolve());
+  const [confirmationAction, setConfirmationAction] = useState<() => Promise<void>>(
+    () => Promise.resolve()
+  );
 
   // convert styles to map structure
   const stylesMap: StylesMap = styles.reduce((map, style) => {
@@ -93,7 +114,10 @@ export default function ServicesPage() {
     const editServiceId = searchParams.get('edit');
 
     // process url params once
-    if (!urlParamsProcessed.current && (newStyleServiceId || editStyleId || editServiceId)) {
+    if (
+      !urlParamsProcessed.current &&
+      (newStyleServiceId || editStyleId || editServiceId)
+    ) {
       if (newStyleServiceId) {
         const service = services.find(s => s.id === newStyleServiceId);
         if (service) {
@@ -117,11 +141,12 @@ export default function ServicesPage() {
         }
       }
     }
-   // reset flag when cleared
+
+    // reset flag when cleared
     if (!newStyleServiceId && !editStyleId && !editServiceId) {
       urlParamsProcessed.current = false;
     }
-  }, [searchParams]);
+  }, [searchParams, services, stylesMap]); 
 
   // fetch barbershop services
   useEffect(() => {
@@ -148,8 +173,8 @@ export default function ServicesPage() {
       const snapshot = await getDocs(servicesCollection);
       let servicesData: GlobalService[] = [];
 
-      snapshot.forEach(doc => {
-        servicesData.push({ id: doc.id, ...doc.data() } as GlobalService);
+      snapshot.forEach(docSnap => {
+        servicesData.push({ id: docSnap.id, ...docSnap.data() } as GlobalService);
       });
 
       setGlobalServices(servicesData);
@@ -240,7 +265,7 @@ export default function ServicesPage() {
       }
     } catch (err) {
       console.error('Error removing service:', err);
-      setError('Failed to remove service. Please try again.');
+      setError('Failed to save service. Please try again.');
     }
   };
 
@@ -251,37 +276,41 @@ export default function ServicesPage() {
     }
 
     try {
-      // create new style
-      const newStyle: Style = {
-        styleId: isEditingStyle ? style.styleId : `style_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-        styleName: style.styleName,
-        description: style.description,
-        price: style.price,
-        duration: style.duration,
-        featuredImage: style.featuredImage,
-        serviceId: style.serviceId,
-        serviceCategoryId: style.serviceCategoryId,
-        barberOrBarbershop: barbershopId,
-        type: 'barbershop'
-      };
-
       if (isEditingStyle && style.docId) {
-        // update existing style
-        await updateDoc(doc(db, 'styles', style.docId), {
-          styleId: newStyle.styleId,
-          styleName: newStyle.styleName,
-          description: newStyle.description,
-          price: newStyle.price,
-          duration: newStyle.duration,
-          featuredImage: newStyle.featuredImage,
-          serviceId: newStyle.serviceId,
-          serviceCategoryId: newStyle.serviceCategoryId,
-          barberOrBarbershop: newStyle.barberOrBarbershop,
-          type: newStyle.type
+        const docRef = doc(db, 'styles', style.docId);
+
+        await updateDoc(docRef, {
+          styleId: style.docId, 
+          styleName: style.styleName,
+          description: style.description,
+          price: style.price,
+          duration: style.duration,
+          featuredImage: style.featuredImage,
+          serviceId: style.serviceId,
+          serviceCategoryId: style.serviceCategoryId,
+          barberOrBarbershop: barbershopId,
+          type: 'barbershop'
         });
-      } else {
-        // add new style
-        await addDoc(collection(db, 'styles'), newStyle);
+      }
+      else {
+        const stylesCol = collection(db, 'styles');
+        const newDocRef = doc(stylesCol); 
+
+        const newStyle: Style = {
+          styleId: newDocRef.id,
+          styleName: style.styleName,
+          description: style.description,
+          price: style.price,
+          duration: style.duration,
+          featuredImage: style.featuredImage,
+          serviceId: style.serviceId,
+          serviceCategoryId: style.serviceCategoryId,
+          barberOrBarbershop: barbershopId,
+          type: 'barbershop',
+          docId: newDocRef.id
+        };
+
+        await setDoc(newDocRef, newStyle);
       }
 
       // refresh styles
@@ -416,9 +445,13 @@ export default function ServicesPage() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-lg font-semibold text-gray-950">Your Services</h1>
-                  <span className="bg-gray-200 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">{filteredAddedServices.length}</span>
+                  <span className="bg-gray-200 text-gray-700 text-xs font-medium px-2.5 py-1 rounded-full">
+                    {filteredAddedServices.length}
+                  </span>
                 </div>
-                <p className="text-gray-500 text-sm mt-2">Manage your barbershop services and styles</p>
+                <p className="text-gray-500 text-sm mt-2">
+                  Manage your barbershop services and styles
+                </p>
               </div>
             </div>
 
@@ -443,27 +476,39 @@ export default function ServicesPage() {
                           </div>
                         )}
                       </div>
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3">
                           <h3 className="text-sm font-semibold text-gray-900">{service.title}</h3>
-                          <span className={`text-xs font-medium px-2 py-1 rounded ${
-                            service.status === 'Available'
-                              ? 'bg-green-50 text-green-700'
-                              : 'bg-yellow-50 text-yellow-700'
-                          }`}>
+                          <span
+                            className={`text-xs font-medium px-2 py-1 rounded ${
+                              service.status === 'Available'
+                                ? 'bg-green-50 text-green-700'
+                                : 'bg-yellow-50 text-yellow-700'
+                            }`}
+                          >
                             {service.status || 'Available'}
                           </span>
                         </div>
+
                         <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                          <span>{(stylesMap[service.id] || []).length} style{(stylesMap[service.id] || []).length !== 1 ? 's' : ''}</span>
+                          <span>
+                            {(stylesMap[service.id] || []).length} style
+                            {(stylesMap[service.id] || []).length !== 1 ? 's' : ''}
+                          </span>
+
                           {(stylesMap[service.id] || []).length > 0 && (
                             <>
                               <span>•</span>
-                              <span>{stylesMap[service.id][0].styleName} • ₱{stylesMap[service.id][0].price}</span>
+                              <span>
+                                {stylesMap[service.id][0].styleName} • ₱
+                                {stylesMap[service.id][0].price}
+                              </span>
                             </>
                           )}
                         </div>
                       </div>
+
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => handleAddStyle(service.id)}
@@ -472,6 +517,7 @@ export default function ServicesPage() {
                         >
                           <i className="fas fa-plus text-sm"></i>
                         </button>
+
                         <button
                           onClick={() => handleEditService(service)}
                           className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
@@ -479,6 +525,7 @@ export default function ServicesPage() {
                         >
                           <i className="fas fa-pen text-sm"></i>
                         </button>
+
                         <a
                           href={`/dashboard/services/${service.id}`}
                           className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
@@ -486,6 +533,7 @@ export default function ServicesPage() {
                         >
                           <i className="fas fa-arrow-right text-sm"></i>
                         </a>
+
                         <button
                           onClick={() => handleRemoveService(service)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -502,8 +550,12 @@ export default function ServicesPage() {
               <div className="text-center py-20 bg-gray-50 border border-gray-200">
                 <i className="fas fa-inbox text-4xl text-gray-300 mb-4 block"></i>
                 <p className="text-gray-600 font-medium">No services yet</p>
-                <p className="text-gray-500 text-sm mt-1 mb-2">Add your first service to start offering styles</p>
-                <p className="text-gray-400 text-xs mb-6">Services help organize your styles and pricing</p>
+                <p className="text-gray-500 text-sm mt-1 mb-2">
+                  Add your first service to start offering styles
+                </p>
+                <p className="text-gray-400 text-xs mb-6">
+                  Services help organize your styles and pricing
+                </p>
                 <button
                   onClick={handleAddService}
                   className="inline-block bg-gray-950 hover:bg-gray-800 text-white px-6 py-2.5 rounded-md font-medium text-sm transition-colors"
@@ -513,6 +565,7 @@ export default function ServicesPage() {
               </div>
             )}
           </div>
+
           <ServiceModal
             isOpen={showServiceModal}
             onClose={closeServiceModal}
@@ -546,6 +599,7 @@ export default function ServicesPage() {
               }
             }}
           />
+
           <ConfirmationModal
             isOpen={showConfirmation}
             onClose={() => setShowConfirmation(false)}
@@ -558,6 +612,7 @@ export default function ServicesPage() {
             confirmText="Delete"
             type="danger"
           />
+
           <ConfirmationModal
             isOpen={showRemoveServiceConfirmation}
             title="Delete Service"

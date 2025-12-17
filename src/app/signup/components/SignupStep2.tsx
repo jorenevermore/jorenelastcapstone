@@ -27,7 +27,6 @@ export default function SignupStep2({
 }: AccountInfoFormParams) {
   return (
     <div className="space-y-6">
-      {/* Email */}
       <div className="mb-5">
         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address*</label>
         <div className="relative group">
@@ -47,8 +46,7 @@ export default function SignupStep2({
         </div>
         <p className="mt-1 text-xs text-gray-500">You'll use this email to log in to your account</p>
       </div>
-
-      {/* Password */}
+  
       <div className="mb-5">
         <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password*</label>
         <div className="relative group">
@@ -74,7 +72,6 @@ export default function SignupStep2({
         </div>
       </div>
 
-      {/* Confirm Password */}
       <div className="mb-5">
         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">Confirm Password*</label>
         <div className="relative group">
@@ -94,7 +91,6 @@ export default function SignupStep2({
         </div>
       </div>
 
-      {/* Buttons */}
       <div className="flex justify-between gap-3">
         <button
           type="button"

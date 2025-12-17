@@ -1,4 +1,6 @@
+
 'use client';
+
 import { useState, useCallback, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
@@ -24,7 +26,6 @@ export const useNotificationsPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch notifications once (one-time fetch, no real-time listener)
   const fetchNotifications = useCallback(async (barbershopId: string) => {
     try {
       setLoading(true);
@@ -35,14 +36,12 @@ export const useNotificationsPage = () => {
       const messagingService = new MessagingService(db);
       const staffService = new StaffManagementService(db);
 
-      // Fetch pending affiliations using service
       const affiliationsResult = await staffService.getPendingAffiliations(barbershopId);
       const affiliationNotifications: Notification[] = (affiliationsResult.data || [])
         .map(transformAffiliationToNotification)
         .sort((a: Notification, b: Notification) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 20);
 
-      // Fetch messages using service
       const messagesResult = await messagingService.getMessagesForBarbershop(barbershopId);
       const messageNotifications: Notification[] = (messagesResult.data || [])
         .filter((msg: any) => msg.from === 'client')
@@ -50,7 +49,6 @@ export const useNotificationsPage = () => {
         .sort((a: Notification, b: Notification) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 20);
 
-      // fetch bookings using service - show ALL bookings regardless of status
       const bookingsResult = await appointmentService.getBookingsByBarbershop(barbershopId);
       const bookingNotifications: Notification[] = (bookingsResult.data || [])
         .map(transformBookingToNotification)
@@ -59,15 +57,14 @@ export const useNotificationsPage = () => {
 
       const allNotifications = sortNotificationsByTimestamp([...affiliationNotifications, ...messageNotifications, ...bookingNotifications]);
       setNotifications(allNotifications);
-    } catch (err) {
-      console.error('Error fetching notifications:', err);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
       setError('Failed to load notifications');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Fetch on mount
   useEffect(() => {
     if (!user) {
       setNotifications([]);
@@ -105,8 +102,8 @@ export const useNotificationsPage = () => {
       if (!docRef) throw new Error('Could not get document reference');
       await updateDoc(docRef, { markedAsRead: true });
       return true;
-    } catch (err) {
-      console.error('Error marking notification as read:', err);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
       );

@@ -1,49 +1,55 @@
 
-
-import { BaseStaffService, Barber, ServiceResponse } from './BaseStaffService';
 import { collection, getDocs, query, where, doc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, Unsubscribe, Firestore, arrayUnion, arrayRemove } from 'firebase/firestore';
+import type { Barber } from '../../../types/barber';
+import type { ServiceResponse } from '../../../types/api';
 
-export class StaffManagementService extends BaseStaffService {
+export class StaffManagementService {
   private readonly COLLECTION = 'barbersprofile';
 
-  constructor(private db: Firestore) {
-    super();
+  constructor(private db: Firestore) {}
+
+  private handleError(error: unknown): ServiceResponse {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Staff service error:', errorMessage);
+    return {
+      success: false,
+      message: 'Operation failed',
+      error: errorMessage
+    };
   }
 
   async getAllBarbers(): Promise<ServiceResponse> {
     try {
-      let barbersCollection = collection(this.db, this.COLLECTION);
-      let barberSnapshot = await getDocs(barbersCollection);
+      const barbersCollection = collection(this.db, this.COLLECTION);
+      const barberSnapshot = await getDocs(barbersCollection);
 
-      let barbers = barberSnapshot.docs.map(doc => {
-        let data = doc.data() as Omit<Barber, 'barberId'>;
+      const barbers = barberSnapshot.docs.map(doc => {
+        const data = doc.data() as Omit<Barber, 'barberId'>;
         return { ...data, barberId: doc.id };
       });
 
-      this.logOperation('Get All Barbers', 'all', true);
       return {
         success: true,
         message: 'Barbers retrieved successfully',
         data: barbers
       };
     } catch (error) {
-      this.logOperation('Get All Barbers', 'all', false);
       return this.handleError(error);
     }
   }
 
   async getBarbersByBarbershopId(barbershopId: string): Promise<ServiceResponse> {
     try {
-      let barbersCollection = collection(this.db, this.COLLECTION);
-      let q = query(
+      const barbersCollection = collection(this.db, this.COLLECTION);
+      const barbersQuery = query(
         barbersCollection,
         where('affiliatedBarbershopId', '==', barbershopId)
       );
-      let barberSnapshot = await getDocs(q);
+      const barberSnapshot = await getDocs(barbersQuery);
 
-      let barbers = barberSnapshot.docs
+      const barbers = barberSnapshot.docs
         .map(doc => {
-          let data = doc.data() as Omit<Barber, 'barberId'>;
+          const data = doc.data() as Omit<Barber, 'barberId'>;
           return { ...data, barberId: doc.id };
         })
         .filter(barber => {
@@ -86,49 +92,37 @@ export class StaffManagementService extends BaseStaffService {
 
   async addBarber(barberData: Omit<Barber, 'barberId'>): Promise<ServiceResponse> {
     try {
-      let validation = this.validateBarberData(barberData);
-      if (!validation.success) return validation;
-
-      let barbersCollection = collection(this.db, this.COLLECTION);
-      let docRef = await addDoc(barbersCollection, barberData);
+      const barbersCollection = collection(this.db, this.COLLECTION);
+      const docRef = await addDoc(barbersCollection, barberData);
       await updateDoc(docRef, { barberId: docRef.id });
 
-      this.logOperation('Add Barber', docRef.id, true);
       return {
         success: true,
         message: 'Barber added successfully',
         data: { ...barberData, barberId: docRef.id }
       };
     } catch (error) {
-      this.logOperation('Add Barber', 'unknown', false);
       return this.handleError(error);
     }
   }
 
   async addBarberToBarbershop(barbershopId: string, barberData: Omit<Barber, 'barberId'>): Promise<ServiceResponse> {
     try {
-      let validation = this.validateBarberData(barberData);
-      if (!validation.success) return validation;
-
-      // create barber profile
-      let barbersCollection = collection(this.db, this.COLLECTION);
-      let docRef = await addDoc(barbersCollection, barberData);
+      const barbersCollection = collection(this.db, this.COLLECTION);
+      const docRef = await addDoc(barbersCollection, barberData);
       await updateDoc(docRef, { barberId: docRef.id });
 
-      // append barber ID to barbershop's barbers array
-      let barbershopDoc = doc(this.db, 'barbershops', barbershopId);
+      const barbershopDoc = doc(this.db, 'barbershops', barbershopId);
       await updateDoc(barbershopDoc, {
         barbers: arrayUnion(docRef.id)
       });
 
-      this.logOperation('Add Barber to Barbershop', docRef.id, true);
       return {
         success: true,
         message: 'Barber added to barbershop successfully',
         data: { ...barberData, barberId: docRef.id }
       };
     } catch (error) {
-      this.logOperation('Add Barber to Barbershop', 'unknown', false);
       return this.handleError(error);
     }
   }
@@ -141,36 +135,29 @@ export class StaffManagementService extends BaseStaffService {
         barbers: arrayRemove(barberId)
       });
 
-      // delete the barber profile completely
+      // delete the barber profile completely                         
       let barberDoc = doc(this.db, this.COLLECTION, barberId);
       await deleteDoc(barberDoc);
 
-      this.logOperation('Remove Barber from Barbershop', barberId, true);
       return {
         success: true,
         message: 'Barber removed from barbershop and profile deleted successfully'
       };
     } catch (error) {
-      this.logOperation('Remove Barber from Barbershop', barberId, false);
       return this.handleError(error);
     }
   }
 
   async updateBarber(barberId: string, barberData: Partial<Omit<Barber, 'barberId'>>): Promise<ServiceResponse> {
     try {
-      let validation = this.validateBarberData(barberData);
-      if (!validation.success) return validation;
-
-      let barberDoc = doc(this.db, this.COLLECTION, barberId);
+      const barberDoc = doc(this.db, this.COLLECTION, barberId);
       await updateDoc(barberDoc, barberData);
 
-      this.logOperation('Update Barber', barberId, true);
       return {
         success: true,
         message: 'Barber updated successfully'
       };
     } catch (error) {
-      this.logOperation('Update Barber', barberId, false);
       return this.handleError(error);
     }
   }
@@ -180,13 +167,11 @@ export class StaffManagementService extends BaseStaffService {
       let barberDoc = doc(this.db, this.COLLECTION, barberId);
       await deleteDoc(barberDoc);
 
-      this.logOperation('Delete Barber', barberId, true);
       return {
         success: true,
         message: 'Barber deleted successfully'
       };
     } catch (error) {
-      this.logOperation('Delete Barber', barberId, false);
       return this.handleError(error);
     }
   }
@@ -194,12 +179,12 @@ export class StaffManagementService extends BaseStaffService {
   async getPendingAffiliations(barbershopId: string): Promise<ServiceResponse> {
     try {
       let barbersCollection = collection(this.db, this.COLLECTION);
-      let q = query(
+      let pendingAffiliationsQuery = query(
         barbersCollection,
         where('affiliatedBarbershopId', '==', barbershopId),
         where('affiliationStatus', '==', 'pending')
       );
-      let barberSnapshot = await getDocs(q);
+      let barberSnapshot = await getDocs(pendingAffiliationsQuery);
 
       let barbers = barberSnapshot.docs.map(doc => {
         let data = doc.data() as Omit<Barber, 'barberId'>;
@@ -222,13 +207,11 @@ export class StaffManagementService extends BaseStaffService {
       const affiliationStatus = status === 'approved' ? 'confirmed' : 'declined';
       await updateDoc(barberDoc, { affiliationStatus });
 
-      this.logOperation('Update Affiliation Status', barberId, true);
       return {
         success: true,
         message: `Affiliation ${status} successfully`
       };
     } catch (error) {
-      this.logOperation('Update Affiliation Status', barberId, false);
       return this.handleError(error);
     }
   }
@@ -239,14 +222,14 @@ export class StaffManagementService extends BaseStaffService {
     onError?: (error: Error) => void
   ): Unsubscribe {
     let barbersCollection = collection(this.db, this.COLLECTION);
-    let q = query(
+    let pendingAffiliationsQuery = query(
       barbersCollection,
       where('affiliatedBarbershopId', '==', barbershopId),
       where('affiliationStatus', '==', 'pending')
     );
 
     return onSnapshot(
-      q,
+      pendingAffiliationsQuery,
       (snapshot) => {
         let barbers = snapshot.docs.map(doc => {
           let data = doc.data() as Omit<Barber, 'barberId'>;

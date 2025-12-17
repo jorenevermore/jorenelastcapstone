@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 import { StandardModal, ModalButtons } from '../../components';
 
 interface PaymentModalProps {

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../../../../lib/firebase';
 import { doc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
-import { Service, Style } from '../types';
+import type { Service, Style} from '../../../../types/services';
 import Link from 'next/link';
 import { ConfirmationModal, StyleModal } from '../components';
 

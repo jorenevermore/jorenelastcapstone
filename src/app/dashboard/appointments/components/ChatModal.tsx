@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 import { Message } from '../../../../lib/hooks/useMessaging';
 
 interface ChatModalProps {
@@ -74,8 +74,8 @@ const ChatModal: React.FC<ChatModalProps> = ({
           )}
           {messages && messages.length > 0 &&
             messages.map((msg) => {
-              const isFromClient = msg.senderId === appointment.clientId;
-              const senderType = msg.from || (isFromClient ? 'client' : 'barbershop');
+              const isFromClient = msg.from === 'client';
+              const senderType = msg.from;
 
               return (
                 <div key={msg.id} className={isFromClient ? 'flex justify-start' : 'flex justify-end'}>

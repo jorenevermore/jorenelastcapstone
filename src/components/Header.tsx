@@ -18,6 +18,8 @@ const Header = () => {
     const pageTitles: Record<string, string> = {
       'dashboard': 'Dashboard',
       'appointments': 'Appointments',
+      'analytics': 'Business Analytics',
+      'notifications': 'Notifications',
       'services': 'Services',
       'staff': 'Staff',
       'settings': 'Settings',

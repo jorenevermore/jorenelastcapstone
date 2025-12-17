@@ -1,46 +1,27 @@
 
-import { BaseBarbershopService, BarbershopProfile, Location, ServiceResponse } from './BaseBarbershopService';
+import type { BarbershopProfile, CreateBarbershopInput, UpdateBarbershopInput } from '../../../types/barbershop';
+import type { ServiceResponse } from '../../../types/api';
 import { doc, setDoc, getDoc, updateDoc, Firestore } from 'firebase/firestore';
 import { geohashForLocation } from 'geofire-common';
 import { GeoPoint } from 'firebase/firestore';
 
-export interface CreateBarbershopInput {
-  barbershopId: string;
-  name: string;
-  phone: string;
-  email: string;
-  location: Location;
-}
+export class BarbershopService {
+  constructor(private db: Firestore) {}
 
-export interface UpdateBarbershopInput {
-  name?: string;
-  phone?: string;
-  location?: Location;
-  isOpen?: boolean;
-  status?: 'active' | 'inactive' | 'suspended';
-}
-
-export class BarbershopService extends BaseBarbershopService {
-  constructor(private db: Firestore) {
-    super();
+  private handleError(error: unknown): ServiceResponse {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Barbershop service error:', errorMessage);
+    return {
+      success: false,
+      message: 'Operation failed',
+      error: errorMessage
+    };
   }
 
   async createProfile(input: CreateBarbershopInput): Promise<ServiceResponse> {
     try {
-      // Validate all inputs
-      const nameValidation = this.validateBarbershopName(input.name);
-      if (!nameValidation.success) return nameValidation;
-
-      const phoneValidation = this.validatePhone(input.phone);
-      if (!phoneValidation.success) return phoneValidation;
-
-      const locationValidation = this.validateLocation(input.location);
-      if (!locationValidation.success) return locationValidation;
-
-      // Generate geohash
       const geohash = geohashForLocation([input.location.lat, input.location.lng]);
 
-      // Create barbershop profile
       const profile: BarbershopProfile = {
         barbershopId: input.barbershopId,
         name: input.name,
@@ -63,15 +44,12 @@ export class BarbershopService extends BaseBarbershopService {
         }
       });
 
-      this.logOperation('Create Barbershop Profile', input.barbershopId, true);
-
       return {
         success: true,
         message: 'Barbershop profile created successfully',
         data: profile
       };
     } catch (error) {
-      this.logOperation('Create Barbershop Profile', input.barbershopId, false);
       return this.handleError(error);
     }
   }
@@ -100,25 +78,8 @@ export class BarbershopService extends BaseBarbershopService {
 
   async updateProfile(barbershopId: string, input: UpdateBarbershopInput): Promise<ServiceResponse> {
     try {
-      // Validate inputs if provided
-      if (input.name) {
-        const nameValidation = this.validateBarbershopName(input.name);
-        if (!nameValidation.success) return nameValidation;
-      }
+      const updateData: any = { ...input };
 
-      if (input.phone) {
-        const phoneValidation = this.validatePhone(input.phone);
-        if (!phoneValidation.success) return phoneValidation;
-      }
-
-      if (input.location) {
-        const locationValidation = this.validateLocation(input.location);
-        if (!locationValidation.success) return locationValidation;
-      }
-
-      let updateData: any = { ...input };
-
-      // If location is updated, regenerate geohash
       if (input.location) {
         const geohash = geohashForLocation([input.location.lat, input.location.lng]);
         updateData.loc = {
@@ -130,14 +91,11 @@ export class BarbershopService extends BaseBarbershopService {
 
       await updateDoc(doc(this.db, 'barbershops', barbershopId), updateData);
 
-      this.logOperation('Update Barbershop Profile', barbershopId, true);
-
       return {
         success: true,
         message: 'Barbershop profile updated successfully'
       };
     } catch (error) {
-      this.logOperation('Update Barbershop Profile', barbershopId, false);
       return this.handleError(error);
     }
   }

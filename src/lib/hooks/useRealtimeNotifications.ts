@@ -1,4 +1,6 @@
+
 'use client';
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
@@ -46,7 +48,7 @@ export const useRealtimeNotifications = () => {
     }
 
     setNotifications(prev =>
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      prev.map(n => n.id === notificationId ? Object.assign({}, n, { read: true }) : n)
     );
 
     try {
@@ -55,11 +57,11 @@ export const useRealtimeNotifications = () => {
 
       await updateDoc(docRef, { markedAsRead: true });
       return true;
-    } catch (err) {
-      console.error('Error marking notification as read:', err);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
 
       setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
+        prev.map(n => n.id === notificationId ? Object.assign({}, n, { read: false }) : n)
       );
 
       setError('Failed to mark notification as read');
@@ -78,7 +80,7 @@ export const useRealtimeNotifications = () => {
 
     if (unreadNotifications.length === 0) return true;
 
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => prev.map(n => Object.assign({}, n, { read: true })));
 
     try {
       const batch = writeBatch(db);
@@ -105,13 +107,13 @@ export const useRealtimeNotifications = () => {
       }
 
       return true;
-    } catch (err) {
-      console.error('Error marking all notifications as read:', err);
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
 
       setNotifications(prev =>
         prev.map(notification => {
           const wasUnread = unreadNotifications.find(n => n.id === notification.id);
-          return wasUnread ? { ...notification, read: false } : notification;
+          return wasUnread ? Object.assign({}, notification, { read: false }) : notification;
         })
       );
 
@@ -150,11 +152,11 @@ export const useRealtimeNotifications = () => {
 
           setNotifications(prev => {
             const otherNotifs = prev.filter(n => n.type !== 'affiliation_request');
-            return sortNotificationsByTimestamp([...affiliationNotifications, ...otherNotifs]);
+            return sortNotificationsByTimestamp(affiliationNotifications.concat(otherNotifs));
           });
           setLoading(false);
-        } catch (err) {
-          console.error('Error processing affiliations:', err);
+        } catch (error) {
+          console.error('Error processing affiliations:', error);
           setError('Failed to load affiliation notifications');
         }
       },
@@ -176,21 +178,21 @@ export const useRealtimeNotifications = () => {
         try {
           const bookingNotifications: Notification[] = snapshot.docs
             .map(docSnapshot => {
-              const booking = { ...docSnapshot.data(), id: docSnapshot.id };
+              const booking = Object.assign({}, docSnapshot.data(), { id: docSnapshot.id });
               return transformBookingToNotification(booking);
             })
-           
+
             .filter(notif => (notif.data as any).status === 'pending')
             .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .slice(0, 20);
 
           setNotifications(prev => {
             const otherNotifs = prev.filter(n => n.type !== 'booking');
-            return sortNotificationsByTimestamp([...bookingNotifications, ...otherNotifs]);
+            return sortNotificationsByTimestamp(bookingNotifications.concat(otherNotifs));
           });
           setLoading(false);
-        } catch (err) {
-          console.error('Error processing bookings:', err);
+        } catch (error) {
+          console.error('Error processing bookings:', error);
           setError('Failed to load booking notifications');
         }
       },

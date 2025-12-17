@@ -8,7 +8,8 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../../lib/firebase';
-import { GlobalService, SubscriptionPackage } from '../types';
+import type { GlobalService } from '../../../types/services';
+import { SubscriptionPackage } from '../types';
 
 export const fetchServices = async (): Promise<GlobalService[]> => {
   try {

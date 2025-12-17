@@ -6,18 +6,17 @@ import { auth, db } from '../../lib/firebase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { QueueService } from '../../lib/services/queue/QueueService';
 import StatsCards from './appointments/components/StatsCards';
-import { Booking } from './appointments/types';
-import { formatDate, getStatusBadgeStyle, getStatusIcon, calculateCompletionRate } from './utils/dashboardHelpers';
+import type { Booking } from '../../types/appointments';
+import { BookingUtilService } from '../../lib/services/booking/BookingUtilService';
+import { DashboardService } from '../../lib/services/dashboard/DashboardService';
+import { AnalyticsService } from '../../lib/services/analytics/AnalyticsService';
 
 export default function Dashboard() {
   const [user] = useAuthState(auth);
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // dashboard data
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [upcomingAppointments, setUpcomingAppointments] = useState<Booking[]>([]);
   const [recentActivity, setRecentActivity] = useState<Booking[]>([]);
@@ -31,65 +30,26 @@ export default function Dashboard() {
   });
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // process bookings 
   const processDashboardData = useCallback((bookingsData: Booking[]) => {
-    const queueService = new QueueService();
-    const bookingsWithQueue = queueService.addQueuePositions(bookingsData);
+    const dashboardData = DashboardService.processDashboardData(bookingsData);
+    const analyticsStats = AnalyticsService.calculateStats(dashboardData.allBookings);
+    const revenueStats = AnalyticsService.calculateRevenue(dashboardData.allBookings);
+    const todayCount = AnalyticsService.getTodayAppointmentsCount(dashboardData.allBookings);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
-
-    // calculate stats
-    const totalAppointments = bookingsWithQueue.length;
-    const pendingAppointments = bookingsWithQueue.filter(b => b.status === 'pending').length;
-    const completedAppointments = bookingsWithQueue.filter(b => b.status === 'completed').length;
-    const canceledAppointments = bookingsWithQueue.filter(b => b.status === 'cancelled').length;
-
-    // calculate total revenue
-    const totalRevenue = bookingsWithQueue
-      .filter(b => b.status === 'completed' && b.totalPrice)
-      .reduce((sum, booking) => sum + (booking.totalPrice || 0), 0);
-
-    // get todays appointments
-    const todayAppts = queueService.sortByQueuePriority(
-      bookingsWithQueue.filter(booking => booking.date === todayStr)
-    );
-
-    // get upcoming appointments
-    const upcomingAppts = queueService.sortByQueuePriority(
-      bookingsWithQueue.filter(booking => {
-        const bookingDate = new Date(booking.date);
-        const isTerminalStatus = ['completed', 'cancelled', 'declined', 'no-show'].includes(booking.status);
-        return bookingDate >= today && !isTerminalStatus;
-      })
-    ).slice(0, 5);
-
-    // get recent activity
-    const recentActs = [...bookingsWithQueue]
-      .sort((a, b) => {
-        const dateA = new Date(`${a.date}T${a.time}`);
-        const dateB = new Date(`${b.date}T${b.time}`);
-        return dateB.getTime() - dateA.getTime();
-      })
-      .slice(0, 5);
-
-    // update state
-    setAllBookings(bookingsWithQueue as Booking[]);
+    setAllBookings(dashboardData.allBookings);
     setStats({
-      totalAppointments,
-      pendingAppointments,
-      todayAppointments: todayAppts.length,
-      completedAppointments,
-      canceledAppointments,
-      totalRevenue
+      totalAppointments: analyticsStats.total,
+      pendingAppointments: analyticsStats.pending,
+      todayAppointments: todayCount,
+      completedAppointments: analyticsStats.completed,
+      canceledAppointments: analyticsStats.cancelled,
+      totalRevenue: revenueStats.totalRevenue
     });
 
-    setUpcomingAppointments(upcomingAppts as Booking[]);
-    setRecentActivity(recentActs as Booking[]);
+    setUpcomingAppointments(dashboardData.upcomingAppointments);
+    setRecentActivity(dashboardData.recentActivity);
   }, []);
 
-  // function to fetch dashboard data
   const fetchDashboardData = useCallback(async (barbershopId: string) => {
     try {
       setError(null);
@@ -115,7 +75,6 @@ export default function Dashboard() {
     }
   }, [processDashboardData]);
 
-  // fetch data on mount
   useEffect(() => {
     if (!user) {
       setLoading(false);
@@ -126,7 +85,6 @@ export default function Dashboard() {
     fetchDashboardData(user.uid).finally(() => setLoading(false));
   }, [user, fetchDashboardData]);
 
-  // manual refresh
   const handleRefresh = async () => {
     if (!user) return;
     setIsRefreshing(true);
@@ -136,8 +94,7 @@ export default function Dashboard() {
 
   return (
     <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <div className="flex justify-end items-center">
         <button
           onClick={handleRefresh}
           disabled={isRefreshing}
@@ -163,14 +120,14 @@ export default function Dashboard() {
         <>
           <StatsCards bookings={allBookings} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
+            <div className="bg-white rounded-lg shadow-sm p-4">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Total Appointments</p>
                   <h3 className="text-2xl font-bold text-gray-900">{stats.totalAppointments}</h3>
                 </div>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
-                  <i className="fas fa-calendar-check" style={{ color: '#BF8F63' }}></i>
+                <div className="p-2 rounded-lg bg-gray-100">
+                  <i className="fas fa-calendar-check text-gray-600"></i>
                 </div>
               </div>
               <div className="mt-2 flex items-center text-xs">
@@ -180,14 +137,14 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
+            <div className="bg-white rounded-lg shadow-sm p-4">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Today's Appointments</p>
                   <h3 className="text-2xl font-bold text-gray-900">{stats.todayAppointments}</h3>
                 </div>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
-                  <i className="fas fa-calendar-day" style={{ color: '#BF8F63' }}></i>
+                <div className="p-2 rounded-lg bg-gray-100">
+                  <i className="fas fa-calendar-day text-gray-600"></i>
                 </div>
               </div>
               <div className="mt-2 flex items-center text-xs">
@@ -197,14 +154,14 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-4" style={{ borderLeft: '4px solid #BF8F63' }}>
+            <div className="bg-white rounded-lg shadow-sm p-4">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Total Revenue</p>
                   <h3 className="text-2xl font-bold text-gray-900">₱{stats.totalRevenue.toLocaleString()}</h3>
                 </div>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: '#BF8F6320' }}>
-                  <i className="fas fa-coins" style={{ color: '#BF8F63' }}></i>
+                <div className="p-2 rounded-lg bg-gray-100">
+                  <i className="fas fa-coins text-gray-600"></i>
                 </div>
               </div>
               <div className="mt-2 flex items-center text-xs">
@@ -214,16 +171,16 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="bg-white rounded-lg shadow-sm p-4 border-l-4 border-purple-500">
+            <div className="bg-white rounded-lg shadow-sm p-4">
               <div className="flex justify-between items-start">
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Completion Rate</p>
                   <h3 className="text-2xl font-bold text-gray-900">
-                    {calculateCompletionRate(stats.completedAppointments, stats.totalAppointments)}%
+                    {BookingUtilService.calculateCompletionRate(stats.completedAppointments, stats.totalAppointments)}%
                   </h3>
                 </div>
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <i className="fas fa-chart-line text-purple-500"></i>
+                <div className="p-2 rounded-lg bg-gray-100">
+                  <i className="fas fa-chart-line text-gray-600"></i>
                 </div>
               </div>
               <div className="mt-2 flex items-center text-xs">
@@ -264,8 +221,8 @@ export default function Dashboard() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium text-gray-900">{formatDate(appointment.date)}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{appointment.time}</div>
+                          <div className="font-medium text-gray-900">{BookingUtilService.formatDate(appointment.date)}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{BookingUtilService.getSessionType(appointment.time)}</div>
                         </div>
                       </div>
                     </div>
@@ -295,21 +252,23 @@ export default function Dashboard() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center mr-3 ${getStatusBadgeStyle(activity.status)}`}>
-                            <i className={`${getStatusIcon(activity.status)} text-xs`}></i>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center mr-3 bg-gray-100 text-gray-600">
+                            <span className="text-xs font-semibold">
+                              {activity.clientName.charAt(0).toUpperCase()}
+                            </span>
                           </div>
                           <div>
                             <div className="font-medium text-gray-900">
                               {activity.clientName} - {activity.serviceOrdered}
                             </div>
                             <div className="text-xs text-gray-500 mt-0.5">
-                              {formatDate(activity.date)} • {activity.time}
+                              {BookingUtilService.formatDate(activity.date)} • {BookingUtilService.getSessionType(activity.time)}
                             </div>
                           </div>
                         </div>
                         <div>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeStyle(activity.status)}`}>
-                            {activity.status.charAt(0).toUpperCase() + activity.status.slice(1)}
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${BookingUtilService.getStatusBadgeStyle(activity.status)}`}>
+                            {BookingUtilService.getFormattedStatus(activity.status)}
                           </span>
                         </div>
                       </div>
@@ -321,31 +280,6 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h3 className="text-base font-medium text-gray-700 mb-3">Business Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Email</div>
-                <div className="text-sm font-medium">{user?.email}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Account ID</div>
-                <div className="text-sm font-medium">{user?.uid}</div>
-              </div>
-              {user?.metadata?.creationTime && (
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">Account Created</div>
-                  <div className="text-sm font-medium">{user.metadata.creationTime}</div>
-                </div>
-              )}
-              {user?.metadata?.lastSignInTime && (
-                <div>
-                  <div className="text-xs text-gray-500 mb-1">Last Sign In</div>
-                  <div className="text-sm font-medium">{user.metadata.lastSignInTime}</div>
-                </div>
-              )}
             </div>
           </div>
         </>

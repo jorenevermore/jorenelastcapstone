@@ -1,31 +1,34 @@
 
-
-import { BaseMessagingService, Message, ServiceResponse } from './BaseMessagingService';
 import { collection, addDoc, query, where, getDocs, orderBy, Firestore } from 'firebase/firestore';
+import type { ServiceResponse } from '../../../types/api';
+import type { Message } from '../../../types/messaging';
 
-export class MessagingService extends BaseMessagingService {
+export class MessagingService {
   private readonly COLLECTION = 'chats';
 
-  constructor(private db: Firestore) {
-    super();
+  constructor(private db: Firestore) {}
+
+  private handleError(error: unknown): ServiceResponse {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Messaging service error:', errorMessage);
+    return {
+      success: false,
+      message: 'Operation failed',
+      error: errorMessage
+    };
   }
 
   async addMessage(messageData: Omit<Message, 'id'>): Promise<ServiceResponse> {
     try {
-      const validation = this.validateMessage(messageData);
-      if (!validation.success) return validation;
-
       const chatsCollection = collection(this.db, this.COLLECTION);
       const docRef = await addDoc(chatsCollection, messageData);
 
-      this.logOperation('Add Message', docRef.id, true);
       return {
         success: true,
         message: 'Message sent successfully',
         data: { id: docRef.id, ...messageData }
       };
     } catch (error) {
-      this.logOperation('Add Message', 'unknown', false);
       return this.handleError(error);
     }
   }

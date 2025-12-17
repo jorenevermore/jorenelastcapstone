@@ -1,9 +1,6 @@
 
-import {
-  BaseAppointmentService,
-  ServiceResponse,
-} from './BaseAppointmentService';
-import type { Booking } from '../../../app/dashboard/appointments/types';
+import type { Booking } from '../../../types/appointments';
+import type { ServiceResponse } from '../../../types/api';
 import {
   collection,
   query,
@@ -15,20 +12,28 @@ import {
   Firestore,
 } from 'firebase/firestore';
 
-export class AppointmentService extends BaseAppointmentService {
+export class AppointmentService {
   private readonly COLLECTION = 'bookings';
 
-  constructor(private db: Firestore) {
-    super();
+  constructor(private db: Firestore) {}
+
+  private handleError(error: unknown): ServiceResponse {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    console.error('Appointment error:', errorMessage);
+    return {
+      success: false,
+      message: 'Operation failed',
+      error: errorMessage
+    };
   }
 
   async getBookingsByBarbershop(barbershopId: string): Promise<ServiceResponse> {
     try {
-      const q = query(
+      const bookingsQuery = query(
         collection(this.db, this.COLLECTION),
         where('barbershopId', '==', barbershopId),
       );
-      const snapshot = await getDocs(q);
+      const snapshot = await getDocs(bookingsQuery);
 
       const bookings = snapshot.docs.map((doc) => ({
         ...doc.data(),
@@ -51,12 +56,14 @@ export class AppointmentService extends BaseAppointmentService {
     reason?: string,
   ): Promise<ServiceResponse> {
     try {
-      const statusValidation = this.validateStatus(status);
-      if (!statusValidation.success) return statusValidation;
+      const updateData: Partial<Booking> = { status: status as Booking['status'] };
 
-      const updateData: any = { status };
       if (reason && status === 'cancelled') {
         updateData.barberReason = reason;
+      }
+
+      if (status === 'confirmed') {
+        updateData.confirmedAt = Date.now().toString();
       }
 
       await updateDoc(doc(this.db, this.COLLECTION, bookingId), updateData);

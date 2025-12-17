@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 import { QueueService } from '../../../../lib/services/queue/QueueService';
 import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
@@ -14,9 +14,12 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
   const queueService = new QueueService();
 
   const { stats, sortedQueue } = useMemo(() => {
-    const stats = queueService.getQueueStats(bookings, true);
-    const activeBookings = queueService.getActiveBookings(bookings);
-    const sortedQueue = queueService.sortByQueuePriority(activeBookings, true);
+    const todayISO = new Date().toISOString().split('T')[0];
+    const todayBookings = bookings.filter(booking => booking.date.split('T')[0] === todayISO);
+
+    const stats = queueService.getQueueStats(todayBookings);
+    const activeBookings = queueService.getActiveBookings(todayBookings);
+    const sortedQueue = queueService.sortByQueuePriority(activeBookings);
     return { stats, sortedQueue };
   }, [bookings, queueService]);
 
@@ -24,12 +27,9 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
   const topInQueue = sortedQueue.slice(0, 3);
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden border-l-4 border-blue-500 h-full flex flex-col">
+    <div className="bg-white rounded-lg shadow-md overflow-hidden h-full flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50 flex-shrink-0">
         <div className="flex items-center">
-          <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-            <i className="fas fa-list-ol text-gray-600 text-sm"></i>
-          </div>
           <div>
             <span className="text-sm font-medium text-gray-700">Queue Overview</span>
             <div className="flex items-center text-xs text-gray-500 mt-0.5">
@@ -46,7 +46,6 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
       <div className="grid grid-cols-2 gap-0 divide-x divide-gray-200 border-b border-gray-200 flex-shrink-0">
         <div className="px-4 py-2 text-center bg-white hover:bg-gray-50 transition-colors">
           <div className="text-2xl font-semibold text-red-500 flex items-center justify-center">
-            <i className="fas fa-bolt text-lg mr-1"></i>
             {stats.rushBookings}
           </div>
           <div className="text-xs text-gray-500 uppercase tracking-wide">
@@ -65,7 +64,6 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
       {stats.rushBookings > 0 && (
         <div className="bg-red-50 border-t border-red-100 px-4 py-2">
           <div className="flex items-center text-xs text-red-700">
-            <i className="fas fa-info-circle mr-2"></i>
             <span>
               <strong>{stats.rushBookings}</strong> rush booking{stats.rushBookings > 1 ? 's' : ''} will be prioritized in the queue
             </span>
@@ -85,7 +83,7 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
           </div>
 
           <div className="divide-y divide-gray-100 overflow-y-auto flex-1">
-            {topInQueue.map((booking, index) => (
+            {topInQueue.map((booking) => (
               <div
                 key={booking.id}
                 className={`px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer ${
@@ -110,7 +108,7 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
                         <span className="font-medium text-gray-800 truncate text-xs">{booking.clientName}</span>
                         {booking.isEmergency && (
                           <span className="inline-flex items-center px-1 py-0.5 rounded text-xs font-medium bg-red-50 text-red-600 flex-shrink-0">
-                            <i className="fas fa-bolt mr-0.5 text-xs"></i> Rush
+                            Rush
                           </span>
                         )}
                       </div>

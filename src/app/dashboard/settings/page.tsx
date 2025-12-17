@@ -226,7 +226,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-black mb-6">Settings</h1>
+      <h1 className="text-2xl font-bold text-black mb-6">Manage your settings.</h1>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">

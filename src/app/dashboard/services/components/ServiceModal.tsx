@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Service, GlobalService } from '../types';
+import { Service, GlobalService } from '../../../../types/services';
 import { db } from '../../../../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
 import { StandardModal } from '../../components';
@@ -12,7 +12,7 @@ interface ServiceModalProps {
   onSave: (service: Service) => Promise<void>;
   initialService: Service;
   isEditing: boolean;
-  existingServices: Service[]; // current services
+  existingServices: Service[]; 
 }
 
 const ServiceModal: React.FC<ServiceModalProps> = ({
@@ -33,7 +33,6 @@ const ServiceModal: React.FC<ServiceModalProps> = ({
     setService(initialService);
     setError(null);
 
-    // fetch global services
     if (isOpen) {
       fetchGlobalServices();
     }

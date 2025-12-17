@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
 interface BookingsTableProps {
@@ -102,7 +102,7 @@ const BookingsTable = ({
                           )}
                           {booking.isEmergency && (
                             <span className="inline-flex items-center text-xs text-red-600 font-semibold">
-                              <i className="fas fa-exclamation-circle text-xs mr-1"></i> RUSH BOOKING
+                              RUSH BOOKING
                             </span>
                           )}
                         </div>
@@ -117,11 +117,9 @@ const BookingsTable = ({
                     <div className="line-clamp-1">{booking.barberName}</div>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="font-medium">{new Date(booking.date).toLocaleDateString('en-US', {
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}</div>
+                    <div className="font-medium">
+                      {BookingUtilService.formatDate(booking.date)}
+                    </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-xs text-gray-500">
                         {BookingUtilService.getSessionType(booking.time)}

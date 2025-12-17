@@ -1,7 +1,3 @@
-/**
- * Session Manager
- * Handles session storage and retrieval for both client and server
- */
 
 export interface SessionData {
   token: string;
@@ -15,30 +11,20 @@ export class SessionManager {
   private readonly SUPERADMIN_EXPIRY_KEY = 'superadmin_session_expiry';
   private readonly USER_TOKEN_KEY = 'firebaseToken';
 
-  /**
-   * Store superadmin session in localStorage and cookie
-   */
   storeSuperAdminSession(token: string, expiry: number, email: string): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem(this.SUPERADMIN_TOKEN_KEY, token);
       localStorage.setItem(this.SUPERADMIN_EXPIRY_KEY, expiry.toString());
-      this.setCookie(this.SUPERADMIN_TOKEN_KEY, token, 3600); // 1 hour
+      this.setCookie(this.SUPERADMIN_TOKEN_KEY, token, 3600); 
     }
   }
-
-  /**
-   * Store user session in localStorage and cookie
-   */
   storeUserSession(idToken: string): void {
     if (typeof window !== 'undefined') {
       localStorage.setItem(this.USER_TOKEN_KEY, idToken);
-      this.setCookie(this.USER_TOKEN_KEY, idToken, 60 * 60 * 24 * 5); // 5 days
+      this.setCookie(this.USER_TOKEN_KEY, idToken, 60 * 60 * 24 * 5); 
     }
   }
 
-  /**
-   * Get superadmin session from localStorage
-   */
   getSuperAdminSession(): SessionData | null {
     if (typeof window === 'undefined') return null;
 
@@ -54,9 +40,6 @@ export class SessionManager {
     };
   }
 
-  /**
-   * Get user session from localStorage
-   */
   getUserSession(): SessionData | null {
     if (typeof window === 'undefined') return null;
 
@@ -70,17 +53,11 @@ export class SessionManager {
     };
   }
 
-  /**
-   * Check if session is valid
-   */
   isSessionValid(session: SessionData | null): boolean {
     if (!session) return false;
     return Date.now() < session.expiry;
   }
 
-  /**
-   * Clear superadmin session
-   */
   clearSuperAdminSession(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.SUPERADMIN_TOKEN_KEY);
@@ -89,9 +66,6 @@ export class SessionManager {
     }
   }
 
-  /**
-   * Clear user session
-   */
   clearUserSession(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.USER_TOKEN_KEY);

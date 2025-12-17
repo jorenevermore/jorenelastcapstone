@@ -1,115 +1,70 @@
 
-import type { Booking } from '../../../app/dashboard/appointments/types';
+import type { Booking } from '../../../types/appointments';
+import type { QueueStats } from '../../../types/queue';
 
-export interface QueueStats {
-  totalBookings: number;
-  rushBookings: number;
-  regularBookings: number;
-}
+const INACTIVE_STATUS = [
+  'completed',
+  'completedAndReviewed',
+  'cancelled',
+  'declined',
+  'no-show',
+  'in-progress',
+  'pending'
+];
 
 export class QueueService {
-  // get rush bookings only
+
   getRushBookings(bookings: Booking[]): Booking[] {
-    return bookings.filter(b => b.isEmergency === true);
+    return bookings.filter(booking => booking.isEmergency === true);
   }
 
-  // get regular bookings only
   getRegularBookings(bookings: Booking[]): Booking[] {
-    return bookings.filter(b => b.isEmergency !== true);
+    return bookings.filter(booking => booking.isEmergency !== true);
   }
 
-  // get bookings still in queue
   getActiveBookings(bookings: Booking[]): Booking[] {
-    return bookings.filter(b =>
-      !['completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show', 'in-progress'].includes(b.status)
-    );
+    return bookings.filter(booking => !INACTIVE_STATUS.includes(booking.status));
   }
 
-  private getISODateString(dateStr: string): string {
+  sortByQueuePriority(bookings: Booking[]): Booking[] {
+    const sortedBookings = [...bookings].sort((bookingA, bookingB) => {
 
-    if (dateStr.includes('-') && dateStr.length === 10) {
-      return dateStr;
-    }
+      const dateDifference = new Date(bookingA.date).getTime() - new Date(bookingB.date).getTime();
+      if (dateDifference !== 0) return dateDifference;
 
-    const date = new Date(dateStr);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
+      const timeDifference = parseInt(bookingA.time) - parseInt(bookingB.time);
+      if (timeDifference !== 0) return timeDifference;
 
-  // sort bookings by queue priority
-  sortByQueuePriority(bookings: Booking[], todayOnly: boolean = false): Booking[] {
-    const today = new Date();
- 
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const todayISO = `${year}-${month}-${day}`;
-    const filtered = todayOnly
-      ? bookings.filter(b => this.getISODateString(b.date) === todayISO)
-      : bookings;
+      if (bookingA.isEmergency !== bookingB.isEmergency) {
+        return bookingA.isEmergency ? -1 : 1;
+      }
 
-    const sorted = filtered.sort((a, b) => {
-      // sort by date first
-      const dateCompare = new Date(a.date).getTime() - new Date(b.date).getTime();
-      if (dateCompare !== 0) return dateCompare;
-
-      // morning before afternoon (time is '9' or '1')
-      const timeA = parseInt(a.time);
-      const timeB = parseInt(b.time);
-      const timeCompare = timeA - timeB;
-      if (timeCompare !== 0) return timeCompare;
-
-      // rush bookings first
-      if (a.isEmergency && !b.isEmergency) return -1;
-      if (!a.isEmergency && b.isEmergency) return 1;
-
-      // sort by creation time
-      const createdA = a.createdAt ? parseInt(a.createdAt) : 0;
-      const createdB = b.createdAt ? parseInt(b.createdAt) : 0;
-      return createdA - createdB;
+      const createdTimeA = parseInt(bookingA.createdAt || '0'); 
+      const createdTimeB = parseInt(bookingB.createdAt || '0'); 
+      return createdTimeA - createdTimeB;
     });
 
-    return sorted.map((booking, index) => {
-      const bookingWithPosition = booking as any;
-      bookingWithPosition.queuePosition = index + 1;
-      return bookingWithPosition;
-    });
+    return sortedBookings.map((booking, index) => ({
+      ...booking,
+      queuePosition: index + 1
+    }));
   }
 
   addQueuePositions(bookings: Booking[]): Booking[] {
-    return bookings.map((booking, index) => {
-      const bookingWithPosition = booking as any;
-      bookingWithPosition.queuePosition = index + 1;
-      return bookingWithPosition;
-    });
+    return bookings.map((booking, index) => ({
+      ...booking,
+      queuePosition: index + 1
+    }));
   }
-  
-  getQueueStats(bookings: Booking[], todayOnly: boolean = false): QueueStats {
-    const today = new Date();
 
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const todayISO = `${year}-${month}-${day}`;
-
-    let filtered = todayOnly
-      ? bookings.filter(b => this.getISODateString(b.date) === todayISO)
-      : bookings;
-
-    // filter active bookings
-    filtered = this.getActiveBookings(filtered);
-
-    const rushCount = filtered.filter(b => b.isEmergency).length;
-    const totalCount = filtered.length;
+  getQueueStats(bookings: Booking[]): QueueStats {
+    const activeBookings = this.getActiveBookings(bookings);
+    const rushBookings = activeBookings.filter(booking => booking.isEmergency).length;
 
     return {
-      totalBookings: totalCount,
-      rushBookings: rushCount,
-      regularBookings: totalCount - rushCount
+      totalBookings: activeBookings.length,
+      rushBookings,
+      regularBookings: activeBookings.length - rushBookings
     };
   }
-
 }
-

@@ -32,13 +32,10 @@ export default function Home() {
     setLoading(true);
 
     try {
-      // sign in w/ firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
 
-      // get the ID token
       const idToken = await userCredential.user.getIdToken();
 
-      // Store the token in a cookie for the middleware to use
       document.cookie = `firebaseToken=${idToken}; path=/; max-age=${60 * 60 * 24}`;
 
       router.push('/dashboard');

@@ -1,8 +1,7 @@
-export interface GlobalService {
-  id: string;
-  title: string;
-  featuredImage: string;
-}
+
+import type { GlobalService } from '../../types/services';
+
+export type { GlobalService };
 
 export interface SubscriptionPackage {
   id: string;

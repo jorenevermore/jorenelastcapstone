@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 
 interface StatsCardsProps {
   bookings: Booking[];

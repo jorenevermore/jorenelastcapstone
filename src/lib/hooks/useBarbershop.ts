@@ -1,7 +1,8 @@
+
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
-import { BarbershopService, CreateBarbershopInput, UpdateBarbershopInput } from '../services/barbershop/BarbershopService';
-import { ServiceResponse } from '../services/barbershop/BaseBarbershopService';
+import { BarbershopService } from '../services/barbershop/BarbershopService';
+import type { ServiceResponse, CreateBarbershopInput, UpdateBarbershopInput } from '../../types';
 
 const barbershopService = new BarbershopService(db);
 
@@ -30,8 +31,8 @@ export function useBarbershop(): UseBarbershopReturn {
       }
 
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to create profile';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create profile';
       setError(errorMessage);
       return {
         success: false,
@@ -55,8 +56,8 @@ export function useBarbershop(): UseBarbershopReturn {
       }
 
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profile';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch profile';
       setError(errorMessage);
       return {
         success: false,
@@ -80,8 +81,8 @@ export function useBarbershop(): UseBarbershopReturn {
       }
 
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
       setError(errorMessage);
       return {
         success: false,

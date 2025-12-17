@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { addService, updateService, deleteService } from '../services/firestoreService';
-import { GlobalService } from '../types';
+import { addService, updateService, deleteService } from '../services/superAdminService';
+import type { GlobalService } from '../../../types/services';
 import { Modal } from './Modal';
 import { ConfirmationModal } from './ConfirmationModal';
 import { EmptyState } from './EmptyState';
@@ -136,7 +136,6 @@ export const ServicesTab = ({ services, onRefresh }: ServicesTabProps) => {
         </div>
       )}
 
-      {/* Add Modal */}
       <ServiceFormModal
         isOpen={showAddModal}
         title="Add New Service"
@@ -152,7 +151,6 @@ export const ServicesTab = ({ services, onRefresh }: ServicesTabProps) => {
         }}
       />
 
-      {/* Edit Modal */}
       <ServiceFormModal
         isOpen={showEditModal}
         title="Edit Service"
@@ -169,7 +167,6 @@ export const ServicesTab = ({ services, onRefresh }: ServicesTabProps) => {
         serviceId={editingService?.id}
       />
 
-      {/* Delete Confirmation */}
       <ConfirmationModal
         isOpen={showDeleteModal}
         title="Delete Service"
@@ -183,7 +180,6 @@ export const ServicesTab = ({ services, onRefresh }: ServicesTabProps) => {
   );
 };
 
-// Service Card Component
 const ServiceCard = ({
   service,
   onEdit,
@@ -221,7 +217,6 @@ const ServiceCard = ({
   </div>
 );
 
-// Service Form Modal Component
 const ServiceFormModal = ({
   isOpen,
   title,

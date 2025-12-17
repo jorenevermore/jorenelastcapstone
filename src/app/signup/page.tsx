@@ -34,14 +34,13 @@ export default function SignupPage() {
   // check if currently logged in
   const [user, userLoading] = useAuthState(auth);
 
-  // Redirect to dashboard if already logged in
   useEffect(() => {
     if (user && !userLoading && !showSuccess && step === 1) {
       router.push('/dashboard');
     }
   }, [user, userLoading, router, showSuccess, step]);
 
-  // redirect to landing after successful registration
+  // redirect to landing
   useEffect(() => {
     if (showSuccess) {
       const timer = setTimeout(() => {

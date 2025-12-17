@@ -1,7 +1,3 @@
-/**
- * SuperAdmin Authentication Service
- * Handles superadmin login and session management
- */
 
 import { BaseAuthService, AuthResponse, AuthCredentials } from './BaseAuthService';
 
@@ -13,18 +9,11 @@ export interface SuperAdminSession {
 }
 
 export class SuperAdminAuthService extends BaseAuthService {
-  private readonly SESSION_TIMEOUT = 3600000; // 1 hour in milliseconds
+  private readonly SESSION_TIMEOUT = 3600000;
   private readonly SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL;
   private readonly SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD;
 
   async authenticate(credentials: AuthCredentials): Promise<AuthResponse> {
-    // Validate credentials format
-    const validation = this.validateCredentials(credentials);
-    if (!validation.success) {
-      return validation;
-    }
-
-    // Check environment variables
     if (!this.SUPERADMIN_EMAIL || !this.SUPERADMIN_PASSWORD) {
       console.error('SuperAdmin environment variables not configured');
       return {
@@ -34,7 +23,6 @@ export class SuperAdminAuthService extends BaseAuthService {
       };
     }
 
-    // Verify credentials
     const credentialsMatch =
       credentials.email === this.SUPERADMIN_EMAIL &&
       credentials.password === this.SUPERADMIN_PASSWORD;

@@ -1,7 +1,3 @@
-/**
- * Firebase Authentication Service
- * Handles user login and signup with Firebase
- */
 
 import { BaseAuthService, AuthResponse, AuthCredentials } from './BaseAuthService';
 import { 
@@ -24,12 +20,6 @@ export class FirebaseAuthService extends BaseAuthService {
   }
 
   async login(credentials: AuthCredentials): Promise<FirebaseAuthResult> {
-    // Validate credentials format
-    const validation = this.validateCredentials(credentials);
-    if (!validation.success) {
-      return validation as FirebaseAuthResult;
-    }
-
     try {
       const userCredential = await signInWithEmailAndPassword(
         this.auth,
@@ -57,12 +47,6 @@ export class FirebaseAuthService extends BaseAuthService {
   }
 
   async signup(credentials: AuthCredentials): Promise<FirebaseAuthResult> {
-    // Validate credentials format
-    const validation = this.validateCredentials(credentials);
-    if (!validation.success) {
-      return validation as FirebaseAuthResult;
-    }
-
     try {
       const userCredential = await createUserWithEmailAndPassword(
         this.auth,

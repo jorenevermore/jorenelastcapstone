@@ -38,112 +38,30 @@ const STATUS_ICONS: Readonly<Record<BookingStatus | 'default', string>> = {
   default: 'fas fa-question-circle',
 };
 
-const FINAL_STATUSES: Readonly<BookingStatus[]> = [
-  'completed',
-  'cancelled',
-  'declined',
-  'no-show',
-];
-
 export class StatusService {
-  private normalizeStatus(status: BookingStatus | string): BookingStatus | 'unknown' {
-    if (status === 'completedAndReviewed') {
-      return 'completed';
-    }
-
-    const validStatuses: BookingStatus[] = [
-      'pending',
-      'confirmed',
-      'in-progress',
-      'completed',
-      'completedAndReviewed',
-      'cancelled',
-      'declined',
-      'no-show',
-    ];
-
-    return validStatuses.includes(status as BookingStatus)
-      ? (status as BookingStatus)
-      : 'unknown';
-  }
-
-  private toStartOfDay(date: Date): Date {
-    const copy = new Date(date);
-    copy.setHours(0, 0, 0, 0);
-    return copy;
-  }
-
   getStatusColor(status: BookingStatus | string): string {
-    const normalized = this.normalizeStatus(status);
-
-    if (normalized === 'unknown') {
-      return STATUS_COLORS.default;
-    }
-
-    return STATUS_COLORS[normalized];
+    return STATUS_COLORS[status as BookingStatus] || STATUS_COLORS.default;
   }
 
   getStatusIcon(status: BookingStatus | string): string {
-    const normalized = this.normalizeStatus(status);
-
-    if (normalized === 'unknown') {
-      return STATUS_ICONS.default;
-    }
-
-    return STATUS_ICONS[normalized];
+    return STATUS_ICONS[status as BookingStatus] || STATUS_ICONS.default;
   }
 
   getDateIndicator(dateString: string): { label: string; color: string } {
-    const appointmentDateRaw = new Date(dateString);
+    const appointmentDate = new Date(dateString);
+    const today = new Date();
 
-    if (isNaN(appointmentDateRaw.getTime())) {
-      return { label: 'Invalid date', color: 'bg-red-100 text-red-700' };
-    }
+    const appointmentDateLocal = new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate());
+    const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-    const appointmentDate = this.toStartOfDay(appointmentDateRaw);
-    const today = this.toStartOfDay(new Date());
-
-    const diffTime = appointmentDate.getTime() - today.getTime();
-    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) {
+    if (appointmentDateLocal.getTime() === todayLocal.getTime()) {
       return { label: 'Today', color: 'bg-blue-100 text-blue-700' };
     }
 
-    if (diffDays === 1) {
-      return { label: 'Tomorrow', color: 'bg-green-100 text-green-700' };
+    if (appointmentDateLocal.getTime() < todayLocal.getTime()) {
+      return { label: 'Past', color: 'bg-gray-100 text-gray-700' };
     }
 
-    if (diffDays === -1) {
-      return { label: 'Yesterday', color: 'bg-gray-100 text-gray-700' };
-    }
-
-    if (diffDays > 1) {
-      return { label: `In ${diffDays} days`, color: 'bg-purple-100 text-purple-700' };
-    }
-
-    return { label: `${Math.abs(diffDays)} days ago`, color: 'bg-gray-100 text-gray-700' };
+    return { label: 'Upcoming', color: 'bg-green-100 text-green-700' };
   }
-
-  isPastDue(booking: Booking): boolean {
-  const today = this.toStartOfDay(new Date());
-
-  const bookingDateRaw =
-    booking.date.length === 10 && booking.date.includes('-')
-      ? new Date(`${booking.date}T00:00:00`)
-      : new Date(booking.date);
-
-  if (isNaN(bookingDateRaw.getTime())) {
-    return false;
-  }
-
-  const bookingDate = this.toStartOfDay(bookingDateRaw);
-
-  const isBookingInPast = bookingDate.getTime() < today.getTime();
-  
-  const normalizedStatus = this.normalizeStatus(booking.status);
-  const isNotCompleted = !FINAL_STATUSES.includes(normalizedStatus as BookingStatus);
-
-  return isBookingInPast && isNotCompleted;
-}
 }

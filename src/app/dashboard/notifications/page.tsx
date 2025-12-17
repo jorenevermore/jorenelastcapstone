@@ -58,7 +58,7 @@ export default function NotificationsPage() {
   };
 
   const formatDate = (timestamp: string) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
+    return new Date(parseInt(timestamp)).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -92,7 +92,7 @@ export default function NotificationsPage() {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Your Notifications.</h1>
       </div>
 
       {notifications.length === 0 ? (

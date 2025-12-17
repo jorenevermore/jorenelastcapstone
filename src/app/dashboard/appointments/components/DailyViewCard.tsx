@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import SimpleDatePicker from './SimpleDatePicker';
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
 interface DailyViewCardProps {
@@ -19,12 +19,7 @@ const DailyViewCard = ({
   onDateChange
 }: DailyViewCardProps) => {
   const [activeTab, setActiveTab] = useState<StatusFilter>('all');
-  const formattedDate = selectedDate.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  const formattedDate = BookingUtilService.formatDate(selectedDate.toISOString());
 
   // filter bookings based on active tab
   const getFilteredBookings = () => {
@@ -50,9 +45,8 @@ const DailyViewCard = ({
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 h-full flex flex-col">
       <div className="px-4 py-3 border-b border-gray-100 bg-white flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-2">
           <div className="flex items-center">
-            <i className="fas fa-calendar-day text-gray-400 mr-2 text-sm"></i>
             <span className="text-xs font-medium text-gray-600">Daily View</span>
           </div>
           <SimpleDatePicker selectedDate={selectedDate} onDateChange={onDateChange} />
@@ -135,8 +129,8 @@ const DailyViewCard = ({
                     <div className="font-medium text-gray-800 text-xs truncate">{booking.clientName}</div>
                     <div className="text-xs text-gray-500 truncate">{booking.serviceOrdered}</div>
                     {booking.isEmergency && (
-                      <div className="text-xs text-red-600 font-medium flex items-center mt-0.5">
-                        <i className="fas fa-bolt mr-0.5 text-xs"></i> Rush
+                      <div className="text-xs text-red-600 font-medium mt-0.5">
+                        Rush Booking
                       </div>
                     )}
                   </div>

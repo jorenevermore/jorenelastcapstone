@@ -1,7 +1,9 @@
-import { collection, addDoc, serverTimestamp, Firestore } from 'firebase/firestore';
-import type { Booking } from '../../../app/dashboard/appointments/types';
 
-export interface NotificationPayload {
+import { collection, addDoc, serverTimestamp, Firestore } from 'firebase/firestore';
+import type { Booking } from '../../../types/appointments';
+import type { ServiceResponse } from '../../../types/api';
+
+export interface NotificationData  {
   userId: string;
   bookingId: string;
   fromId: string;
@@ -10,13 +12,7 @@ export interface NotificationPayload {
   message: string;
   reason: string;
   isRead?: boolean;
-  createdAt?: any;
-}
-
-export interface ServiceResponse {
-  success: boolean;
-  message: string;
-  error?: string;
+  createdAt?: string;
 }
 
 export class NotificationService {
@@ -96,13 +92,13 @@ export class NotificationService {
     });
   }
   
-  private async createNotification(payload: NotificationPayload): Promise<ServiceResponse> {
+  private async createNotification(data: NotificationData ): Promise<ServiceResponse> {
     try {
       const notificationsRef = collection(this.db, this.COLLECTION);
 
       const notificationData = {
-        ...payload,
-        isRead: payload.isRead ?? false,
+        ...data,
+        isRead: data.isRead ?? false,
         createdAt: serverTimestamp()
       };
 

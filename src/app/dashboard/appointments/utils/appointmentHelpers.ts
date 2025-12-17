@@ -1,5 +1,5 @@
 
-import { Booking } from '../types';
+import type { Booking } from '../../../../types/appointments';
 
 export const filterBookings = (
   bookings: Booking[],
@@ -33,6 +33,5 @@ export const getUniqueBarbers = (bookings: Booking[]): string[] => {
   return Array.from(new Set(bookings.map(b => b.barberName)));
 };
 
-// Note: countBookingsByDateCategory, filterBookingsByDate, and filterBookingsByDateCategory
-// have been moved to BookingUtilService for centralized management
+
 

@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
 import { MessagingService } from '../services/messaging/MessagingService';
-import { ServiceResponse, Message } from '../services/messaging/BaseMessagingService';
+import type { ServiceResponse, Message } from '../../types';
 
-export type { Message } from '../services/messaging/BaseMessagingService';
+export type { Message };
 
 const messagingService = new MessagingService(db);
 
@@ -27,8 +27,8 @@ export function useMessaging(): UseMessagingReturn {
       const result = await messagingService.addMessage(messageData);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to send message';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'SEND_ERROR' };
     } finally {
@@ -43,8 +43,8 @@ export function useMessaging(): UseMessagingReturn {
       const result = await messagingService.getMessagesForAppointment(appointmentId, barberId, clientId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch messages';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch messages';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
     } finally {
@@ -59,8 +59,8 @@ export function useMessaging(): UseMessagingReturn {
       const result = await messagingService.getMessagesForBarbershop(barbershopId);
       if (!result.success) setError(result.message);
       return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch messages';
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch messages';
       setError(errorMessage);
       return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
     } finally {

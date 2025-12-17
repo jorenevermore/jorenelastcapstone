@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Service, Style } from '../types';
+import { Service, Style } from '../../../../types/services';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../../../lib/firebase';
 import { StandardModal } from '../../components';

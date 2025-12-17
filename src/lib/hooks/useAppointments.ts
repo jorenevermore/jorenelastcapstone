@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { db } from '../firebase';
 import { AppointmentService } from '../services/appointment/AppointmentService';
 import { collection, query, where, onSnapshot, Unsubscribe } from 'firebase/firestore';
-import type { Booking } from '../../app/dashboard/appointments/types';
+import type { Booking } from '../../types/appointments';
 
 const appointmentService = new AppointmentService(db);
 
@@ -32,13 +32,13 @@ export function useAppointments(): UseAppointmentsReturn {
       setError(null);
 
       const bookingsCollection = collection(db, 'bookings');
-      const q = query(
+      const bookingsQuery = query(
         bookingsCollection,
         where('barbershopId', '==', barbershopId)
       );
 
       const newUnsubscribe = onSnapshot(
-        q,
+        bookingsQuery,
         (snapshot) => {
           try {
             const bookingsData = snapshot.docs.map(doc => ({
@@ -49,15 +49,15 @@ export function useAppointments(): UseAppointmentsReturn {
             setBookings(bookingsData);
             setError(null);
             setLoading(false);
-          } catch (err) {
-            console.error('Error processing bookings snapshot:', err);
-            setError(err instanceof Error ? err.message : 'Failed to process bookings');
+          } catch (error) {
+            console.error('Error processing bookings snapshot:', error);
+            setError(error instanceof Error ? error.message : 'Failed to process bookings');
             setLoading(false);
           }
         },
-        (err) => {
-          console.error('Error listening to bookings:', err);
-          setError(err instanceof Error ? err.message : 'Failed to listen to bookings');
+        (error) => {
+          console.error('Error listening to bookings:', error);
+          setError(error instanceof Error ? error.message : 'Failed to listen to bookings');
           setLoading(false);
         }
       );
@@ -86,7 +86,12 @@ export function useAppointments(): UseAppointmentsReturn {
         setBookings(prevBookings =>
           prevBookings.map(booking =>
             booking.id === bookingId
-              ? { ...booking, status: status as Booking['status'], barberReason: reason }
+              ? {
+                  ...booking,
+                  status: status as Booking['status'],
+                  barberReason: reason,
+                  confirmedAt: status === 'confirmed' ? Date.now().toString() : booking.confirmedAt
+                }
               : booking
           )
         );
