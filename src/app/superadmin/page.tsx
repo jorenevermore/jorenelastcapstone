@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ServicesTab, SubscriptionsTab, TabNavigation, LoadingSpinner, ErrorAlert } from './components';
-import { fetchServices, fetchSubscriptions } from './services/superAdminService';
+import { fetchServices, fetchSubscriptions } from './services/GlobalServicesAndSubscriptions';
 import type { GlobalService } from '../../types/services';
 import { SubscriptionPackage, TabType } from './types';
 

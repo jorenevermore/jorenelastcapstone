@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { addService, updateService, deleteService } from '../services/superAdminService';
+import { addService, updateService, deleteService } from '../services/GlobalServicesAndSubscriptions';
 import type { GlobalService } from '../../../types/services';
 import { Modal } from './Modal';
 import { ConfirmationModal } from './ConfirmationModal';

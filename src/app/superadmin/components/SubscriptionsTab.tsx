@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { addSubscription, updateSubscription, deleteSubscription } from '../services/superAdminService';
+import { addSubscription, updateSubscription, deleteSubscription } from '../services/GlobalServicesAndSubscriptions';
 import { SubscriptionPackage } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
 import { EmptyState } from './EmptyState';
