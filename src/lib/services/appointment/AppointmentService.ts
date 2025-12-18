@@ -58,11 +58,7 @@ export class AppointmentService {
       };
     } catch (error) {
       console.error('Error fetching bookings:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch bookings from database';
-      return {
-        success: false,
-        message: errorMessage
-      };
+      return { success: false, message: 'Failed to fetch bookings' };
     }
   }
 
@@ -104,11 +100,7 @@ export class AppointmentService {
       };
     } catch (error) {
       console.error('Error updating booking status:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update booking status';
-      return {
-        success: false,
-        message: errorMessage
-      };
+      return { success: false, message: 'Failed to update booking status' };
     }
   }
 
@@ -129,11 +121,7 @@ export class AppointmentService {
       };
     } catch (error) {
       console.error('Error deleting booking:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete booking';
-      return {
-        success: false,
-        message: errorMessage
-      };
+      return { success: false, message: 'Failed to delete booking' };
     }
   }
 }

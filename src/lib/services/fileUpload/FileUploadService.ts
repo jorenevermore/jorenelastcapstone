@@ -51,9 +51,8 @@ export class FileUploadService {
         data: downloadURL
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to upload file';
-      console.error('File upload error:', message);
-      return { success: false, message };
+      console.error('File upload error:', error);
+      return { success: false, message: 'Failed to upload file' };
     }
   }
 
@@ -70,9 +69,8 @@ export class FileUploadService {
 
       return { success: true, message: 'File deleted successfully' };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete file';
-      console.error('File deletion error:', message);
-      return { success: false, message };
+      console.error('File deletion error:', error);
+      return { success: false, message: 'Failed to delete file' };
     }
   }
 
@@ -86,9 +84,8 @@ export class FileUploadService {
       if (oldFileUrl) await this.deleteFile(oldFileUrl);
       return await this.uploadFile(newFile, storagePath, options);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to replace file';
-      console.error('File replacement error:', message);
-      return { success: false, message };
+      console.error('File replacement error:', error);
+      return { success: false, message: 'Failed to replace file' };
     }
   }
 }

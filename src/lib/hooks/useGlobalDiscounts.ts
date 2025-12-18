@@ -29,7 +29,7 @@ export function useGlobalDiscounts(): UseGlobalDiscountsReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create discount';
+      const errorMessage = 'Failed to create discount';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -46,7 +46,7 @@ export function useGlobalDiscounts(): UseGlobalDiscountsReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update discount';
+      const errorMessage = 'Failed to update discount';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -63,7 +63,7 @@ export function useGlobalDiscounts(): UseGlobalDiscountsReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete discount';
+      const errorMessage = 'Failed to delete discount';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -80,7 +80,7 @@ export function useGlobalDiscounts(): UseGlobalDiscountsReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch discounts';
+      const errorMessage = 'Failed to fetch discounts';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {

@@ -1,15 +1,12 @@
-
 'use client';
 
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
 import { AnalyticsService } from '../services/analytics/AnalyticsService';
-import { DashboardService } from '../services/dashboard/DashboardService';
-import { AppointmentService } from '../services/appointment/AppointmentService';
 import type { Booking, AnalyticsStats, RevenueStats } from '../../types';
 import type { DashboardData } from '../../types/analytics';
 
-const appointmentService = new AppointmentService(db);
+const analyticsService = new AnalyticsService(db);
 
 export interface UseAnalyticsReturn {
   bookings: Booking[];
@@ -58,33 +55,17 @@ export function useAnalytics(): UseAnalyticsReturn {
 		setLoading(true);
 		setError(null);
 
-		try {
-			const result = await appointmentService.getBookingsByBarbershop(barbershopId);
-			if (result.success) {
-				const bookingsData = result.data || [];
-				setBookings(bookingsData);
-
-				const processed = DashboardService.processDashboardData(bookingsData);
-				setDashboardData(processed);
-
-				const calculatedStats = AnalyticsService.calculateStats(bookingsData);
-				setStats(calculatedStats);
-
-				const calculatedRevenue = AnalyticsService.calculateRevenue(bookingsData);
-				setRevenue(calculatedRevenue);
-
-				const todayAppointments = AnalyticsService.getTodayAppointmentsCount(bookingsData);
-				setTodayCount(todayAppointments);
-			} else {
-				setError(result.message || 'Failed to fetch analytics data');
-			}
-		} catch (err) {
-			const errorMessage =
-				err instanceof Error ? err.message : 'Failed to fetch analytics data';
-			setError(errorMessage);
-		} finally {
-			setLoading(false);
+		const result = await analyticsService.fetchAnalyticsData(barbershopId);
+		if (result.success && result.data) {
+			setBookings(result.data.bookings);
+			setDashboardData(result.data.dashboardData);
+			setStats(result.data.stats);
+			setRevenue(result.data.revenue);
+			setTodayCount(result.data.todayCount);
+		} else {
+			setError(result.message || 'Failed to fetch analytics data');
 		}
+		setLoading(false);
 	}, []);
 
 	const clearError = useCallback(() => {

@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import type { Booking } from '../../../../types/appointments';
 import { PaymentModal } from './PaymentModal';
 import { db } from '../../../../lib/firebase';
-import { NotificationService } from '../../../../lib/services/notification/NotificationService';
+import { NotificationService } from '../../../../lib/services/notification/handleManualNotif';
 import ConfirmationModal from '../../services/components/ConfirmationModal';
 import { StandardModal, ModalButtons } from '../../components';
 

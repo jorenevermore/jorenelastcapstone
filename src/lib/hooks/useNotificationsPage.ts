@@ -1,20 +1,12 @@
-
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
-import { updateDoc } from 'firebase/firestore';
-import {
-  Notification,
-  sortNotificationsByTimestamp,
-  parseNotificationId,
-  getNotificationRef,
-  transformAffiliationToNotification,
-  transformBookingToNotification
-} from '../utils/notificationHelpers';
-import { AppointmentService } from '../services/appointment/AppointmentService';
-import { StaffManagementService } from '../services/staff/StaffManagementService';
+import { Notification } from '../utils/notificationHelpers';
+import { NotificationsPageService } from '../services/notification/NotificationsPageService';
+
+const notificationsPageService = new NotificationsPageService(db);
 
 export const useNotificationsPage = () => {
   const [user] = useAuthState(auth);
@@ -23,31 +15,16 @@ export const useNotificationsPage = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async (barbershopId: string) => {
-    try {
-      setLoading(true);
-      setError(null);
+    setLoading(true);
+    setError(null);
 
-      const appointmentService = new AppointmentService(db);
-      const staffService = new StaffManagementService(db);
-
-      const affiliationsResult = await staffService.getPendingAffiliations(barbershopId);
-      const affiliationNotifications: Notification[] = (affiliationsResult.data || [])
-        .map(transformAffiliationToNotification)
-        .slice(0, 20);
-
-      const bookingsResult = await appointmentService.getBookingsByBarbershop(barbershopId);
-      const bookingNotifications: Notification[] = (bookingsResult.data || [])
-        .map(transformBookingToNotification)
-        .slice(0, 20);
-
-      const allNotifications = sortNotificationsByTimestamp([...affiliationNotifications, ...bookingNotifications]);
-      setNotifications(allNotifications);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      setError('Failed to load notifications');
-    } finally {
-      setLoading(false);
+    const result = await notificationsPageService.fetchNotifications(barbershopId);
+    if (result.success && result.data) {
+      setNotifications(result.data);
+    } else {
+      setError(result.message || 'Failed to load notifications');
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -67,33 +44,21 @@ export const useNotificationsPage = () => {
       return prev;
     });
 
-    if (isAlreadyRead) {
-      return true;
-    }
-
-    const parsed = parseNotificationId(notificationId);
-    if (!parsed) {
-      console.error('Invalid notification ID format:', notificationId);
-      return false;
-    }
+    if (isAlreadyRead) return true;
 
     setNotifications(prev =>
       prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     );
 
-    try {
-      const docRef = getNotificationRef(parsed);
-      if (!docRef) throw new Error('Could not get document reference');
-      await updateDoc(docRef, { markedAsRead: true });
-      return true;
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
+    const result = await notificationsPageService.markAsRead(notificationId);
+    if (!result.success) {
       setNotifications(prev =>
         prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
       );
-      setError('Failed to mark notification as read');
+      setError(result.message || 'Failed to mark notification as read');
       return false;
     }
+    return true;
   }, []);
 
   return {

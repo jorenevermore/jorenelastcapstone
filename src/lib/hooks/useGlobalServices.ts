@@ -29,7 +29,7 @@ export function useGlobalServices(): UseGlobalServicesReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create service';
+      const errorMessage = 'Failed to create service';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -46,7 +46,7 @@ export function useGlobalServices(): UseGlobalServicesReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update service';
+      const errorMessage = 'Failed to update service';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -63,7 +63,7 @@ export function useGlobalServices(): UseGlobalServicesReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete service';
+      const errorMessage = 'Failed to delete service';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -80,7 +80,7 @@ export function useGlobalServices(): UseGlobalServicesReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch services';
+      const errorMessage = 'Failed to fetch services';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {

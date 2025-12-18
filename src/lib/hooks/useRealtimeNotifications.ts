@@ -1,26 +1,12 @@
-
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
-import {
-  collection,
-  query,
-  where,
-  onSnapshot,
-  updateDoc,
-  writeBatch
-} from 'firebase/firestore';
-import {
-  Notification,
-  sortNotificationsByTimestamp,
-  parseNotificationId,
-  getNotificationRef,
-  transformAffiliationToNotification,
-  transformBookingToNotification
-} from '../utils/notificationHelpers';
-import { StaffManagementService } from '../services/staff/StaffManagementService';
+import { Notification } from '../utils/notificationHelpers';
+import { RealtimeNotificationService } from '../services/notification/RealtimeNotificationService';
+
+const notificationService = new RealtimeNotificationService(db);
 
 export const useRealtimeNotifications = () => {
   const [user] = useAuthState(auth);
@@ -29,7 +15,6 @@ export const useRealtimeNotifications = () => {
   const [error, setError] = useState<string | null>(null);
 
   const markAsRead = useCallback(async (notificationId: string): Promise<boolean> => {
-    // check current state without depending on notifications
     let isAlreadyRead = false;
     setNotifications(prev => {
       const notification = prev.find(n => n.id === notificationId);
@@ -37,93 +22,45 @@ export const useRealtimeNotifications = () => {
       return prev;
     });
 
-    if (isAlreadyRead) {
-      return true;
-    }
-
-    const parsed = parseNotificationId(notificationId);
-    if (!parsed) {
-      console.error('Invalid notification ID format:', notificationId);
-      return false;
-    }
+    if (isAlreadyRead) return true;
 
     setNotifications(prev =>
-      prev.map(n => n.id === notificationId ? Object.assign({}, n, { read: true }) : n)
+      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
     );
 
-    try {
-      const docRef = getNotificationRef(parsed);
-      if (!docRef) throw new Error('Could not get document reference');
-
-      await updateDoc(docRef, { markedAsRead: true });
-      return true;
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-
+    const result = await notificationService.markAsRead(notificationId);
+    if (!result.success) {
       setNotifications(prev =>
-        prev.map(n => n.id === notificationId ? Object.assign({}, n, { read: false }) : n)
+        prev.map(n => n.id === notificationId ? { ...n, read: false } : n)
       );
-
-      setError('Failed to mark notification as read');
+      setError(result.message || 'Failed to mark notification as read');
       return false;
     }
+    return true;
   }, []);
 
   const markAllAsRead = useCallback(async (): Promise<boolean> => {
-    let unreadNotifications: Notification[] = [];
-
-    // get current unread notifications
-    setNotifications(prev => {
-      unreadNotifications = prev.filter(n => !n.read);
-      return prev;
-    });
-
+    const unreadNotifications = notifications.filter(n => !n.read);
     if (unreadNotifications.length === 0) return true;
 
-    setNotifications(prev => prev.map(n => Object.assign({}, n, { read: true })));
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
 
-    try {
-      const batch = writeBatch(db);
-      let batchCount = 0;
-
-      for (const notification of unreadNotifications) {
-        const parsed = parseNotificationId(notification.id);
-        if (!parsed) continue;
-
-        const docRef = getNotificationRef(parsed);
-        if (!docRef) continue;
-
-        batch.update(docRef, { markedAsRead: true });
-        batchCount++;
-
-        if (batchCount >= 500) {
-          await batch.commit();
-          batchCount = 0;
-        }
-      }
-
-      if (batchCount > 0) {
-        await batch.commit();
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-
+    const result = await notificationService.markAllAsRead(notifications);
+    if (!result.success) {
       setNotifications(prev =>
         prev.map(notification => {
           const wasUnread = unreadNotifications.find(n => n.id === notification.id);
-          return wasUnread ? Object.assign({}, notification, { read: false }) : notification;
+          return wasUnread ? { ...notification, read: false } : notification;
         })
       );
-
-      setError('Failed to mark all notifications as read');
+      setError(result.message || 'Failed to mark all notifications as read');
       return false;
     }
-  }, []);
+    return true;
+  }, [notifications]);
 
-  const unreadCount = useMemo(() => 
-    notifications.filter(n => !n.read).length, 
+  const unreadCount = useMemo(() =>
+    notifications.filter(n => !n.read).length,
     [notifications]
   );
 
@@ -137,73 +74,20 @@ export const useRealtimeNotifications = () => {
     setLoading(true);
     setError(null);
 
-    // initialize services
-    const staffService = new StaffManagementService(db);
-
-    // Track both data sources
-    let affiliationNotifications: Notification[] = [];
-    let bookingNotifications: Notification[] = [];
-
-    // subscribe to pending affiliations using service
-    const unsubscribeAffiliations = staffService.subscribeToPendingAffiliations(
+    const unsubscribe = notificationService.subscribeToNotifications(
       user.uid,
-      (barbers) => {
-        try {
-          affiliationNotifications = barbers
-            .map(transformAffiliationToNotification)
-            .slice(0, 20);
-
-          // Combine and sort all notifications
-          setNotifications(sortNotificationsByTimestamp([...affiliationNotifications, ...bookingNotifications]));
-          setLoading(false);
-        } catch (error) {
-          console.error('Error processing affiliations:', error);
-          setError('Failed to load notifications');
-        }
+      (notifs) => {
+        setNotifications(notifs);
+        setLoading(false);
       },
-      (error) => {
-        console.error('Error in affiliations listener:', error);
+      (err) => {
+        console.error('Error in notifications listener:', err);
         setError('Failed to load notifications');
         setLoading(false);
       }
     );
 
-    const bookingsQuery = query(
-      collection(db, 'bookings'),
-      where('barbershopId', '==', user.uid)
-    );
-
-    const unsubscribeBookings = onSnapshot(
-      bookingsQuery,
-      (snapshot) => {
-        try {
-          bookingNotifications = snapshot.docs
-            .map(docSnapshot => {
-              const booking = Object.assign({}, docSnapshot.data(), { id: docSnapshot.id }) as any;
-              return transformBookingToNotification(booking);
-            })
-            .filter(notif => (notif.data as any).status === 'pending')
-            .slice(0, 20);
-
-          // Combine and sort all notifications
-          setNotifications(sortNotificationsByTimestamp([...affiliationNotifications, ...bookingNotifications]));
-          setLoading(false);
-        } catch (error) {
-          console.error('Error processing bookings:', error);
-          setError('Failed to load notifications');
-        }
-      },
-      (error) => {
-        console.error('Error in bookings listener:', error);
-        setError('Failed to load notifications');
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      unsubscribeAffiliations();
-      unsubscribeBookings();
-    };
+    return () => unsubscribe();
   }, [user]);
 
   return {

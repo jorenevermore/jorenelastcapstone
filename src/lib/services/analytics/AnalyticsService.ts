@@ -1,9 +1,17 @@
-
+import { Firestore } from 'firebase/firestore';
 import type { Booking } from '../../../types/appointments';
 import type { AnalyticsStats, RevenueStats } from '../../../types/analytics';
+import type { ServiceResponse } from '../../../types/response';
 import { countBookingsByDateCategory, getDateISO, formatDateShort } from '../../utils/dateParser';
+import { AppointmentService } from '../appointment/AppointmentService';
+import { DashboardService } from '../dashboard/DashboardService';
 
 export class AnalyticsService {
+	private appointmentService: AppointmentService;
+
+	constructor(private db: Firestore) {
+		this.appointmentService = new AppointmentService(db);
+	}
 	static calculateStats(bookings: Booking[]): AnalyticsStats {
     const completed = bookings.filter(booking => booking.status === 'completed').length;
     const cancelled = bookings.filter(booking => booking.status === 'cancelled').length;
@@ -169,6 +177,30 @@ export class AnalyticsService {
 		const averageRevenue = completedBookings.length > 0 ? totalRevenue / completedBookings.length : 0;
 
 		return { totalRevenue, averageRevenue };
+	}
+
+	async fetchAnalyticsData(barbershopId: string): Promise<ServiceResponse> {
+		try {
+			const result = await this.appointmentService.getBookingsByBarbershop(barbershopId);
+			if (!result.success) {
+				return { success: false, message: result.message || 'Failed to fetch bookings' };
+			}
+
+			const bookingsData = result.data || [];
+			const dashboardData = DashboardService.processDashboardData(bookingsData);
+			const stats = AnalyticsService.calculateStats(bookingsData);
+			const revenue = AnalyticsService.calculateRevenue(bookingsData);
+			const todayCount = AnalyticsService.getTodayAppointmentsCount(bookingsData);
+
+			return {
+				success: true,
+				message: 'Analytics data fetched successfully',
+				data: { bookings: bookingsData, dashboardData, stats, revenue, todayCount }
+			};
+		} catch (error) {
+			console.error('Analytics fetch error:', error);
+			return { success: false, message: 'Failed to fetch analytics data' };
+		}
 	}
 }
 

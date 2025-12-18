@@ -32,7 +32,7 @@ export function useBarbershop(): UseBarbershopReturn {
 
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create profile';
+      const errorMessage = 'Failed to create profile';
       setError(errorMessage);
       return {
         success: false,
@@ -80,7 +80,7 @@ export function useBarbershop(): UseBarbershopReturn {
 
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
+      const errorMessage = 'Failed to update profile';
       setError(errorMessage);
       return {
         success: false,

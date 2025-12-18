@@ -28,7 +28,7 @@ export function useMessaging(): UseMessagingReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      const errorMessage = 'Failed to send message';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -44,7 +44,7 @@ export function useMessaging(): UseMessagingReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch messages';
+      const errorMessage = 'Failed to fetch messages';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {
@@ -60,7 +60,7 @@ export function useMessaging(): UseMessagingReturn {
       if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch messages';
+      const errorMessage = 'Failed to fetch messages';
       setError(errorMessage);
       return { success: false, message: errorMessage };
     } finally {

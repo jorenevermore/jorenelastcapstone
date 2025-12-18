@@ -38,8 +38,7 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
         setError(result.message);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch services';
-      setError(errorMessage);
+      setError('Failed to fetch services');
     } finally {
       setLoading(false);
     }
@@ -57,8 +56,7 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
         setError(result.message);
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch styles';
-      setError(errorMessage);
+      setError('Failed to fetch styles');
     } finally {
       setLoading(false);
     }
@@ -76,8 +74,7 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
       }
       return false;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update services';
-      setError(errorMessage);
+      setError('Failed to update services');
       return false;
     }
   }, [fetchServices]);
@@ -93,8 +90,7 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
         return false;
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete style';
-      setError(errorMessage);
+      setError('Failed to delete style');
       return false;
     }
   }, []);
