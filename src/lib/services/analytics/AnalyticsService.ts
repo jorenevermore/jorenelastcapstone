@@ -9,7 +9,7 @@ import { DashboardService } from '../dashboard/DashboardService';
 export class AnalyticsService {
 	private appointmentService: AppointmentService;
 
-	constructor(private db: Firestore) {
+	constructor(db: Firestore) {
 		this.appointmentService = new AppointmentService(db);
 	}
 	static calculateStats(bookings: Booking[]): AnalyticsStats {

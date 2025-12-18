@@ -5,31 +5,15 @@ import { StandardModal, ModalButtons } from '../../components';
 
 interface PasswordModalProps {
   isOpen: boolean;
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-  loading: boolean;
-  error: string | null;
-  onCurrentPasswordChange: (value: string) => void;
-  onNewPasswordChange: (value: string) => void;
-  onConfirmPasswordChange: (value: string) => void;
-  onSubmit: () => void;
   onCancel: () => void;
 }
 
-export default function PasswordModal({
-  isOpen,
-  currentPassword,
-  newPassword,
-  confirmPassword,
-  loading,
-  error,
-  onCurrentPasswordChange,
-  onNewPasswordChange,
-  onConfirmPasswordChange,
-  onSubmit,
-  onCancel
-}: PasswordModalProps) {
+export default function PasswordModal({ isOpen, onCancel }: PasswordModalProps) {
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading] = useState(false);
+  const [error] = useState<string | null>(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -44,21 +28,21 @@ export default function PasswordModal({
       size="md"
     >
       <div className="space-y-4">
-          <div className="form-group">
-            <label htmlFor="currentPassword" className="form-label">Current Password</label>
+          <div>
+            <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
             <div className="relative">
               <input
                 type={showCurrentPassword ? "text" : "password"}
                 id="currentPassword"
-                className="form-input pr-10"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition pr-10"
                 placeholder="Enter current password"
                 value={currentPassword}
-                onChange={(e) => onCurrentPasswordChange(e.target.value)}
+                onChange={(e) => setCurrentPassword(e.target.value)}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 transition"
                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
               >
                 <i className={`fas ${showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -66,21 +50,21 @@ export default function PasswordModal({
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="newPassword" className="form-label">New Password</label>
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
             <div className="relative">
               <input
                 type={showNewPassword ? "text" : "password"}
                 id="newPassword"
-                className="form-input pr-10"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition pr-10"
                 placeholder="Enter new password"
                 value={newPassword}
-                onChange={(e) => onNewPasswordChange(e.target.value)}
+                onChange={(e) => setNewPassword(e.target.value)}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 transition"
                 onClick={() => setShowNewPassword(!showNewPassword)}
               >
                 <i className={`fas ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -88,21 +72,21 @@ export default function PasswordModal({
             </div>
           </div>
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">Confirm Password</label>
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 id="confirmPassword"
-                className="form-input pr-10"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition pr-10"
                 placeholder="Confirm new password"
                 value={confirmPassword}
-                onChange={(e) => onConfirmPasswordChange(e.target.value)}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 disabled={loading}
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700 transition"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -111,14 +95,15 @@ export default function PasswordModal({
           </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <i className="fas fa-exclamation-circle mr-2"></i>
             {error}
           </div>
         )}
 
         <ModalButtons
           onCancel={onCancel}
-          onConfirm={onSubmit}
+          onConfirm={() => {}}
           cancelText="Cancel"
           confirmText={loading ? 'Updating...' : 'Update Password'}
           confirmType="primary"

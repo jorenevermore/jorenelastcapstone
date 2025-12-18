@@ -2,7 +2,7 @@
 
 export interface Notification {
   id: string;
-  type: 'affiliation_request' | 'message_reply' | 'booking';
+  type: 'affiliation_request'| 'booking';
   title: string;
   message: string;
   data: any;

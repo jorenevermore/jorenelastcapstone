@@ -26,7 +26,6 @@ const StyleModal: React.FC<StyleModalProps> = ({
   const [style, setStyle] = useState<Style>(initialStyle);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -67,26 +66,7 @@ const StyleModal: React.FC<StyleModalProps> = ({
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
 
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
-    }
-  };
 
   const removeImage = () => {
     setStyle(prev => ({ ...prev, featuredImage: null }));
@@ -281,34 +261,16 @@ const StyleModal: React.FC<StyleModalProps> = ({
                   </button>
                 </div>
               ) : (
-                <div
-                  className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                    dragActive ? 'border-black bg-gray-50' : 'border-gray-300'
-                  }`}
-                  onDragEnter={handleDrag}
-                  onDragOver={handleDrag}
-                  onDragLeave={handleDrag}
-                  onDrop={handleDrop}
-                >
-                  <div className="text-4xl text-gray-300 mb-3">
-                    <i className="fas fa-cloud-upload-alt"></i>
-                  </div>
-                  <p className="text-gray-700 mb-2">Drag and drop your image here</p>
-                  <p className="text-gray-500 text-sm mb-4">or</p>
-                  <label className="inline-block px-4 py-2 bg-black text-white rounded-lg cursor-pointer hover:bg-gray-800 transition-colors">
-                    <span>Browse Files</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                      required={!isEditing && !style.featuredImage}
-                    />
-                  </label>
-                  <p className="text-xs text-gray-500 mt-3">
-                    Supported formats: JPG, PNG, GIF
-                  </p>
-                </div>
+                <label className="inline-block px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg cursor-pointer transition-colors">
+                  <span>Choose Image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    required={!isEditing && !style.featuredImage}
+                  />
+                </label>
               )}
               <p className="text-sm text-gray-500 mt-2">
                 Upload a high-quality image that represents this style. Recommended size: 800x600px.

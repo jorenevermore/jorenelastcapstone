@@ -18,7 +18,6 @@ const NotificationDropdown: React.FC = () => {
     markAllAsRead
   } = useRealtimeNotifications();
 
-  // close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -30,18 +29,15 @@ const NotificationDropdown: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // format timestamp - use centralized utility
+
   const formatTimeAgo = (timestamp: string) => {
-    // Handle both ISO strings and milliseconds
-    let ms: string;
+    let milliseconds: string;
     if (timestamp.includes('-') || timestamp.includes('T')) {
-      // ISO string format - convert to milliseconds
-      ms = new Date(timestamp).getTime().toString();
+      milliseconds = new Date(timestamp).getTime().toString();
     } else {
-      // Already milliseconds
-      ms = timestamp;
+      milliseconds = timestamp;
     }
-    return formatTimeAgoUtil(ms);
+    return formatTimeAgoUtil(milliseconds);
   };
 
   return (
@@ -92,10 +88,7 @@ const NotificationDropdown: React.FC = () => {
                   onClick={() => {
                     markAsRead(notification.id);
                     if (notification.type === 'booking' && 'bookingId' in notification.data) {
-                      router.push(`/dashboard/appointments`);
-                      setIsOpen(false);
-                    } else if (notification.type === 'message_reply' && 'appointmentId' in notification.data) {
-                      router.push(`/dashboard/appointments/${notification.data.appointmentId}`);
+                      router.push(`/dashboard/appointments/${notification.data.bookingId}`);
                       setIsOpen(false);
                     }
                   }}
@@ -103,9 +96,7 @@ const NotificationDropdown: React.FC = () => {
                   <div className="flex items-start space-x-3">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-100">
                       <i className={`${
-                        notification.type === 'message_reply'
-                          ? 'fas fa-comment text-slate-600'
-                          : notification.type === 'booking'
+                        notification.type === 'booking'
                           ? 'fas fa-calendar text-gray-600'
                           : 'fas fa-user-plus text-slate-600'
                       }`}></i>
@@ -139,21 +130,7 @@ const NotificationDropdown: React.FC = () => {
                         )}
                       </div>
 
-                      {notification.type === 'message_reply' && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if ('appointmentId' in notification.data) {
-                              router.push(`/dashboard/appointments/${notification.data.appointmentId}`);
-                              setIsOpen(false);
-                            }
-                          }}
-                          className="w-full bg-green-600 text-white text-sm py-2 px-3 rounded-md hover:bg-green-700 transition-colors"
-                        >
-                          <i className="fas fa-reply mr-1"></i>
-                          View Message
-                        </button>
-                      )}
+
                     </div>
 
                     {!notification.read && (

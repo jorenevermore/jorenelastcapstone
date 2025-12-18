@@ -16,6 +16,7 @@ export interface BarbershopProfile {
   services?: string[];
   createdAt: number;
   status: 'active' | 'inactive' | 'suspended';
+  featuredImage?: string | null;
 }
 
 export interface CreateBarbershopInput {

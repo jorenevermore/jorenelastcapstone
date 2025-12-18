@@ -38,7 +38,6 @@ export default function StaffPage() {
   // image upload state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   // fetch barbershop details and barbers
@@ -81,7 +80,6 @@ export default function StaffPage() {
     setIsEditing(false);
     setImageFile(null);
     setImagePreview(null);
-    setDragActive(false);
   };
 
   const handleAddBarber = () => {
@@ -120,26 +118,7 @@ export default function StaffPage() {
     }
   };
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
 
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
-    }
-  };
 
   const removeImage = () => {
     setImagePreview(null);
@@ -396,33 +375,15 @@ export default function StaffPage() {
                     </button>
                   </div>
                 ) : (
-                  <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                      dragActive ? 'border-black bg-gray-50' : 'border-gray-300'
-                    }`}
-                    onDragEnter={handleDrag}
-                    onDragOver={handleDrag}
-                    onDragLeave={handleDrag}
-                    onDrop={handleDrop}
-                  >
-                    <div className="text-4xl text-gray-300 mb-3">
-                      <i className="fas fa-cloud-upload-alt"></i>
-                    </div>
-                    <p className="text-gray-700 mb-2">Drag and drop profile picture here</p>
-                    <p className="text-gray-500 text-sm mb-4">or</p>
-                    <label className="inline-block px-4 py-2 bg-black text-white rounded-lg cursor-pointer hover:bg-gray-800 transition-colors">
-                      <span>Browse Files</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="hidden"
-                      />
-                    </label>
-                    <p className="text-xs text-gray-500 mt-3">
-                      Supported formats: JPG, PNG, GIF
-                    </p>
-                  </div>
+                  <label className="inline-block px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg cursor-pointer transition-colors">
+                    <span>Choose Photo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
                 )}
                 <p className="text-sm text-gray-500 mt-2">
                   Upload a professional profile picture for this barber. Recommended size: 400x400px.

@@ -80,12 +80,9 @@ export const formatTimeAgo = (timestamp: string): string => {
   try {
     let time: Date;
 
-    // Handle both ISO strings and milliseconds
     if (timestamp.includes('-') || timestamp.includes('T')) {
-      // ISO string format
       time = new Date(timestamp);
     } else {
-      // Milliseconds format
       time = new Date(parseInt(timestamp));
     }
 
