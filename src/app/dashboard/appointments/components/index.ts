@@ -11,3 +11,4 @@ export { MayaReceiptModal } from './MayaReceiptModal';
 export { AppointmentInfoCards } from './AppointmentInfoCards';
 export { StatusActionsPanel } from './StatusActionsPanel';
 export { PaymentModal } from './PaymentModal';
+

@@ -3,7 +3,7 @@ export interface DiscountInfo {
   amount: number;
 }
 
-export interface DiscountPackage {
+export interface SubscriptionPackage {
   id: string;
   title: string;
   description: string;
@@ -13,14 +13,14 @@ export interface DiscountPackage {
   updatedAt: number;
 }
 
-export interface CreateDiscountInput {
+export interface CreateSubscriptionInput {
   title: string;
   description: string;
   amount: number;
   overall_discount: DiscountInfo;
 }
 
-export interface UpdateDiscountInput {
+export interface UpdateSubscriptionInput {
   title?: string;
   description?: string;
   amount?: number;

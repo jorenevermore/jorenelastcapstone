@@ -1,18 +1,8 @@
 
 import type { GlobalService } from '../../types/services';
+import type { SubscriptionPackage } from '../../types/subscription';
 
-export type { GlobalService };
-
-export interface SubscriptionPackage {
-  id: string;
-  title: string;
-  description: string;
-  amount: number;
-  overall_discount: {
-    type: 'percentage' | 'fixed';
-    amount: number;
-  };
-}
+export type { GlobalService, SubscriptionPackage };
 
 export type TabType = 'services' | 'subscriptions';
 

@@ -11,7 +11,7 @@ export type { ServiceResponse } from './response';
 
 export type { Message } from './messaging';
 
-export type { DiscountInfo, DiscountPackage, CreateDiscountInput, UpdateDiscountInput } from './discount';
+export type { DiscountInfo, SubscriptionPackage, CreateSubscriptionInput, UpdateSubscriptionInput } from './subscription';
 
 export type { QueueStats } from './queue';
 

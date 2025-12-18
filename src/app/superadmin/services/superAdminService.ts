@@ -102,7 +102,9 @@ export const fetchSubscriptions = async (): Promise<SubscriptionPackage[]> => {
         title: data.title || '',
         description: data.description || '',
         amount: data.amount || 0,
-        overall_discount: data.overall_discount || { type: 'percentage', amount: 0 }
+        overall_discount: data.overall_discount || { type: 'percentage', amount: 0 },
+        createdAt: data.createdAt || Date.now(),
+        updatedAt: data.updatedAt || Date.now()
       });
     });
 
