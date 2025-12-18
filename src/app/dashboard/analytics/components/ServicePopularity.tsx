@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 import type { Booking } from '../../../../types/appointments';
+import { AnalyticsService } from '../../../../lib/services/analytics/AnalyticsService';
 
 interface ServicePopularityProps {
   bookings: Booking[];
@@ -20,21 +21,7 @@ const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
       chartInstance.current.destroy();
     }
 
-    // Group bookings by service
-    const bookingsByService = bookings.reduce<Record<string, number>>((acc, booking) => {
-      const service = booking.serviceOrdered;
-      acc[service] = (acc[service] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Sort services by popularity
-    const sortedServices = Object.entries(bookingsByService)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5); // Top 5 services
-
-    // Prepare data for chart
-    const labels = sortedServices.map(([service]) => service);
-    const data = sortedServices.map(([, count]) => count);
+    const { labels, data } = AnalyticsService.getServicePopularityData(bookings);
 
     const backgroundColors = [
       'rgba(59, 130, 246, 0.7)', 

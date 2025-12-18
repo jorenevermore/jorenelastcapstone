@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db, storage } from '../../../lib/firebase';
+import { auth, db } from '../../../lib/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updatePassword, reauthenticateWithCredential, EmailAuthProvider } from 'firebase/auth';
 import { ProfileSection, BarbershopSection, AccountActionsSection, PasswordModal } from './components';
+import { useFileUpload } from '../../../lib/hooks/useFileUpload';
 
 interface BarbershopData {
   name: string;
@@ -17,8 +17,8 @@ interface BarbershopData {
 
 export default function SettingsPage() {
   const [user] = useAuthState(auth);
+  const { uploadFile, isUploading: fileUploading, error: fileError, clearError: clearFileError } = useFileUpload();
 
-  // barbershop data
   const [barbershopData, setBarbershopData] = useState<BarbershopData>({
     name: '',
     phone: '',
@@ -32,20 +32,16 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // image upload
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
 
-  // password modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // load barbershop data
   useEffect(() => {
     const loadBarbershopData = async () => {
       if (!user) return;
@@ -139,16 +135,19 @@ export default function SettingsPage() {
 
     try {
       setLoading(true);
-      setIsUploading(true);
       setError(null);
       setSuccess(null);
 
       let imageUrl = imagePreview;
 
+      // Upload new image if one was selected
       if (imageFile) {
-        const storageRef = ref(storage, `barbershop/${Date.now()}_${imageFile.name}`);
-        const snapshot = await uploadBytes(storageRef, imageFile);
-        imageUrl = await getDownloadURL(snapshot.ref);
+        const uploadResult = await uploadFile(imageFile, 'barbershop');
+        if (!uploadResult.success) {
+          setError(uploadResult.message || 'Failed to upload image');
+          return;
+        }
+        imageUrl = uploadResult.data as string;
       }
 
       const barbershopRef = doc(db, 'barbershops', user.uid);
@@ -169,7 +168,6 @@ export default function SettingsPage() {
       setError('Failed to update barbershop information. Please try again.');
     } finally {
       setLoading(false);
-      setIsUploading(false);
     }
   };
 
@@ -253,7 +251,7 @@ export default function SettingsPage() {
         imagePreview={imagePreview}
         dragActive={dragActive}
         loading={loading}
-        isUploading={isUploading}
+        isUploading={fileUploading}
         onBarbershopDataChange={(data: Partial<BarbershopData>) => setBarbershopData(prev => ({ ...prev, ...data }))}
         onImageChange={handleImageChange}
         onDrag={handleDrag}

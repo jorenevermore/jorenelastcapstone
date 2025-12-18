@@ -34,7 +34,7 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
       const result = await serviceManagement.getServices(barbershopId);
       if (result.success) {
         setServices(result.data || []);
-      } else {
+      } else if (result.message) {
         setError(result.message);
       }
     } catch (error) {
@@ -53,7 +53,7 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
       const result = await serviceManagement.getStyles(barbershopId);
       if (result.success) {
         setStyles(result.data || []);
-      } else {
+      } else if (result.message) {
         setError(result.message);
       }
     } catch (error) {
@@ -70,10 +70,11 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
       if (result.success) {
         await fetchServices(barbershopId);
         return true;
-      } else {
+      } else if (result.message) {
         setError(result.message);
         return false;
       }
+      return false;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update services';
       setError(errorMessage);
@@ -88,7 +89,7 @@ export function useBarbershopServices(): UseBarbershopServicesReturn {
         setStyles(prev => prev.filter(style => style.docId !== styleDocId));
         return true;
       } else {
-        setError(result.message);
+        if (result.message) setError(result.message);
         return false;
       }
     } catch (error) {

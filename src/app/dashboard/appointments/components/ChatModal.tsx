@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { Booking } from '../../../../types/appointments';
 import { Message } from '../../../../lib/hooks/useMessaging';
+import { formatTimestamp } from '../../../../lib/utils/dateParser';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -22,6 +23,10 @@ const ChatModal: React.FC<ChatModalProps> = ({
   messages = []
 }) => {
   const [messageText, setMessageText] = useState('');
+
+  const isMessageFromClient = (msg: Message) => {
+    return msg.senderId === msg.clientId;
+  };
 
   if (!isOpen) return null;
 
@@ -62,7 +67,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
         <div className="flex-grow overflow-y-auto p-4 space-y-4">
           <div className="flex justify-center">
             <div className="bg-gray-100 text-gray-600 text-xs px-3 py-1 rounded-full">
-              Appointment created on {appointment.createdAt ? new Date(parseInt(appointment.createdAt)).toLocaleDateString() : 'Unknown date'}
+              Appointment created on {appointment.createdAt ? formatTimestamp(appointment.createdAt).split(' at ')[0] : 'Unknown date'}
             </div>
           </div>
           {appointment.status === 'cancelled' && (
@@ -74,8 +79,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
           )}
           {messages && messages.length > 0 &&
             messages.map((msg) => {
-              const isFromClient = msg.from === 'client';
-              const senderType = msg.from;
+              const isFromClient = isMessageFromClient(msg);
 
               return (
                 <div key={msg.id} className={isFromClient ? 'flex justify-start' : 'flex justify-end'}>
@@ -101,7 +105,7 @@ const ChatModal: React.FC<ChatModalProps> = ({
                           <p className="text-sm text-gray-700">{msg.message}</p>
                         </div>
                         <p className={`text-xs text-gray-400 mt-1 ${isFromClient ? 'ml-2' : 'mr-2'}`}>
-                          {msg.timestamp ? new Date(parseInt(msg.timestamp)).toLocaleString() : ''}
+                          {msg.timestamp ? formatTimestamp(msg.timestamp) : ''}
                         </p>
                       </div>
                     </div>

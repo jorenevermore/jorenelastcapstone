@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 import type { Booking } from '../../../../types/appointments';
+import { AnalyticsService } from '../../../../lib/services/analytics/AnalyticsService';
 
 interface AppointmentTrendsProps {
   bookings: Booking[];
@@ -20,24 +21,7 @@ const AppointmentTrends: React.FC<AppointmentTrendsProps> = ({ bookings }) => {
       chartInstance.current.destroy();
     }
 
-    // Group bookings by date
-    const bookingsByDate = bookings.reduce<Record<string, number>>((acc, booking) => {
-      const date = new Date(booking.date).toISOString().split('T')[0];
-      acc[date] = (acc[date] || 0) + 1;
-      return acc;
-    }, {});
-
-    // Sort dates
-    const sortedDates = Object.keys(bookingsByDate).sort();
-
-    // Prepare data for chart
-    const data = sortedDates.map(date => bookingsByDate[date]);
-
-    // Format dates for display
-    const labels = sortedDates.map(date => {
-      const d = new Date(date);
-      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    });
+    const { labels, data } = AnalyticsService.getAppointmentTrendsData(bookings);
 
     // Create chart
     const ctx = chartRef.current.getContext('2d');

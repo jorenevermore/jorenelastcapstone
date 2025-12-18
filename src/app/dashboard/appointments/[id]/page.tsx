@@ -164,25 +164,6 @@ export default function AppointmentDetailsPage() {
             />
 
             <div className="mt-6 space-y-4">
-              {(() => {
-                const cancellationInfo = BookingUtilService.getCancellationInfo(appointment);
-                return cancellationInfo ? (
-                  <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                    <h4 className="font-medium text-red-700 mb-3">
-                      Cancellation Information
-                    </h4>
-                    <div className="bg-white p-3 rounded-lg border-l-4 border-red-400">
-                      <p className="text-sm font-medium text-red-700 mb-1">
-                        {appointment.barberReason ? "Barbershop's Reason:" : "Client's Reason:"}
-                      </p>
-                      <p className="text-gray-700">{cancellationInfo.reason}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {cancellationInfo.timestamp}
-                      </p>
-                    </div>
-                  </div>
-                ) : null;
-              })()}
 
               {appointment.feedback?.rating && (
                 <div className="bg-gray-50 p-4 rounded-lg">

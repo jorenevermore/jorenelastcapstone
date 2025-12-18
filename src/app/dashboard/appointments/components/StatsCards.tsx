@@ -2,39 +2,14 @@
 
 import React from 'react';
 import type { Booking } from '../../../../types/appointments';
+import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
 
 interface StatsCardsProps {
   bookings: Booking[];
 }
 
 const StatsCards = ({ bookings }: StatsCardsProps) => {
-  // calculate statistics
-  const getStatistics = () => {
-    const pending = bookings.filter(b => b.status === 'pending').length;
-    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
-    const inProgress = bookings.filter(b => b.status === 'in-progress').length;
-    const canceled = bookings.filter(b => b.status === 'cancelled').length;
-    const completed = bookings.filter(b => b.status === 'completed').length;
-    const noShow = bookings.filter(b => b.status === 'no-show').length;
-    const total = bookings.length;
-
-    // calculate today's appointments
-    const today = new Date().toDateString();
-    const todayTotal = bookings.filter(b => new Date(b.date).toDateString() === today).length;
-
-    return {
-      pending,
-      confirmed,
-      inProgress,
-      canceled,
-      completed,
-      noShow,
-      total,
-      todayTotal
-    };
-  };
-
-  const stats = getStatistics();
+  const stats = BookingUtilService.getBookingStatistics(bookings);
 
   return (
     <div className="bg-white rounded-lg shadow-sm mb-4 overflow-hidden">

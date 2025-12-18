@@ -14,7 +14,7 @@ export interface UseAppointmentsReturn {
   loading: boolean;
   error: string | null;
   fetchBookings: (barbershopId: string) => void;
-  updateBookingStatus: (bookingId: string, status: string, reason?: string) => Promise<boolean>;
+  updateBookingStatus: (bookingId: string, status: Booking['status'], reason?: string) => Promise<boolean>;
   deleteBooking: (bookingId: string) => Promise<boolean>;
   clearError: () => void;
 }
@@ -24,9 +24,15 @@ export function useAppointments(): UseAppointmentsReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unsubscribe, setUnsubscribe] = useState<Unsubscribe | null>(null);
+  const [currentBarbershopId, setCurrentBarbershopId] = useState<string | null>(null);
 
-  // realtime listener for bookings
+  // realtime listener for bookings - prevents duplicate listeners
   const fetchBookings = useCallback((barbershopId: string) => {
+    // Guard: don't create a new listener if already listening to the same barbershop
+    if (currentBarbershopId === barbershopId && unsubscribe) {
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -51,36 +57,37 @@ export function useAppointments(): UseAppointmentsReturn {
             setLoading(false);
           } catch (error) {
             console.error('Error processing bookings snapshot:', error);
-            setError(error instanceof Error ? error.message : 'Failed to process bookings');
+            setError('Failed to process bookings');
             setLoading(false);
           }
         },
         (error) => {
           console.error('Error listening to bookings:', error);
-          setError(error instanceof Error ? error.message : 'Failed to listen to bookings');
+          setError('Failed to listen to bookings');
           setLoading(false);
         }
       );
 
-      // cleanup previous listener
+      // cleanup previous listener and set new one
       setUnsubscribe(prev => {
         if (prev) prev();
         return newUnsubscribe;
       });
+      setCurrentBarbershopId(barbershopId);
     } catch (err) {
       console.error('Error setting up real-time listener:', err);
-      setError(err instanceof Error ? err.message : 'Failed to set up real-time listener');
+      setError('Failed to set up real-time listener');
       setLoading(false);
     }
-  }, []);
+  }, [currentBarbershopId, unsubscribe]);
 
     // update booking status
   const updateBookingStatus = useCallback(
-    async (bookingId: string, status: string, reason?: string): Promise<boolean> => {
+    async (bookingId: string, status: Booking['status'], reason?: string): Promise<boolean> => {
       try {
         const result = await appointmentService.updateBookingStatus(bookingId, status, reason);
         if (!result.success) {
-          setError(result.message);
+          if (result.message) setError(result.message);
           return false;
         }
         setBookings(prevBookings =>
@@ -88,7 +95,7 @@ export function useAppointments(): UseAppointmentsReturn {
             booking.id === bookingId
               ? {
                   ...booking,
-                  status: status as Booking['status'],
+                  status,
                   barberReason: reason,
                   confirmedAt: status === 'confirmed' ? Date.now().toString() : booking.confirmedAt
                 }
@@ -101,14 +108,14 @@ export function useAppointments(): UseAppointmentsReturn {
         return false;
       }
     },
-    []
+    [appointmentService]
   );
 
   const deleteBooking = useCallback(async (bookingId: string): Promise<boolean> => {
     try {
       const result = await appointmentService.deleteBooking(bookingId);
       if (!result.success) {
-        setError(result.message);
+        if (result.message) setError(result.message);
         return false;
       }
       setBookings(prevBookings =>
@@ -116,7 +123,7 @@ export function useAppointments(): UseAppointmentsReturn {
       );
       return true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete booking');
+      setError('Failed to delete booking');
       return false;
     }
   }, []);

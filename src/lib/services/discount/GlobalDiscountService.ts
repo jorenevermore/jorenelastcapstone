@@ -1,22 +1,12 @@
 
 import { collection, addDoc, updateDoc, deleteDoc, getDocs, doc, Firestore } from 'firebase/firestore';
-import type { ServiceResponse } from '../../../types/api';
+import type { ServiceResponse } from '../../../types/response';
 import type {DiscountPackage, CreateDiscountInput, UpdateDiscountInput } from '../../../types/discount';
 
 export class GlobalDiscountService {
   private readonly COLLECTION = 'discountPackages';
 
   constructor(private db: Firestore) {}
-
-  private handleError(error: unknown): ServiceResponse {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Discount service error:', errorMessage);
-    return {
-      success: false,
-      message: 'Operation failed',
-      error: errorMessage
-    };
-  }
 
   async createDiscount(input: CreateDiscountInput): Promise<ServiceResponse> {
     try {
@@ -38,7 +28,11 @@ export class GlobalDiscountService {
         data: { id: docRef.id, ...discountData }
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Discount service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -58,7 +52,11 @@ export class GlobalDiscountService {
         message: 'Discount package updated successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Discount service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -71,7 +69,11 @@ export class GlobalDiscountService {
         message: 'Discount package deleted successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Discount service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -93,7 +95,11 @@ export class GlobalDiscountService {
         data: discounts
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Discount service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 }

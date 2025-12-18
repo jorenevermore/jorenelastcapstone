@@ -1,6 +1,8 @@
+
 'use client';
 
 import React, { useState } from 'react';
+import { formatDateLong } from '../../../../lib/utils/dateParser';
 
 interface DateRangePickerProps {
   startDate: Date;
@@ -12,11 +14,7 @@ const DateRangePicker: React.FC<DateRangePickerProps> = ({ startDate, endDate, o
   const [isOpen, setIsOpen] = useState(false);
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    return formatDateLong(date.toISOString());
   };
 
   const handleRangeSelect = (days: number) => {

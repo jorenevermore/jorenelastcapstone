@@ -1,26 +1,25 @@
 
 import type { Booking } from '../../../types/appointments';
+import {
+  formatDateLong,
+  formatDateShort,
+  getSessionLabel,
+  isPastDue,
+  filterBookingsByDateCategory,
+  filterBookingsByDate,
+  countBookingsByDateCategory,
+  getTodayISO,
+  getDateISO
+} from '../../utils/dateParser';
 
 export class BookingUtilService {
- 
-  static getSessionType(time: string): string {
-    const startTime = time?.split('-')[0]?.trim() || '';
-    const hour = parseInt(startTime.split(':')[0]);
-    return hour < 13 ? 'Morning Session' : 'Afternoon Session';
-  }
-  
-  static isPastDue(booking: Booking): boolean {
-    const bookingDate = booking.date.split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
-    const isBookingInPast = bookingDate < today;
 
-    return (
-      isBookingInPast &&
-      booking.status !== 'completed' &&
-      booking.status !== 'cancelled' &&
-      booking.status !== 'declined' &&
-      booking.status !== 'no-show'
-    );
+  static getSessionType(time: string): string {
+    return getSessionLabel(time);
+  }
+
+  static isPastDue(booking: Booking): boolean {
+    return isPastDue(booking);
   }
 
   static getStatusBadgeStyle(status: string): string {
@@ -81,12 +80,9 @@ export class BookingUtilService {
   }
 
   static formatBookingDate(date: string): string {
-    return new Date(date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
+    return formatDateShort(date);
   }
-  
+
   static getFormattedStatus(status: string): string {
     return status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ');
   }
@@ -103,57 +99,99 @@ export class BookingUtilService {
   }
 
   static formatDate(dateStr: string): string {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  }
-
-  private static toISO(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return formatDateLong(dateStr);
   }
 
   static filterBookingsByDateCategory(
     bookings: Booking[],
     category: 'today' | 'upcoming' | 'all' | 'past'
   ): Booking[] {
-    const todayISO = this.toISO(new Date());
+    return filterBookingsByDateCategory(bookings, category);
+  }
 
-    switch (category) {
-      case 'today':
-        return bookings.filter(booking => booking.date.split('T')[0] === todayISO);
-      case 'upcoming':
-        return bookings.filter(booking => booking.date.split('T')[0] > todayISO);
-      case 'past':
-        return bookings.filter(booking => booking.date.split('T')[0] < todayISO);
-      case 'all':
+  static filterBookingsByDate(bookings: Booking[], date: Date): Booking[] {
+    return filterBookingsByDate(bookings, date);
+  }
+
+  static countBookingsByDateCategory(bookings: Booking[]): { todayCount: number; pastCount: number; upcomingCount: number } {
+    return countBookingsByDateCategory(bookings);
+  }
+
+  static calculateCompletionRate(completed: number, total: number): number {
+    return total > 0 ? Math.round((completed / total) * 100) : 0;
+  }
+
+  static getBookingStatistics(bookings: Booking[]): {
+    pending: number;
+    confirmed: number;
+    inProgress: number;
+    canceled: number;
+    completed: number;
+    noShow: number;
+    total: number;
+    todayTotal: number;
+  } {
+    const pending = bookings.filter(b => b.status === 'pending').length;
+    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
+    const inProgress = bookings.filter(b => b.status === 'in-progress').length;
+    const canceled = bookings.filter(b => b.status === 'cancelled').length;
+    const completed = bookings.filter(b => b.status === 'completed').length;
+    const noShow = bookings.filter(b => b.status === 'no-show').length;
+    const total = bookings.length;
+
+    const today = new Date().toDateString();
+    const todayTotal = bookings.filter(b => new Date(b.date).toDateString() === today).length;
+
+    return {
+      pending,
+      confirmed,
+      inProgress,
+      canceled,
+      completed,
+      noShow,
+      total,
+      todayTotal
+    };
+  }
+
+  static filterBookingsByStatus(bookings: Booking[], status: 'all' | 'pending' | 'ongoing' | 'completed'): Booking[] {
+    switch (status) {
+      case 'pending':
+        return bookings.filter(b => b.status === 'pending');
+      case 'ongoing':
+        return bookings.filter(b => ['confirmed', 'in-progress'].includes(b.status));
+      case 'completed':
+        return bookings.filter(b => ['completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show'].includes(b.status));
       default:
         return bookings;
     }
   }
 
-  static filterBookingsByDate(bookings: Booking[], date: Date): Booking[] {
-    const dateISO = this.toISO(date);
-    return bookings.filter(booking => booking.date.split('T')[0] === dateISO);
+  static filterBookingsByDateFilter(bookings: Booking[], dateFilter: string): Booking[] {
+    const todayISO = getTodayISO();
+
+    return bookings.filter(booking => {
+      const bookingDateISO = getDateISO(booking.date);
+
+      switch (dateFilter) {
+        case 'all':
+          return true;
+        case 'today':
+          return bookingDateISO === todayISO;
+        case 'upcoming':
+          return bookingDateISO > todayISO;
+        default:
+          return bookingDateISO >= todayISO;
+      }
+    });
   }
 
-  static countBookingsByDateCategory(bookings: Booking[]): { todayCount: number; pastCount: number; upcomingCount: number } {
-    const todayISO = this.toISO(new Date());
+  static getStatusCounts(bookings: Booking[]): { pendingCount: number; ongoingCount: number; completedCount: number } {
+    const pendingCount = bookings.filter(b => b.status === 'pending').length;
+    const ongoingCount = bookings.filter(b => ['confirmed', 'in-progress'].includes(b.status)).length;
+    const completedCount = bookings.filter(b => ['completed', 'cancelled', 'declined', 'no-show'].includes(b.status)).length;
 
-    const todayCount = bookings.filter(booking => booking.date.split('T')[0] === todayISO).length;
-    const pastCount = bookings.filter(booking => booking.date.split('T')[0] < todayISO).length;
-    const upcomingCount = bookings.filter(booking => booking.date.split('T')[0] > todayISO).length;
-
-    return { todayCount, pastCount, upcomingCount };
-  }
-
-  static calculateCompletionRate(completed: number, total: number): number {
-    return total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { pendingCount, ongoingCount, completedCount };
   }
 }
 

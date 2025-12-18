@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -46,7 +47,6 @@ export const useAppointmentDetails = (
           return;
         }
 
-        // fetch appointment
         const appointmentData = await fetchAppointment(userId, appointmentId);
         if (!isMounted) return;
 
@@ -57,7 +57,6 @@ export const useAppointmentDetails = (
 
         setAppointment(appointmentData);
 
-        // fetch client details
         const details = await fetchClientDetails(appointmentData.clientId);
         if (!isMounted) return;
         setClientDetails(details);
@@ -94,15 +93,13 @@ export const useAppointmentDetails = (
 
 async function fetchAppointment(userId: string, appointmentId: string): Promise<Booking | null> {
   try {
-    // Fetch document directly by ID (no composite query needed)
     const appointmentDoc = doc(db, 'bookings', appointmentId);
     const snapshot = await getDoc(appointmentDoc);
 
     if (!snapshot.exists()) return null;
 
     const bookingData = snapshot.data() as Booking;
-
-    // Verify it belongs to this barbershop
+    
     if (bookingData.barbershopId !== userId) {
       return null;
     }

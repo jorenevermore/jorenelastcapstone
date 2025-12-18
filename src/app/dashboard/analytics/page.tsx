@@ -7,14 +7,12 @@ import {
   SummaryCards,
   AppointmentTrends,
   ServicePopularity,
-  BarberPerformance,
   RevenueChart,
-  CustomerRetention,
   AppointmentStatusChart,
-  CancellationReasons,
   DateRangePicker
 } from './components';
 import { useAnalytics } from '../../../lib/hooks/useAnalytics';
+import { AnalyticsService } from '../../../lib/services/analytics/AnalyticsService';
 
 export default function AnalyticsPage() {
   const [user] = useAuthState(auth);
@@ -57,19 +55,15 @@ export default function AnalyticsPage() {
   });
 
   // calculate key metrics
-  const totalAppointments = filteredBookings.length;
-  const completedAppointments = filteredBookings.filter(b => b.status === 'completed').length;
-  const canceledAppointments = filteredBookings.filter(b => b.status === 'cancelled').length;
-  const pendingAppointments = filteredBookings.filter(b => b.status === 'pending').length;
-  const confirmedAppointments = filteredBookings.filter(b => b.status === 'confirmed').length;
-
-  // calculate total revenue (if price is available)
-  const totalRevenue = filteredBookings
-    .filter(b => b.status === 'completed' && (b.finalPrice || b.totalPrice))
-    .reduce((sum, booking) => sum + ((booking.finalPrice || booking.totalPrice) || 0), 0);
-
-  // get unique customers
-  const uniqueCustomers = [...new Set(filteredBookings.map(b => b.clientId || b.clientName))];
+  const {
+    totalAppointments,
+    completedAppointments,
+    canceledAppointments,
+    pendingAppointments,
+    confirmedAppointments,
+    totalRevenue,
+    uniqueCustomers
+  } = AnalyticsService.getAnalyticsMetrics(filteredBookings);
 
   // handle date range change
   const handleDateRangeChange = (start: Date, end: Date) => {
@@ -121,14 +115,7 @@ export default function AnalyticsPage() {
             <AppointmentStatusChart bookings={filteredBookings} />
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <BarberPerformance bookings={filteredBookings} />
-            <CustomerRetention bookings={filteredBookings} />
-          </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            <CancellationReasons bookings={filteredBookings} />
-          </div>
         </>
       )}
     </div>

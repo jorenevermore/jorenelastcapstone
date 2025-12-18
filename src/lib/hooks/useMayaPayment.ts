@@ -29,7 +29,7 @@ export function useMayaPayment(): UseMayaPaymentReturn {
 
       if (result.success && result.data) {
         setReceipt(result.data as MayaPaymentReceipt);
-      } else {
+      } else if (result.message) {
         setError(result.message);
       }
     } catch (error) {

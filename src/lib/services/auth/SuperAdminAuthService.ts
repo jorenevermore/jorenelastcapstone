@@ -1,5 +1,6 @@
 
-import { BaseAuthService, AuthResponse, AuthCredentials } from './BaseAuthService';
+import type { AuthCredentials } from '../../../types/auth';
+import type { ServiceResponse } from '../../../types/response';
 
 export interface SuperAdminSession {
   token: string;
@@ -8,18 +9,16 @@ export interface SuperAdminSession {
   createdAt: number;
 }
 
-export class SuperAdminAuthService extends BaseAuthService {
+export class SuperAdminAuthService {
   private readonly SESSION_TIMEOUT = 3600000;
   private readonly SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL;
   private readonly SUPERADMIN_PASSWORD = process.env.SUPERADMIN_PASSWORD;
 
-  async authenticate(credentials: AuthCredentials): Promise<AuthResponse> {
+  async authenticate(credentials: AuthCredentials): Promise<ServiceResponse> {
     if (!this.SUPERADMIN_EMAIL || !this.SUPERADMIN_PASSWORD) {
-      console.error('SuperAdmin environment variables not configured');
       return {
         success: false,
-        message: 'Server configuration error',
-        error: 'CONFIG_ERROR'
+        message: 'Server configuration error'
       };
     }
 
@@ -27,13 +26,10 @@ export class SuperAdminAuthService extends BaseAuthService {
       credentials.email === this.SUPERADMIN_EMAIL &&
       credentials.password === this.SUPERADMIN_PASSWORD;
 
-    this.logAuthAttempt(credentials.email, credentialsMatch, 'SuperAdmin Login');
-
     if (!credentialsMatch) {
       return {
         success: false,
-        message: 'Invalid credentials',
-        error: 'INVALID_CREDENTIALS'
+        message: 'Invalid credentials'
       };
     }
 

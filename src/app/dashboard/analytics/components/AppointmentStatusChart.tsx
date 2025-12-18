@@ -3,6 +3,7 @@
 import React, { useEffect, useRef } from 'react';
 import Chart from 'chart.js/auto';
 import type { Booking } from '../../../../types/appointments';
+import { AnalyticsService } from '../../../../lib/services/analytics/AnalyticsService';
 
 interface AppointmentStatusChartProps {
   bookings: Booking[];
@@ -15,34 +16,11 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
   useEffect(() => {
     if (!chartRef.current) return;
 
-    // Destroy existing chart
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
 
-    // Count bookings by status
-    const statusCounts = {
-      completed: 0,
-      confirmed: 0,
-      pending: 0,
-      cancelled: 0,
-    };
-
-    bookings.forEach(booking => {
-      if (booking.status in statusCounts) {
-        statusCounts[booking.status as keyof typeof statusCounts] += 1;
-      }
-    });
-
-    // Prepare data for chart
-    const data = [
-      statusCounts.completed,
-      statusCounts.confirmed,
-      statusCounts.pending,
-      statusCounts.cancelled,
-    ];
-
-    const labels = ['Completed', 'Confirmed', 'Pending', 'Cancelled'];
+    const { labels, data } = AnalyticsService.getAppointmentStatusData(bookings);
 
     const backgroundColors = [
       'rgba(16, 185, 129, 0.7)',  
@@ -51,7 +29,6 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
       'rgba(239, 68, 68, 0.7)',  
     ];
     
-    // Create chart
     const ctx = chartRef.current.getContext('2d');
     if (ctx) {
       chartInstance.current = new Chart(ctx, {
@@ -101,7 +78,6 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
     };
   }, [bookings]);
   
-  // Calculate completion rate
   const totalAppointments = bookings.length;
   const completedAppointments = bookings.filter(b => b.status === 'completed').length;
   const completionRate = totalAppointments > 0

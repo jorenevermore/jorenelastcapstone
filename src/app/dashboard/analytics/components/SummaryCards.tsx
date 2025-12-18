@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { AnalyticsService } from '../../../../lib/services/analytics/AnalyticsService';
 
 interface SummaryCardsProps {
   totalAppointments: number;
@@ -21,15 +22,11 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
   totalRevenue,
   uniqueCustomers
 }) => {
-  // Calculate completion rate
-  const completionRate = totalAppointments > 0
-    ? Math.round((completedAppointments / totalAppointments) * 100)
-    : 0;
-
-  // Calculate cancellation rate
-  const cancellationRate = totalAppointments > 0
-    ? Math.round((canceledAppointments / totalAppointments) * 100)
-    : 0;
+  const { completionRate, cancellationRate } = AnalyticsService.calculateRates(
+    totalAppointments,
+    completedAppointments,
+    canceledAppointments
+  );
   
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

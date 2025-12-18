@@ -1,12 +1,13 @@
 
-import { BaseAuthService, AuthResponse, AuthCredentials } from './BaseAuthService';
-import { 
-  signInWithEmailAndPassword, 
+import {
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  Auth 
+  Auth
 } from 'firebase/auth';
+import type { AuthCredentials } from '../../../types/auth';
+import type { ServiceResponse } from '../../../types/response';
 
-export interface FirebaseAuthResult extends AuthResponse {
+export interface FirebaseAuthResult extends ServiceResponse {
   data?: {
     uid: string;
     email: string;
@@ -14,10 +15,8 @@ export interface FirebaseAuthResult extends AuthResponse {
   };
 }
 
-export class FirebaseAuthService extends BaseAuthService {
-  constructor(private auth: Auth) {
-    super();
-  }
+export class FirebaseAuthService {
+  constructor(private auth: Auth) {}
 
   async login(credentials: AuthCredentials): Promise<FirebaseAuthResult> {
     try {
@@ -29,8 +28,6 @@ export class FirebaseAuthService extends BaseAuthService {
 
       const idToken = await userCredential.user.getIdToken();
 
-      this.logAuthAttempt(credentials.email, true, 'User Login');
-
       return {
         success: true,
         message: 'Login successful',
@@ -41,8 +38,11 @@ export class FirebaseAuthService extends BaseAuthService {
         }
       };
     } catch (error) {
-      this.logAuthAttempt(credentials.email, false, 'User Login');
-      return this.handleError(error) as FirebaseAuthResult;
+      console.error('Login error:', error);
+      return {
+        success: false,
+        message: 'Login failed'
+      };
     }
   }
 
@@ -56,8 +56,6 @@ export class FirebaseAuthService extends BaseAuthService {
 
       const idToken = await userCredential.user.getIdToken();
 
-      this.logAuthAttempt(credentials.email, true, 'User Signup');
-
       return {
         success: true,
         message: 'Signup successful',
@@ -68,8 +66,11 @@ export class FirebaseAuthService extends BaseAuthService {
         }
       };
     } catch (error) {
-      this.logAuthAttempt(credentials.email, false, 'User Signup');
-      return this.handleError(error) as FirebaseAuthResult;
+      console.error('Signup error:', error);
+      return {
+        success: false,
+        message: 'Signup failed'
+      };
     }
   }
 }

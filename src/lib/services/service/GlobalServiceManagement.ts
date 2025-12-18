@@ -1,22 +1,12 @@
 
 import { collection, addDoc, updateDoc, deleteDoc, getDocs, doc, Firestore } from 'firebase/firestore';
-import type { ServiceResponse } from '../../../types/api';
+import type { ServiceResponse } from '../../../types/response';
 import type { CreateGlobalServiceInput, UpdateGlobalServiceInput, ServiceItem } from '../../../types/services';
 
 export class GlobalServiceManagement {
   private readonly COLLECTION = 'globalServices';
 
   constructor(private db: Firestore) {}
-
-  private handleError(error: unknown): ServiceResponse {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Global service management error:', errorMessage);
-    return {
-      success: false,
-      message: 'Operation failed',
-      error: errorMessage
-    };
-  }
 
   async createService(input: CreateGlobalServiceInput): Promise<ServiceResponse> {
     try {
@@ -36,7 +26,11 @@ export class GlobalServiceManagement {
         data: { id: docRef.id, ...serviceData }
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Global service management error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -54,7 +48,11 @@ export class GlobalServiceManagement {
         message: 'Service updated successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Global service management error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -67,7 +65,11 @@ export class GlobalServiceManagement {
         message: 'Service deleted successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Global service management error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -89,7 +91,11 @@ export class GlobalServiceManagement {
         data: services
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Global service management error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 }

@@ -20,27 +20,8 @@ const DailyViewCard = ({
 }: DailyViewCardProps) => {
   const [activeTab, setActiveTab] = useState<StatusFilter>('all');
   const formattedDate = BookingUtilService.formatDate(selectedDate.toISOString());
-
-  // filter bookings based on active tab
-  const getFilteredBookings = () => {
-    switch (activeTab) {
-      case 'pending':
-        return todayBookings.filter(b => b.status === 'pending');
-      case 'ongoing':
-        return todayBookings.filter(b => ['confirmed', 'in-progress'].includes(b.status));
-      case 'completed':
-        return todayBookings.filter(b => ['completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show'].includes(b.status));
-      default:
-        return todayBookings;
-    }
-  };
-
-  const filteredBookings = getFilteredBookings();
-
-  // count bookings by status
-  const pendingCount = todayBookings.filter(b => b.status === 'pending').length;
-  const ongoingCount = todayBookings.filter(b => ['confirmed', 'in-progress'].includes(b.status)).length;
-  const completedCount = todayBookings.filter(b => ['completed', 'cancelled', 'declined', 'no-show'].includes(b.status)).length;
+  const filteredBookings = BookingUtilService.filterBookingsByStatus(todayBookings, activeTab);
+  const { pendingCount, ongoingCount, completedCount } = BookingUtilService.getStatusCounts(todayBookings);
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 h-full flex flex-col">

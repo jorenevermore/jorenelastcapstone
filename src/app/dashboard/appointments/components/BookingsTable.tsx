@@ -21,33 +21,7 @@ const BookingsTable = ({
   dateFilter
 }: BookingsTableProps) => {
   const router = useRouter();
-
-  // filter bookings by date
-  const getFilteredBookings = () => {
-    const today = new Date();
-    // use local date calc
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0');
-    const day = String(today.getDate()).padStart(2, '0');
-    const todayISO = `${year}-${month}-${day}`;
-
-    return bookings.filter(booking => {
-      const bookingDateISO = booking.date.split('T')[0];
-
-      switch (dateFilter) {
-        case 'all':
-          return true;
-        case 'today':
-          return bookingDateISO === todayISO;
-        case 'upcoming':
-          return bookingDateISO > todayISO;
-        default:
-          return bookingDateISO >= todayISO;
-      }
-    });
-  };
-
-  const filteredBookings = getFilteredBookings();
+  const filteredBookings = BookingUtilService.filterBookingsByDateFilter(bookings, dateFilter);
 
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden h-full flex flex-col">

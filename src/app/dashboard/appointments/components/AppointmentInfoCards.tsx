@@ -3,6 +3,7 @@
 import React from 'react';
 import type { Booking } from '../../../../types/appointments';
 import { StatusService } from '../../../../lib/services/status/StatusService';
+import { getSessionLabel, formatTimestamp } from '../../../../lib/utils/dateParser';
 
 interface AppointmentInfoCardsProps {
   appointment: Booking;
@@ -13,7 +14,6 @@ interface AppointmentInfoCardsProps {
     photo?: string;
   } | null;
   onChatClick?: () => void;
-  onNotifyNextInQueue?: () => void;
   onViewReceipt?: () => void;
 }
 
@@ -21,7 +21,6 @@ export const AppointmentInfoCards = ({
   appointment,
   clientDetails,
   onChatClick,
-  onNotifyNextInQueue,
   onViewReceipt
 }: AppointmentInfoCardsProps) => {
   const statusService = new StatusService();
@@ -29,10 +28,8 @@ export const AppointmentInfoCards = ({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4">
-      {/* Top Section: Photo, Name, Status, Chat & Notify */}
       <div className="flex items-start justify-between mb-4 pb-4 border-b border-gray-100">
         <div className="flex items-start gap-4 flex-1">
-          {/* Client Photo */}
           <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
             {clientDetails?.photo ? (
               <img
@@ -45,7 +42,6 @@ export const AppointmentInfoCards = ({
             )}
           </div>
 
-          {/* Client Info */}
           <div className="flex-1 min-w-0">
             <h2 className="text-lg font-bold text-gray-900">{appointment.clientName}</h2>
             <div className="flex items-center gap-2 mt-2">
@@ -56,7 +52,6 @@ export const AppointmentInfoCards = ({
           </div>
         </div>
 
-        {/* Action Icons: Chat & Notify & Receipt */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {onChatClick && (
             <button
@@ -65,15 +60,6 @@ export const AppointmentInfoCards = ({
               title="Messages"
             >
               <i className="fas fa-comments text-sm"></i>
-            </button>
-          )}
-          {appointment.status === 'pending' && onNotifyNextInQueue && (
-            <button
-              onClick={onNotifyNextInQueue}
-              className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors flex items-center justify-center"
-              title="Notify Next in Queue"
-            >
-              <i className="fas fa-bell text-sm"></i>
             </button>
           )}
           {appointment.paymentMethod === 'maya' && onViewReceipt && (
@@ -88,9 +74,8 @@ export const AppointmentInfoCards = ({
         </div>
       </div>
 
-      {/* Main Content: 3 Columns */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-        {/* Client Info */}
+
         <div className="space-y-3">
           <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Client</h3>
           {clientDetails?.phoneNumber && (
@@ -113,7 +98,6 @@ export const AppointmentInfoCards = ({
           )}
         </div>
 
-        {/* Service Info */}
         <div className="space-y-3">
           <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Service</h3>
           <div>
@@ -130,17 +114,12 @@ export const AppointmentInfoCards = ({
           </div>
         </div>
 
-        {/* Schedule & Payment */}
         <div className="space-y-3">
           <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Schedule & Payment</h3>
           <div>
             <p className="text-xs text-gray-500 mb-0.5">Session</p>
             <p className="text-sm font-medium text-gray-900">
-              {(() => {
-                const startTime = appointment.time?.split('-')[0]?.trim() || '';
-                const hour = parseInt(startTime.split(':')[0]);
-                return hour < 13 ? 'Morning' : 'Afternoon';
-              })()} ({appointment.time})
+              {getSessionLabel(appointment.time)} ({appointment.time})
             </p>
           </div>
           <div>
@@ -163,7 +142,6 @@ export const AppointmentInfoCards = ({
         </div>
       </div>
 
-      {/* Footer: Payment Summary */}
       <div className="pt-4 border-t border-gray-100 flex items-center justify-between text-xs">
         <div className="flex gap-4">
           <div>
@@ -178,12 +156,7 @@ export const AppointmentInfoCards = ({
         <div className="text-right">
           <p className="text-gray-500 mb-0.5">Placed On</p>
           <p className="font-semibold text-gray-900">
-            {appointment.createdAt ? new Date(parseInt(appointment.createdAt)).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit'
-            }) : 'N/A'}
+            {appointment.createdAt ? formatTimestamp(appointment.createdAt) : 'N/A'}
           </p>
         </div>
       </div>

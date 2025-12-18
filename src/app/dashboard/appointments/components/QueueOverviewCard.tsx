@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import type { Booking } from '../../../../types/appointments';
 import { QueueService } from '../../../../lib/services/queue/QueueService';
 import { BookingUtilService } from '../../../../lib/services/booking/BookingUtilService';
+import { getTodayISO, getDateISO } from '../../../../lib/utils/dateParser';
 
 interface QueueOverviewCardProps {
   bookings: Booking[];
@@ -14,8 +15,8 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
   const queueService = new QueueService();
 
   const { stats, sortedQueue } = useMemo(() => {
-    const todayISO = new Date().toISOString().split('T')[0];
-    const todayBookings = bookings.filter(booking => booking.date.split('T')[0] === todayISO);
+    const todayISO = getTodayISO();
+    const todayBookings = bookings.filter(booking => getDateISO(booking.date) === todayISO);
 
     const stats = queueService.getQueueStats(todayBookings);
     const activeBookings = queueService.getActiveBookings(todayBookings);
@@ -23,7 +24,6 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
     return { stats, sortedQueue };
   }, [bookings, queueService]);
 
-  // get top 3 in queue for preview
   const topInQueue = sortedQueue.slice(0, 3);
 
   return (

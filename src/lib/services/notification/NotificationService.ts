@@ -1,7 +1,7 @@
 
 import { collection, addDoc, serverTimestamp, Firestore } from 'firebase/firestore';
 import type { Booking } from '../../../types/appointments';
-import type { ServiceResponse } from '../../../types/api';
+import type { ServiceResponse } from '../../../types/response';
 
 export interface NotificationData  {
   userId: string;
@@ -111,8 +111,7 @@ export class NotificationService {
       console.error('Error creating notification:', error);
       return {
         success: false,
-        message: 'Failed to send notification',
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: 'Failed to send notification'
       };
     }
   }

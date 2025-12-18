@@ -1,22 +1,12 @@
 
 import { collection, getDocs, query, where, doc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, Unsubscribe, Firestore, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { Barber } from '../../../types/barber';
-import type { ServiceResponse } from '../../../types/api';
+import type { ServiceResponse } from '../../../types/response';
 
 export class StaffManagementService {
   private readonly COLLECTION = 'barbersprofile';
 
   constructor(private db: Firestore) {}
-
-  private handleError(error: unknown): ServiceResponse {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Staff service error:', errorMessage);
-    return {
-      success: false,
-      message: 'Operation failed',
-      error: errorMessage
-    };
-  }
 
   private mapDocToBarber(doc: any): Barber {
     const data = doc.data() as Omit<Barber, 'barberId'>;
@@ -40,7 +30,11 @@ export class StaffManagementService {
         data: barbers
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Staff service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -52,8 +46,7 @@ export class StaffManagementService {
       if (!barberSnapshot.exists()) {
         return {
           success: false,
-          message: 'Barber not found',
-          error: 'NOT_FOUND'
+          message: 'Barber not found'
         };
       }
 
@@ -64,14 +57,22 @@ export class StaffManagementService {
         data: { ...data, barberId: barberSnapshot.id }
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Staff service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
   async addBarberToBarbershop(barbershopId: string, barberData: Omit<Barber, 'barberId'>): Promise<ServiceResponse> {
     try {
       const barbersCollection = collection(this.db, this.COLLECTION);
-      const docRef = await addDoc(barbersCollection, barberData);
+      const barberWithTimestamp = {
+        ...barberData,
+        createdAt: new Date().toISOString()
+      };
+      const docRef = await addDoc(barbersCollection, barberWithTimestamp);
       await updateDoc(docRef, { barberId: docRef.id });
 
       const barbershopDoc = doc(this.db, 'barbershops', barbershopId);
@@ -82,10 +83,14 @@ export class StaffManagementService {
       return {
         success: true,
         message: 'Barber added to barbershop successfully',
-        data: { ...barberData, barberId: docRef.id }
+        data: { ...barberWithTimestamp, barberId: docRef.id }
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Staff service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -106,7 +111,11 @@ export class StaffManagementService {
         message: 'Barber removed from barbershop successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Staff service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -120,7 +129,11 @@ export class StaffManagementService {
         message: 'Barber updated successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Staff service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -152,7 +165,11 @@ export class StaffManagementService {
         message: 'Barber deleted successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Staff service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -174,7 +191,11 @@ export class StaffManagementService {
         data: barbers
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Staff service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -206,14 +227,16 @@ export class StaffManagementService {
         message: `Affiliation ${status} successfully`
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Staff service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
-  subscribeToPendingAffiliations(
-    barbershopId: string,
-    onUpdate: (barbers: Barber[]) => void,
-    onError?: (error: Error) => void
+  subscribeToPendingAffiliations(barbershopId: string,onUpdate: (barbers: Barber[]) => void,
+  onError?: (error: Error) => void
   ): Unsubscribe {
     const barbersCollection = collection(this.db, this.COLLECTION);
     const pendingAffiliationsQuery = query(

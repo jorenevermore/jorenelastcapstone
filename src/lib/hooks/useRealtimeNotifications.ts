@@ -140,29 +140,30 @@ export const useRealtimeNotifications = () => {
     // initialize services
     const staffService = new StaffManagementService(db);
 
+    // Track both data sources
+    let affiliationNotifications: Notification[] = [];
+    let bookingNotifications: Notification[] = [];
+
     // subscribe to pending affiliations using service
     const unsubscribeAffiliations = staffService.subscribeToPendingAffiliations(
       user.uid,
       (barbers) => {
         try {
-          const affiliationNotifications: Notification[] = barbers
+          affiliationNotifications = barbers
             .map(transformAffiliationToNotification)
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .slice(0, 20);
 
-          setNotifications(prev => {
-            const otherNotifs = prev.filter(n => n.type !== 'affiliation_request');
-            return sortNotificationsByTimestamp(affiliationNotifications.concat(otherNotifs));
-          });
+          // Combine and sort all notifications
+          setNotifications(sortNotificationsByTimestamp([...affiliationNotifications, ...bookingNotifications]));
           setLoading(false);
         } catch (error) {
           console.error('Error processing affiliations:', error);
-          setError('Failed to load affiliation notifications');
+          setError('Failed to load notifications');
         }
       },
       (error) => {
         console.error('Error in affiliations listener:', error);
-        setError('Failed to load affiliation notifications');
+        setError('Failed to load notifications');
         setLoading(false);
       }
     );
@@ -176,29 +177,25 @@ export const useRealtimeNotifications = () => {
       bookingsQuery,
       (snapshot) => {
         try {
-          const bookingNotifications: Notification[] = snapshot.docs
+          bookingNotifications = snapshot.docs
             .map(docSnapshot => {
-              const booking = Object.assign({}, docSnapshot.data(), { id: docSnapshot.id });
+              const booking = Object.assign({}, docSnapshot.data(), { id: docSnapshot.id }) as any;
               return transformBookingToNotification(booking);
             })
-
             .filter(notif => (notif.data as any).status === 'pending')
-            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             .slice(0, 20);
 
-          setNotifications(prev => {
-            const otherNotifs = prev.filter(n => n.type !== 'booking');
-            return sortNotificationsByTimestamp(bookingNotifications.concat(otherNotifs));
-          });
+          // Combine and sort all notifications
+          setNotifications(sortNotificationsByTimestamp([...affiliationNotifications, ...bookingNotifications]));
           setLoading(false);
         } catch (error) {
           console.error('Error processing bookings:', error);
-          setError('Failed to load booking notifications');
+          setError('Failed to load notifications');
         }
       },
       (error) => {
         console.error('Error in bookings listener:', error);
-        setError('Failed to load booking notifications');
+        setError('Failed to load notifications');
         setLoading(false);
       }
     );

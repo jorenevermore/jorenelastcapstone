@@ -37,12 +37,11 @@ export function useStaff(): UseStaffReturn {
     setError(null);
     try {
       const result = await staffService.getBarbersByBarbershopId(barbershopId);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch barbers';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
+      setError('Failed to fetch barbers');
+      return { success: false, message: 'Failed to fetch barbers' };
     } finally {
       setIsLoading(false);
     }
@@ -53,12 +52,11 @@ export function useStaff(): UseStaffReturn {
     setError(null);
     try {
       const result = await staffService.getBarberById(barberId);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch barber';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
+      setError('Failed to fetch barber');
+      return { success: false, message: 'Failed to fetch barber' };
     } finally {
       setIsLoading(false);
     }
@@ -69,12 +67,11 @@ export function useStaff(): UseStaffReturn {
     setError(null);
     try {
       const result = await staffService.addBarberToBarbershop(barbershopId, barberData);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to add barber to barbershop';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'ADD_ERROR' };
+      setError('Failed to add barber to barbershop');
+      return { success: false, message: 'Failed to add barber to barbershop' };
     } finally {
       setIsLoading(false);
     }
@@ -85,12 +82,11 @@ export function useStaff(): UseStaffReturn {
     setError(null);
     try {
       const result = await staffService.removeBarberFromBarbershop(barbershopId, barberId);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to remove barber from barbershop';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'REMOVE_ERROR' };
+      setError('Failed to remove barber from barbershop');
+      return { success: false, message: 'Failed to remove barber from barbershop' };
     } finally {
       setIsLoading(false);
     }
@@ -101,12 +97,11 @@ export function useStaff(): UseStaffReturn {
     setError(null);
     try {
       const result = await staffService.updateBarber(barberId, barberData);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update barber';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'UPDATE_ERROR' };
+      setError('Failed to update barber');
+      return { success: false, message: 'Failed to update barber' };
     } finally {
       setIsLoading(false);
     }
@@ -117,12 +112,11 @@ export function useStaff(): UseStaffReturn {
     setError(null);
     try {
       const result = await staffService.deleteBarber(barberId);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to delete barber';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'DELETE_ERROR' };
+      setError('Failed to delete barber');
+      return { success: false, message: 'Failed to delete barber' };
     } finally {
       setIsLoading(false);
     }
@@ -133,12 +127,11 @@ export function useStaff(): UseStaffReturn {
     setError(null);
     try {
       const result = await staffService.getPendingAffiliations(barbershopId);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch pending affiliations';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
+      setError('Failed to fetch pending affiliations');
+      return { success: false, message: 'Failed to fetch pending affiliations' };
     } finally {
       setIsLoading(false);
     }
@@ -149,12 +142,11 @@ export function useStaff(): UseStaffReturn {
     setError(null);
     try {
       const result = await staffService.updateAffiliationStatus(barberId, status);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to update affiliation status';
-      setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'UPDATE_ERROR' };
+      setError('Failed to update affiliation status');
+      return { success: false, message: 'Failed to update affiliation status' };
     } finally {
       setIsLoading(false);
     }

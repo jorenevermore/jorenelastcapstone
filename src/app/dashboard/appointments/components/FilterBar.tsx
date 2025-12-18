@@ -35,7 +35,7 @@ const FilterBar = ({
     setStatusFilter('all');
     setBarberFilter('all');
     setSearchQuery('');
-    setDateFilter('today');
+    setDateFilter('all');
   };
 
   return (
@@ -113,7 +113,7 @@ const FilterBar = ({
             </div>
           </div>
 
-          {(statusFilter !== 'all' || barberFilter !== 'all' || searchQuery || dateFilter !== 'today') && (
+          {(statusFilter !== 'all' || barberFilter !== 'all' || searchQuery || dateFilter !== 'all') && (
             <button
               onClick={handleReset}
               className="p-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md"

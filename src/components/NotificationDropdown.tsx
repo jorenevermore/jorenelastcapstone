@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRealtimeNotifications } from '../lib/hooks/useRealtimeNotifications';
-import { parseBookingDateTime } from '../lib/utils/dateParser';
+import { parseBookingDateTime, formatTimeAgo as formatTimeAgoUtil } from '../lib/utils/dateParser';
 
 const NotificationDropdown: React.FC = () => {
   const router = useRouter();
@@ -30,16 +30,18 @@ const NotificationDropdown: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // format timestamp
+  // format timestamp - use centralized utility
   const formatTimeAgo = (timestamp: string) => {
-    const now = new Date();
-    const time = new Date(parseInt(timestamp));
-    const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+    // Handle both ISO strings and milliseconds
+    let ms: string;
+    if (timestamp.includes('-') || timestamp.includes('T')) {
+      // ISO string format - convert to milliseconds
+      ms = new Date(timestamp).getTime().toString();
+    } else {
+      // Already milliseconds
+      ms = timestamp;
+    }
+    return formatTimeAgoUtil(ms);
   };
 
   return (

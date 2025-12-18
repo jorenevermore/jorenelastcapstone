@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Service, Style } from '../../../../types/services';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../../../../lib/firebase';
+import { useFileUpload } from '../../../../lib/hooks/useFileUpload';
 import { StandardModal } from '../../components';
 
 interface StyleModalProps {
@@ -23,9 +22,9 @@ const StyleModal: React.FC<StyleModalProps> = ({
   isEditing,
   services
 }) => {
+  const { uploadFile, isUploading: fileUploading, error: fileError } = useFileUpload();
   const [style, setStyle] = useState<Style>(initialStyle);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
@@ -128,23 +127,22 @@ const StyleModal: React.FC<StyleModalProps> = ({
     }
 
     try {
-      setIsUploading(true);
       let finalStyle = { ...style };
 
       if (imageFile) {
-        const storageRef = ref(storage, `styles/${Date.now()}_${imageFile.name}`);
-        const snapshot = await uploadBytes(storageRef, imageFile);
-        const downloadURL = await getDownloadURL(snapshot.ref);
-        finalStyle.featuredImage = downloadURL;
+        const uploadResult = await uploadFile(imageFile, 'styles');
+        if (!uploadResult.success) {
+          setError(uploadResult.message || 'Failed to upload image');
+          return;
+        }
+        finalStyle.featuredImage = uploadResult.data as string;
       }
-      
+
       await onSave(finalStyle);
       onClose();
     } catch (err) {
       console.error('Error saving style:', err);
       setError('Failed to save style. Please try again.');
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -323,7 +321,7 @@ const StyleModal: React.FC<StyleModalProps> = ({
               type="button"
               onClick={onClose}
               className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded text-sm hover:bg-gray-50 transition-colors"
-              disabled={isUploading}
+              disabled={fileUploading}
             >
               Cancel
             </button>
@@ -331,11 +329,11 @@ const StyleModal: React.FC<StyleModalProps> = ({
               type="submit"
               className="px-3 py-1.5 text-white rounded text-sm transition-colors flex items-center gap-1.5 disabled:opacity-50"
               style={{ backgroundColor: '#BF8F63' }}
-              onMouseEnter={(e) => !isUploading && (e.currentTarget.style.backgroundColor = '#A67C52')}
-              onMouseLeave={(e) => !isUploading && (e.currentTarget.style.backgroundColor = '#BF8F63')}
-              disabled={isUploading}
+              onMouseEnter={(e) => !fileUploading && (e.currentTarget.style.backgroundColor = '#A67C52')}
+              onMouseLeave={(e) => !fileUploading && (e.currentTarget.style.backgroundColor = '#BF8F63')}
+              disabled={fileUploading}
             >
-              {isUploading ? (
+              {fileUploading ? (
                 <>
                   <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

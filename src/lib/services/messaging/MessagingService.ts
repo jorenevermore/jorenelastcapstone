@@ -1,22 +1,12 @@
 
 import { collection, addDoc, query, where, getDocs, orderBy, Firestore } from 'firebase/firestore';
-import type { ServiceResponse } from '../../../types/api';
+import type { ServiceResponse } from '../../../types/response';
 import type { Message } from '../../../types/messaging';
 
 export class MessagingService {
   private readonly COLLECTION = 'chats';
 
   constructor(private db: Firestore) {}
-
-  private handleError(error: unknown): ServiceResponse {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Messaging service error:', errorMessage);
-    return {
-      success: false,
-      message: 'Operation failed',
-      error: errorMessage
-    };
-  }
 
   async addMessage(messageData: Omit<Message, 'id'>): Promise<ServiceResponse> {
     try {
@@ -29,7 +19,11 @@ export class MessagingService {
         data: { id: docRef.id, ...messageData }
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Messaging service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -74,7 +68,11 @@ export class MessagingService {
         data: messages
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Messaging service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -103,7 +101,11 @@ export class MessagingService {
         data: messages
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Messaging service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 

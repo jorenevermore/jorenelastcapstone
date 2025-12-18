@@ -54,8 +54,6 @@ export interface Booking {
   }[];
 }
 
-
-// for notif sa bookings, buttons
 export interface Notification {
   id?: string;
   userId: string;

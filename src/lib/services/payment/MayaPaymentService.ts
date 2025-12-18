@@ -1,6 +1,6 @@
 
 import { Firestore, collection, query, where, getDocs } from 'firebase/firestore';
-import type { ServiceResponse } from '../../../types/api';
+import type { ServiceResponse } from '../../../types/response';
 
 export interface MayaPaymentReceipt {
   id: string;
@@ -44,8 +44,7 @@ export class MayaPaymentService {
       if (snapshot.empty) {
         return {
           success: false,
-          message: 'No payment record found for this booking',
-          error: 'NOT_FOUND'
+          message: 'No payment record found for this booking'
         };
       }
 
@@ -55,8 +54,7 @@ export class MayaPaymentService {
       if (paymentData.status !== 'PAYMENT_SUCCESS') {
         return {
           success: false,
-          message: `Payment status is ${paymentData.status}, not PAYMENT_SUCCESS`,
-          error: 'PAYMENT_NOT_SUCCESSFUL'
+          message: `Payment status is ${paymentData.status}, not PAYMENT_SUCCESS`
         };
       }
 
@@ -84,8 +82,7 @@ export class MayaPaymentService {
       console.error('Error fetching payment receipt:', error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : 'Failed to fetch payment receipt',
-        error: 'FETCH_ERROR'
+        message: error instanceof Error ? error.message : 'Failed to fetch payment receipt'
       };
     }
   }

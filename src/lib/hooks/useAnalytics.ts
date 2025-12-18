@@ -4,27 +4,56 @@
 import { useState, useCallback } from 'react';
 import { db } from '../firebase';
 import { AnalyticsService } from '../services/analytics/AnalyticsService';
+import { DashboardService } from '../services/dashboard/DashboardService';
 import { AppointmentService } from '../services/appointment/AppointmentService';
 import type { Booking, AnalyticsStats, RevenueStats } from '../../types';
+import type { DashboardData } from '../../types/analytics';
 
 const appointmentService = new AppointmentService(db);
 
 export interface UseAnalyticsReturn {
   bookings: Booking[];
+  upcomingAppointments: Booking[];
+  recentActivity: Booking[];
+  stats: AnalyticsStats;
+  revenue: RevenueStats;
+  todayCount: number;
   loading: boolean;
   error: string | null;
   fetchBookings: (barbershopId: string) => Promise<void>;
-  getStats: (bookings: Booking[]) => AnalyticsStats;
-  getRevenue: (bookings: Booking[]) => RevenueStats;
   clearError: () => void;
 }
 
 export function useAnalytics(): UseAnalyticsReturn {
 	const [bookings, setBookings] = useState<Booking[]>([]);
+	const [dashboardData, setDashboardData] = useState<DashboardData>({
+		allBookings: [],
+		upcomingAppointments: [],
+		recentActivity: [],
+		todayAppointments: []
+	});
+	const [stats, setStats] = useState<AnalyticsStats>({
+		completed: 0,
+		cancelled: 0,
+		pending: 0,
+		confirmed: 0,
+		inProgress: 0,
+		declined: 0,
+		noShow: 0,
+		total: 0,
+		completionRate: '0',
+		cancellationRate: '0'
+	});
+	const [revenue, setRevenue] = useState<RevenueStats>({
+		totalRevenue: 0,
+		averageRevenue: '0',
+		completedCount: 0
+	});
+	const [todayCount, setTodayCount] = useState(0);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	// Load all bookings for a barbershop (one-time fetch, no real-time listener)
+
 	const fetchBookings = useCallback(async (barbershopId: string) => {
 		setLoading(true);
 		setError(null);
@@ -32,7 +61,20 @@ export function useAnalytics(): UseAnalyticsReturn {
 		try {
 			const result = await appointmentService.getBookingsByBarbershop(barbershopId);
 			if (result.success) {
-				setBookings(result.data || []);
+				const bookingsData = result.data || [];
+				setBookings(bookingsData);
+
+				const processed = DashboardService.processDashboardData(bookingsData);
+				setDashboardData(processed);
+
+				const calculatedStats = AnalyticsService.calculateStats(bookingsData);
+				setStats(calculatedStats);
+
+				const calculatedRevenue = AnalyticsService.calculateRevenue(bookingsData);
+				setRevenue(calculatedRevenue);
+
+				const todayAppointments = AnalyticsService.getTodayAppointmentsCount(bookingsData);
+				setTodayCount(todayAppointments);
 			} else {
 				setError(result.message || 'Failed to fetch analytics data');
 			}
@@ -45,25 +87,20 @@ export function useAnalytics(): UseAnalyticsReturn {
 		}
 	}, []);
 
-	const getStats = useCallback((source: Booking[]) => {
-		return AnalyticsService.calculateStats(source);
-	}, []);
-
-	const getRevenue = useCallback((source: Booking[]) => {
-		return AnalyticsService.calculateRevenue(source);
-	}, []);
-
 	const clearError = useCallback(() => {
 		setError(null);
 	}, []);
 
 	return {
 		bookings,
+		upcomingAppointments: dashboardData.upcomingAppointments,
+		recentActivity: dashboardData.recentActivity,
+		stats,
+		revenue,
+		todayCount,
 		loading,
 		error,
 		fetchBookings,
-		getStats,
-		getRevenue,
 		clearError,
 	};
 }

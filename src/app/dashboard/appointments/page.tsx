@@ -12,6 +12,7 @@ import {
   QueueOverviewCard
 } from './components';
 import { useAppointments } from '../../../lib/hooks/useAppointments';
+import { useAppointmentModals } from './hooks/useAppointmentModals';
 import { BookingUtilService } from '../../../lib/services/booking/BookingUtilService';
 import {
   filterBookings,
@@ -29,23 +30,29 @@ export default function AppointmentsPage() {
     deleteBooking
   } = useAppointments();
 
+  const {
+    selectedBooking,
+    openConfirmAction,
+    closeConfirmAction,
+    bookingToDelete,
+    openDeleteConfirmation,
+    closeDeleteConfirmation,
+    showCancelReasonModal,
+    cancelReason,
+    setCancelReason,
+    openCancelReasonModal,
+    closeCancelReasonModal,
+  } = useAppointmentModals();
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [error, setError] = useState<string | null>(appointmentError);
-
-  const [selectedBooking, setSelectedBooking] = useState<{
-    id: string;
-    action: 'accept' | 'cancel';
-  } | null>(null);
-
-  const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
-  const [showCancelConfirmation, setShowCancelConfirmation] = useState<string | null>(null);
-  const [cancelReason, setCancelReason] = useState<string>('');
-  const [showCancelReasonModal, setShowCancelReasonModal] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [barberFilter, setBarberFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [dateFilter, setDateFilter] = useState<string>('today');
+  const [dateFilter, setDateFilter] = useState<string>('all');
 
   // setup realtime listener for bookings
   useEffect(() => {
@@ -69,25 +76,30 @@ export default function AppointmentsPage() {
     status: Booking['status'],
     reason?: string
   ) => {
-    const success = await updateBookingStatus(bookingId, status, reason);
-    if (success) {
-      setSelectedBooking(null);
-    } else {
-      setError('Failed to update booking status. Please try again.');
+    setIsUpdating(true);
+    try {
+      const success = await updateBookingStatus(bookingId, status, reason);
+      if (success) {
+        closeConfirmAction();
+      } else {
+        setError('Failed to update booking status. Please try again.');
+      }
+      return success;
+    } finally {
+      setIsUpdating(false);
     }
-    return success;
   };
 
   const handleAccept = (bookingId: string) => {
-    setSelectedBooking({ id: bookingId, action: 'accept' });
+    openConfirmAction(bookingId, 'accept');
   };
 
   const handleCancel = (bookingId: string) => {
-    setShowCancelConfirmation(bookingId);
+    openConfirmAction(bookingId, 'cancel');
   };
 
   const handleDelete = (bookingId: string) => {
-    setBookingToDelete(bookingId);
+    openDeleteConfirmation(bookingId);
   };
 
   const confirmAction = async () => {
@@ -96,18 +108,24 @@ export default function AppointmentsPage() {
       if (action === 'accept') {
         await handleUpdateBookingStatus(id, 'confirmed');
       } else {
-        setShowCancelReasonModal(id);
+        closeConfirmAction();
+        openCancelReasonModal(id);
       }
     }
   };
 
   const confirmDelete = async () => {
     if (bookingToDelete) {
-      const success = await deleteBooking(bookingToDelete);
-      if (success) {
-        setBookingToDelete(null);
-      } else {
-        setError('Failed to delete booking. Please try again.');
+      setIsDeleting(true);
+      try {
+        const success = await deleteBooking(bookingToDelete);
+        if (success) {
+          closeDeleteConfirmation();
+        } else {
+          setError('Failed to delete booking. Please try again.');
+        }
+      } finally {
+        setIsDeleting(false);
       }
     }
   };
@@ -193,20 +211,22 @@ export default function AppointmentsPage() {
                 </p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setSelectedBooking(null)}
-                    className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 transition-colors"
+                    onClick={closeConfirmAction}
+                    disabled={isUpdating}
+                    className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Close
                   </button>
                   <button
                     onClick={confirmAction}
-                    className={`px-3 py-1.5 text-white rounded text-xs font-medium transition-colors ${
+                    disabled={isUpdating}
+                    className={`px-3 py-1.5 text-white rounded text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                       selectedBooking.action === 'accept'
                         ? 'bg-green-500 hover:bg-green-600'
                         : 'bg-red-500 hover:bg-red-600'
                     }`}
                   >
-                    {selectedBooking.action === 'accept' ? 'Accept' : 'Cancel'}
+                    {isUpdating ? 'Processing...' : (selectedBooking.action === 'accept' ? 'Accept' : 'Cancel')}
                   </button>
                 </div>
               </div>
@@ -216,24 +236,10 @@ export default function AppointmentsPage() {
             isOpen={!!bookingToDelete}
             title="Delete Booking"
             message="Are you sure you want to delete this booking? This action cannot be undone."
-            confirmText="Delete"
-            onClose={() => setBookingToDelete(null)}
+            confirmText={isDeleting ? 'Deleting...' : 'Delete'}
+            onClose={closeDeleteConfirmation}
             onConfirm={confirmDelete}
             confirmColor="bg-red-600"
-          />
-          <ConfirmationModal
-            isOpen={!!showCancelConfirmation}
-            title="Cancel Appointment"
-            message="Are you sure you want to cancel this appointment? You will need to provide a reason."
-            confirmText="Continue"
-            onClose={() => setShowCancelConfirmation(null)}
-            onConfirm={() => {
-              if (showCancelConfirmation) {
-                setShowCancelReasonModal(showCancelConfirmation);
-                setShowCancelConfirmation(null);
-              }
-            }}
-            confirmColor="bg-yellow-600"
           />
 
           {showCancelReasonModal && (
@@ -244,17 +250,17 @@ export default function AppointmentsPage() {
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   placeholder="Enter reason for cancellation..."
-                  className="w-full border border-gray-300 rounded p-3 mb-4 text-sm"
+                  disabled={isUpdating}
+                  className="w-full border border-gray-300 rounded p-3 mb-4 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                   rows={4}
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      setShowCancelReasonModal(null);
-                      setCancelReason('');
-                      setSelectedBooking(null);
+                      closeCancelReasonModal();
                     }}
-                    className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 transition-colors"
+                    disabled={isUpdating}
+                    className="px-3 py-1.5 border border-gray-300 rounded text-xs font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Close
                   </button>
@@ -262,13 +268,13 @@ export default function AppointmentsPage() {
                     onClick={async () => {
                       if (showCancelReasonModal) {
                         await handleUpdateBookingStatus(showCancelReasonModal, 'cancelled', cancelReason);
-                        setShowCancelReasonModal(null);
-                        setCancelReason('');
+                        closeCancelReasonModal();
                       }
                     }}
-                    className="px-3 py-1.5 bg-red-500 text-white rounded text-xs font-medium transition-colors hover:bg-red-600"
+                    disabled={isUpdating}
+                    className="px-3 py-1.5 bg-red-500 text-white rounded text-xs font-medium transition-colors hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Confirm Cancel
+                    {isUpdating ? 'Processing...' : 'Confirm Cancel'}
                   </button>
                 </div>
               </div>

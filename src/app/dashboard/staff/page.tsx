@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db, storage } from '../../../lib/firebase';
+import { auth, db } from '../../../lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useStaff, Barber } from '../../../lib/hooks/useStaff';
+import { useFileUpload } from '../../../lib/hooks/useFileUpload';
 import ConfirmationModal from '../services/components/ConfirmationModal';
 
 export default function StaffPage() {
   const [user] = useAuthState(auth);
+  const { uploadFile, isUploading: fileUploading } = useFileUpload();
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,14 +154,12 @@ export default function StaffPage() {
 
     try {
       setLoading(true);
-      setIsUploading(true);
 
       // Get barbershop details
       const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
       if (!barbershopDoc.exists()) {
         setError('Barbershop details not found. Please set up your barbershop first.');
         setLoading(false);
-        setIsUploading(false);
         return;
       }
 
@@ -170,9 +169,13 @@ export default function StaffPage() {
 
       // Upload new image if one was selected
       if (imageFile) {
-        const storageRef = ref(storage, `staffs/${Date.now()}_${imageFile.name}`);
-        const snapshot = await uploadBytes(storageRef, imageFile);
-        imageUrl = await getDownloadURL(snapshot.ref);
+        const uploadResult = await uploadFile(imageFile, 'staffs');
+        if (!uploadResult.success) {
+          setError(uploadResult.message || 'Failed to upload image');
+          setLoading(false);
+          return;
+        }
+        imageUrl = uploadResult.data as string;
       }
 
       const barberData = {

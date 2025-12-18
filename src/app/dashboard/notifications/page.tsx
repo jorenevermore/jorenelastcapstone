@@ -6,7 +6,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../lib/firebase';
 import { useNotificationsPage } from '../../../lib/hooks/useNotificationsPage';
 import { useStaff } from '../../../lib/hooks/useStaff';
-import { parseBookingDateTime } from '../../../lib/utils/dateParser';
+import { parseBookingDateTime, formatTimestamp } from '../../../lib/utils/dateParser';
 import ConfirmationModal from '../services/components/ConfirmationModal';
 
 export default function NotificationsPage() {
@@ -25,7 +25,6 @@ export default function NotificationsPage() {
 
   const { updateAffiliationStatus } = useStaff();
 
-  // handle affiliation
   const handleAffiliationAction = (barberId: string, action: 'approved' | 'rejected', barberName: string) => {
     setConfirmationData({ barberId, action, barberName });
     setShowConfirmation(true);
@@ -39,11 +38,9 @@ export default function NotificationsPage() {
       const result = await updateAffiliationStatus(confirmationData.barberId, confirmationData.action);
 
       if (result.success) {
-        // refresh notifications
         if (user) {
           await fetchNotifications(user.uid);
         }
-        // mark as read
         markAsRead(`affiliation-${confirmationData.barberId}`);
       } else {
         console.error('Error updating affiliation status:', result.message);
@@ -55,16 +52,6 @@ export default function NotificationsPage() {
       setShowConfirmation(false);
       setConfirmationData(null);
     }
-  };
-
-  const formatDate = (timestamp: string) => {
-    return new Date(parseInt(timestamp)).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   };
 
   if (loading) {
@@ -147,7 +134,7 @@ export default function NotificationsPage() {
                     </p>
                   )}
                   <p className="text-xs text-gray-400 mt-1">
-                    {notification.type === 'booking' ? 'Placed on: ' : ''}{formatDate(notification.timestamp)}
+                    {notification.type === 'booking' ? 'Placed on: ' : ''}{formatTimestamp(notification.timestamp)}
                   </p>
                 </div>
                 {!notification.read && (

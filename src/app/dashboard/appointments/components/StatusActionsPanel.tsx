@@ -118,6 +118,10 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
             >
               Decline
             </button>
+          </>
+        )}
+        {appointment.status === 'confirmed' && (
+          <>
             <button
               className="px-3 py-1 bg-blue-500 text-white rounded text-xs font-medium transition-colors hover:bg-blue-600 disabled:opacity-50"
               onClick={handleSendNextInQueueNotification}
@@ -126,10 +130,6 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
             >
               <i className="fas fa-bell mr-1"></i>Notify
             </button>
-          </>
-        )}
-        {appointment.status === 'confirmed' && (
-          <>
             <button
               className="px-3 py-1 text-white rounded text-xs font-medium transition-colors disabled:opacity-50"
               style={{ backgroundColor: '#BF8F63' }}

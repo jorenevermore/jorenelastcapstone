@@ -26,12 +26,12 @@ export function useGlobalServices(): UseGlobalServicesReturn {
 
     try {
       const result = await serviceManagement.createService(input);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to create service';
       setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'CREATE_ERROR' };
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -43,12 +43,12 @@ export function useGlobalServices(): UseGlobalServicesReturn {
 
     try {
       const result = await serviceManagement.updateService(serviceId, input);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update service';
       setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'UPDATE_ERROR' };
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -60,12 +60,12 @@ export function useGlobalServices(): UseGlobalServicesReturn {
 
     try {
       const result = await serviceManagement.deleteService(serviceId);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete service';
       setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'DELETE_ERROR' };
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -77,12 +77,12 @@ export function useGlobalServices(): UseGlobalServicesReturn {
 
     try {
       const result = await serviceManagement.getAllServices();
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch services';
       setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }

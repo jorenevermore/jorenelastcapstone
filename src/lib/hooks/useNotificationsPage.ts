@@ -4,20 +4,16 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
-import {
-  updateDoc
-} from 'firebase/firestore';
+import { updateDoc } from 'firebase/firestore';
 import {
   Notification,
   sortNotificationsByTimestamp,
   parseNotificationId,
   getNotificationRef,
   transformAffiliationToNotification,
-  transformMessageToNotification,
   transformBookingToNotification
 } from '../utils/notificationHelpers';
 import { AppointmentService } from '../services/appointment/AppointmentService';
-import { MessagingService } from '../services/messaging/MessagingService';
 import { StaffManagementService } from '../services/staff/StaffManagementService';
 
 export const useNotificationsPage = () => {
@@ -31,31 +27,20 @@ export const useNotificationsPage = () => {
       setLoading(true);
       setError(null);
 
-      // Initialize services
       const appointmentService = new AppointmentService(db);
-      const messagingService = new MessagingService(db);
       const staffService = new StaffManagementService(db);
 
       const affiliationsResult = await staffService.getPendingAffiliations(barbershopId);
       const affiliationNotifications: Notification[] = (affiliationsResult.data || [])
         .map(transformAffiliationToNotification)
-        .sort((a: Notification, b: Notification) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        .slice(0, 20);
-
-      const messagesResult = await messagingService.getMessagesForBarbershop(barbershopId);
-      const messageNotifications: Notification[] = (messagesResult.data || [])
-        .filter((msg: any) => msg.from === 'client')
-        .map(transformMessageToNotification)
-        .sort((a: Notification, b: Notification) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 20);
 
       const bookingsResult = await appointmentService.getBookingsByBarbershop(barbershopId);
       const bookingNotifications: Notification[] = (bookingsResult.data || [])
         .map(transformBookingToNotification)
-        .sort((a: Notification, b: Notification) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
         .slice(0, 20);
 
-      const allNotifications = sortNotificationsByTimestamp([...affiliationNotifications, ...messageNotifications, ...bookingNotifications]);
+      const allNotifications = sortNotificationsByTimestamp([...affiliationNotifications, ...bookingNotifications]);
       setNotifications(allNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -75,7 +60,6 @@ export const useNotificationsPage = () => {
   }, [user, fetchNotifications]);
 
   const markAsRead = useCallback(async (notificationId: string): Promise<boolean> => {
-    // Check current state without depending on notifications
     let isAlreadyRead = false;
     setNotifications(prev => {
       const notification = prev.find(n => n.id === notificationId);

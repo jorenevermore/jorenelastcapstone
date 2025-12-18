@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { auth } from '../firebase';
 import { FirebaseAuthService, FirebaseAuthResult } from '../services/auth/FirebaseAuthService';
 import { SessionManager } from '../services/auth/SessionManager';
-import { AuthCredentials } from '../services/auth/BaseAuthService';
+import type { AuthCredentials } from '../../types/auth';
 
 const firebaseAuthService = new FirebaseAuthService(auth);
 const sessionManager = new SessionManager();
@@ -30,18 +30,16 @@ export function useFirebaseAuth(): UseFirebaseAuthReturn {
 
       if (result.success && result.data) {
         sessionManager.storeUserSession(result.data.idToken);
-      } else {
+      } else if (result.message) {
         setError(result.message);
       }
 
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Login failed';
-      setError(errorMessage);
+      setError('Login failed');
       return {
         success: false,
-        message: errorMessage,
-        error: 'LOGIN_ERROR'
+        message: 'Login failed'
       };
     } finally {
       setIsLoading(false);
@@ -57,18 +55,16 @@ export function useFirebaseAuth(): UseFirebaseAuthReturn {
 
       if (result.success && result.data) {
         sessionManager.storeUserSession(result.data.idToken);
-      } else {
+      } else if (result.message) {
         setError(result.message);
       }
 
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Signup failed';
-      setError(errorMessage);
+      setError('Signup failed');
       return {
         success: false,
-        message: errorMessage,
-        error: 'SIGNUP_ERROR'
+        message: 'Signup failed'
       };
     } finally {
       setIsLoading(false);

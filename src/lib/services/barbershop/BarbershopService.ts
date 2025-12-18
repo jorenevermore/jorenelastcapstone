@@ -1,22 +1,12 @@
 
 import type { BarbershopProfile, CreateBarbershopInput, UpdateBarbershopInput } from '../../../types/barbershop';
-import type { ServiceResponse } from '../../../types/api';
+import type { ServiceResponse } from '../../../types/response';
 import { doc, setDoc, getDoc, updateDoc, Firestore } from 'firebase/firestore';
 import { geohashForLocation } from 'geofire-common';
 import { GeoPoint } from 'firebase/firestore';
 
 export class BarbershopService {
   constructor(private db: Firestore) {}
-
-  private handleError(error: unknown): ServiceResponse {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Barbershop service error:', errorMessage);
-    return {
-      success: false,
-      message: 'Operation failed',
-      error: errorMessage
-    };
-  }
 
   async createProfile(input: CreateBarbershopInput): Promise<ServiceResponse> {
     try {
@@ -50,7 +40,11 @@ export class BarbershopService {
         data: profile
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Barbershop service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -61,8 +55,7 @@ export class BarbershopService {
       if (!docSnap.exists()) {
         return {
           success: false,
-          message: 'Barbershop profile not found',
-          error: 'NOT_FOUND'
+          message: 'Barbershop profile not found'
         };
       }
 
@@ -72,7 +65,11 @@ export class BarbershopService {
         data: docSnap.data()
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Barbershop service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -96,7 +93,11 @@ export class BarbershopService {
         message: 'Barbershop profile updated successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Barbershop service error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 }

@@ -26,7 +26,7 @@ export function useBarbershop(): UseBarbershopReturn {
     try {
       const result = await barbershopService.createProfile(input);
 
-      if (!result.success) {
+      if (!result.success && result.message) {
         setError(result.message);
       }
 
@@ -36,8 +36,7 @@ export function useBarbershop(): UseBarbershopReturn {
       setError(errorMessage);
       return {
         success: false,
-        message: errorMessage,
-        error: 'CREATE_ERROR'
+        message: errorMessage
       };
     } finally {
       setIsLoading(false);
@@ -51,7 +50,7 @@ export function useBarbershop(): UseBarbershopReturn {
     try {
       const result = await barbershopService.getProfile(barbershopId);
 
-      if (!result.success) {
+      if (!result.success && result.message) {
         setError(result.message);
       }
 
@@ -61,8 +60,7 @@ export function useBarbershop(): UseBarbershopReturn {
       setError(errorMessage);
       return {
         success: false,
-        message: errorMessage,
-        error: 'FETCH_ERROR'
+        message: errorMessage
       };
     } finally {
       setIsLoading(false);
@@ -76,7 +74,7 @@ export function useBarbershop(): UseBarbershopReturn {
     try {
       const result = await barbershopService.updateProfile(barbershopId, input);
 
-      if (!result.success) {
+      if (!result.success && result.message) {
         setError(result.message);
       }
 
@@ -86,8 +84,7 @@ export function useBarbershop(): UseBarbershopReturn {
       setError(errorMessage);
       return {
         success: false,
-        message: errorMessage,
-        error: 'UPDATE_ERROR'
+        message: errorMessage
       };
     } finally {
       setIsLoading(false);

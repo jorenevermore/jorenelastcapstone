@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { formatDateLong } from '../../../../lib/utils/dateParser';
 
 interface SimpleDatePickerProps {
   selectedDate: Date;
@@ -9,12 +10,10 @@ interface SimpleDatePickerProps {
 
 const SimpleDatePicker: React.FC<SimpleDatePickerProps> = ({ selectedDate, onDateChange }) => {
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
+    const isoString = date.toISOString();
+    const formatted = formatDateLong(isoString);
+    const weekday = date.toLocaleDateString('en-US', { weekday: 'short' });
+    return `${weekday}, ${formatted}`;
   };
 
   const goToPreviousDay = () => {

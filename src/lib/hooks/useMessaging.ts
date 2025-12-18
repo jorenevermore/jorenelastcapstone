@@ -25,12 +25,12 @@ export function useMessaging(): UseMessagingReturn {
     setError(null);
     try {
       const result = await messagingService.addMessage(messageData);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
       setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'SEND_ERROR' };
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -41,12 +41,12 @@ export function useMessaging(): UseMessagingReturn {
     setError(null);
     try {
       const result = await messagingService.getMessagesForAppointment(appointmentId, barberId, clientId);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch messages';
       setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }
@@ -57,12 +57,12 @@ export function useMessaging(): UseMessagingReturn {
     setError(null);
     try {
       const result = await messagingService.getMessagesForBarbershop(barbershopId);
-      if (!result.success) setError(result.message);
+      if (!result.success && result.message) setError(result.message);
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch messages';
       setError(errorMessage);
-      return { success: false, message: errorMessage, error: 'FETCH_ERROR' };
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }

@@ -1,102 +1,58 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '../../lib/firebase';
+import { auth } from '../../lib/firebase';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, getDocs } from 'firebase/firestore';
 import StatsCards from './appointments/components/StatsCards';
-import type { Booking } from '../../types/appointments';
 import { BookingUtilService } from '../../lib/services/booking/BookingUtilService';
-import { DashboardService } from '../../lib/services/dashboard/DashboardService';
-import { AnalyticsService } from '../../lib/services/analytics/AnalyticsService';
+import { useAnalytics } from '../../lib/hooks/useAnalytics';
 
 export default function Dashboard() {
   const [user] = useAuthState(auth);
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [allBookings, setAllBookings] = useState<Booking[]>([]);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<Booking[]>([]);
-  const [recentActivity, setRecentActivity] = useState<Booking[]>([]);
-  const [stats, setStats] = useState({
-    totalAppointments: 0,
-    pendingAppointments: 0,
-    todayAppointments: 0,
-    completedAppointments: 0,
-    canceledAppointments: 0,
-    totalRevenue: 0
-  });
+  const {
+    bookings,
+    upcomingAppointments,
+    recentActivity,
+    stats: analyticsStats,
+    revenue,
+    todayCount,
+    loading,
+    error,
+    fetchBookings
+  } = useAnalytics();
+
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const processDashboardData = useCallback((bookingsData: Booking[]) => {
-    const dashboardData = DashboardService.processDashboardData(bookingsData);
-    const analyticsStats = AnalyticsService.calculateStats(dashboardData.allBookings);
-    const revenueStats = AnalyticsService.calculateRevenue(dashboardData.allBookings);
-    const todayCount = AnalyticsService.getTodayAppointmentsCount(dashboardData.allBookings);
-
-    setAllBookings(dashboardData.allBookings);
-    setStats({
-      totalAppointments: analyticsStats.total,
-      pendingAppointments: analyticsStats.pending,
-      todayAppointments: todayCount,
-      completedAppointments: analyticsStats.completed,
-      canceledAppointments: analyticsStats.cancelled,
-      totalRevenue: revenueStats.totalRevenue
-    });
-
-    setUpcomingAppointments(dashboardData.upcomingAppointments);
-    setRecentActivity(dashboardData.recentActivity);
-  }, []);
-
-  const fetchDashboardData = useCallback(async (barbershopId: string) => {
-    try {
-      setError(null);
-      const bookingsCollection = collection(db, 'bookings');
-      const bookingsQuery = query(
-        bookingsCollection,
-        where('barbershopId', '==', barbershopId)
-      );
-
-      const snapshot = await getDocs(bookingsQuery);
-      const bookingsData: Booking[] = snapshot.docs.map(doc => {
-        const docData = doc.data();
-        return {
-          ...docData,
-          id: doc.id
-        } as Booking;
-      });
-
-      processDashboardData(bookingsData);
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-      setError('Failed to load dashboard data. Please try again.');
-    }
-  }, [processDashboardData]);
-
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
+    if (user?.uid) {
+      fetchBookings(user.uid);
     }
+  }, [user?.uid, fetchBookings]);
 
-    setLoading(true);
-    fetchDashboardData(user.uid).finally(() => setLoading(false));
-  }, [user, fetchDashboardData]);
-
-  const handleRefresh = async () => {
-    if (!user) return;
+  const refresh = async () => {
+    if (!user?.uid) return;
     setIsRefreshing(true);
-    await fetchDashboardData(user.uid);
+    await fetchBookings(user.uid);
     setIsRefreshing(false);
+  };
+
+  const stats = {
+    totalAppointments: analyticsStats.total,
+    pendingAppointments: analyticsStats.pending,
+    todayAppointments: todayCount,
+    completedAppointments: analyticsStats.completed,
+    canceledAppointments: analyticsStats.cancelled,
+    totalRevenue: revenue.totalRevenue
   };
 
   return (
     <div className="p-4">
       <div className="flex justify-end items-center">
         <button
-          onClick={handleRefresh}
+          onClick={refresh}
           disabled={isRefreshing}
           className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           title="Refresh dashboard"
@@ -118,7 +74,7 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <StatsCards bookings={allBookings} />
+          <StatsCards bookings={bookings} />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div className="bg-white rounded-lg shadow-sm p-4">
               <div className="flex justify-between items-start">
@@ -241,7 +197,6 @@ export default function Dashboard() {
                   View All <i className="fas fa-chevron-right ml-1"></i>
                 </Link>
               </div>
-
               <div className="divide-y divide-gray-100">
                 {recentActivity.length > 0 ? (
                   recentActivity.map(activity => (

@@ -6,10 +6,12 @@ import {
   deleteDoc,
   doc
 } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../../lib/firebase';
+import { FileUploadService } from '../../../lib/services/fileUpload/FileUploadService';
 import type { GlobalService } from '../../../types/services';
 import { SubscriptionPackage } from '../types';
+
+const fileUploadService = new FileUploadService(storage);
 
 export const fetchServices = async (): Promise<GlobalService[]> => {
   try {
@@ -37,9 +39,11 @@ export const addService = async (title: string, imageFile: File | null): Promise
     let featuredImageUrl = '';
 
     if (imageFile) {
-      const storageRefPath = ref(storage, `services/${Date.now()}_${imageFile.name}`);
-      const snapshot = await uploadBytes(storageRefPath, imageFile);
-      featuredImageUrl = await getDownloadURL(snapshot.ref);
+      const uploadResult = await fileUploadService.uploadFile(imageFile, 'services');
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.message || 'Failed to upload image');
+      }
+      featuredImageUrl = uploadResult.data as string;
     }
 
     const docRef = await addDoc(collection(db, 'services'), {
@@ -59,9 +63,11 @@ export const updateService = async (id: string, title: string, imageFile: File |
     let featuredImageUrl = currentImage;
 
     if (imageFile) {
-      const storageRefPath = ref(storage, `services/${Date.now()}_${imageFile.name}`);
-      const snapshot = await uploadBytes(storageRefPath, imageFile);
-      featuredImageUrl = await getDownloadURL(snapshot.ref);
+      const uploadResult = await fileUploadService.uploadFile(imageFile, 'services');
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.message || 'Failed to upload image');
+      }
+      featuredImageUrl = uploadResult.data as string;
     }
 
     await updateDoc(doc(db, 'services', id), {

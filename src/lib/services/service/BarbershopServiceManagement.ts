@@ -1,22 +1,12 @@
 
 import { collection, updateDoc, deleteDoc, getDocs, query, where, doc, Firestore, getDoc } from 'firebase/firestore';
-import type { ServiceResponse } from '../../../types/api';
+import type { ServiceResponse } from '../../../types/response';
 import type { Service, Style } from '../../../types/services';
 
 export class BarbershopServiceManagement {
   private readonly COLLECTION = 'services';
 
   constructor(private db: Firestore) {}
-
-  private handleError(error: unknown): ServiceResponse {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    console.error('Service management error:', errorMessage);
-    return {
-      success: false,
-      message: 'Operation failed',
-      error: errorMessage
-    };
-  }
 
   async getServicesByBarbershop(barbershopId: string): Promise<ServiceResponse> {
     try {
@@ -40,7 +30,11 @@ export class BarbershopServiceManagement {
         data: services
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Service management error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -54,7 +48,11 @@ export class BarbershopServiceManagement {
         message: 'Services updated successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Service management error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -81,7 +79,11 @@ export class BarbershopServiceManagement {
         data: styles
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Service management error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 
@@ -98,7 +100,11 @@ export class BarbershopServiceManagement {
         message: 'Style deleted successfully'
       };
     } catch (error) {
-      return this.handleError(error);
+      console.error('Service management error:', error);
+      return {
+        success: false,
+        message: 'Operation failed'
+      };
     }
   }
 }

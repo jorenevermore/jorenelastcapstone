@@ -5,5 +5,8 @@ export interface Message {
   clientId: string;
   from: 'barbershop' | 'client';
   timestamp: string;
+  senderId: string;
+  appointmentId: string;
+  clientName?: string;
 }
 
