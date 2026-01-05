@@ -22,13 +22,20 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
 
     const { labels, data } = AnalyticsService.getAppointmentStatusData(bookings);
 
-    const backgroundColors = [
-      'rgba(16, 185, 129, 0.7)',  
-      'rgba(59, 130, 246, 0.7)',  
-      'rgba(245, 158, 11, 0.7)',  
-      'rgba(239, 68, 68, 0.7)',  
-    ];
-    
+    // Map status names to colors
+    const statusColorMap: Record<string, string> = {
+      'Completed': '#10b981',
+      'Cancelled': '#ef4444',
+      'Pending': '#f59e0b',
+      'Confirmed': '#3b82f6',
+      'In Progress': '#8b5cf6',
+      'Declined': '#6b7280',
+      'No Show': '#f97316',
+      'Completed And Reviewed': '#059669',
+    };
+
+    const backgroundColors = labels.map(label => statusColorMap[label] || '#9ca3af');
+
     const ctx = chartRef.current.getContext('2d');
     if (ctx) {
       chartInstance.current = new Chart(ctx, {
@@ -39,7 +46,8 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
             {
               data,
               backgroundColor: backgroundColors,
-              borderWidth: 0,
+              borderColor: '#ffffff',
+              borderWidth: 2,
             },
           ],
         },
@@ -48,13 +56,21 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              position: 'right',
+              position: 'bottom',
               labels: {
-                boxWidth: 12,
-                padding: 15,
+                padding: 16,
+                font: { size: 12 },
+                color: '#6b7280',
               },
             },
             tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: { size: 13, weight: 'bold' },
+              bodyFont: { size: 12 },
+              borderColor: '#10b981',
+              borderWidth: 1,
+              displayColors: false,
               callbacks: {
                 label: function(context) {
                   const label = context.label || '';
@@ -66,7 +82,7 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
               }
             },
           },
-          cutout: '65%',
+          cutout: '70%',
         },
       });
     }
@@ -85,14 +101,14 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
     : 0;
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
+    <div className="bg-white rounded-lg p-6 flex flex-col h-full border border-gray-200">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-medium text-gray-700">Appointment Status</h3>
-        <div className="text-sm text-gray-500">
-          Completion Rate: <span className="font-medium">{completionRate}%</span>
+        <h3 className="text-lg font-semibold text-gray-900">Appointment Status</h3>
+        <div className="text-sm text-gray-600">
+          <span className="font-semibold">{completionRate}%</span> complete
         </div>
       </div>
-      <div className="h-64">
+      <div className="flex-1 min-h-0 flex items-center justify-center">
         <canvas ref={chartRef}></canvas>
       </div>
     </div>

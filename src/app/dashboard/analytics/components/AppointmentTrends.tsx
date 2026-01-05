@@ -16,16 +16,18 @@ const AppointmentTrends: React.FC<AppointmentTrendsProps> = ({ bookings }) => {
   useEffect(() => {
     if (!chartRef.current) return;
 
-    // Destroy existing chart
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
 
     const { labels, data } = AnalyticsService.getAppointmentTrendsData(bookings);
 
-    // Create chart
     const ctx = chartRef.current.getContext('2d');
     if (ctx) {
+      const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.1)');
+      gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
+
       chartInstance.current = new Chart(ctx, {
         type: 'line',
         data: {
@@ -35,13 +37,15 @@ const AppointmentTrends: React.FC<AppointmentTrendsProps> = ({ bookings }) => {
               label: 'Appointments',
               data,
               borderColor: '#3b82f6',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              backgroundColor: gradient,
               borderWidth: 2,
-              tension: 0.3,
+              tension: 0.4,
               fill: true,
-              pointBackgroundColor: '#3b82f6',
-              pointRadius: 3,
+              pointRadius: 0,
               pointHoverRadius: 5,
+              pointBackgroundColor: '#3b82f6',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
             },
           ],
         },
@@ -55,6 +59,13 @@ const AppointmentTrends: React.FC<AppointmentTrendsProps> = ({ bookings }) => {
             tooltip: {
               mode: 'index',
               intersect: false,
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: { size: 13, weight: 'bold' },
+              bodyFont: { size: 12 },
+              borderColor: '#6366f1',
+              borderWidth: 1,
+              displayColors: false,
             },
           },
           scales: {
@@ -62,31 +73,38 @@ const AppointmentTrends: React.FC<AppointmentTrendsProps> = ({ bookings }) => {
               grid: {
                 display: false,
               },
+              ticks: {
+                color: '#9ca3af',
+                font: { size: 11 },
+              },
             },
             y: {
               beginAtZero: true,
               ticks: {
                 precision: 0,
+                color: '#9ca3af',
+                font: { size: 11 },
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)',
               },
             },
           },
         },
       });
     }
-    
+
     return () => {
       if (chartInstance.current) {
         chartInstance.current.destroy();
       }
     };
   }, [bookings]);
-  
+
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-medium text-gray-700">Appointment Trends</h3>
-      </div>
-      <div className="h-64">
+    <div className="bg-white rounded-lg p-6 flex flex-col h-full border border-gray-200">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Appointment Trends</h3>
+      <div className="flex-1 min-h-0">
         <canvas ref={chartRef}></canvas>
       </div>
     </div>

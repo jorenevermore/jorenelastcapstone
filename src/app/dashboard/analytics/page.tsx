@@ -61,8 +61,7 @@ export default function AnalyticsPage() {
     canceledAppointments,
     pendingAppointments,
     confirmedAppointments,
-    totalRevenue,
-    uniqueCustomers
+    totalRevenue
   } = AnalyticsService.getAnalyticsMetrics(filteredBookings);
 
   // handle date range change
@@ -72,49 +71,55 @@ export default function AnalyticsPage() {
   };
   
   return (
-    <div className="p-4">
+    <div className="p-8 flex flex-col bg-gray-50 min-h-screen w-full">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6 text-sm">
           <p>{error}</p>
         </div>
       )}
-      
+
       {loading ? (
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-black mb-2"></div>
-          <p>Loading analytics data...</p>
+        <div className="bg-white rounded-lg shadow p-8 text-center flex-1 flex items-center justify-center">
+          <div>
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mb-4"></div>
+            <p className="text-gray-600">Loading analytics data...</p>
+          </div>
         </div>
       ) : (
         <>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium text-gray-700">Your Business Insights!</h2>
-            <DateRangePicker 
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Business Analytics</h1>
+              <p className="text-gray-500 text-sm mt-1">Track your appointments and revenue performance</p>
+            </div>
+            <DateRangePicker
               startDate={startDate}
               endDate={endDate}
               onChange={handleDateRangeChange}
             />
           </div>
-          
-          <SummaryCards 
+
+          <SummaryCards
             totalAppointments={totalAppointments}
             completedAppointments={completedAppointments}
             canceledAppointments={canceledAppointments}
             pendingAppointments={pendingAppointments}
             confirmedAppointments={confirmedAppointments}
             totalRevenue={totalRevenue}
-            uniqueCustomers={uniqueCustomers.length}
           />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <AppointmentTrends bookings={filteredBookings} />
-            <RevenueChart bookings={filteredBookings} />
+
+          <div className="flex flex-col gap-6 w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-80 w-full">
+              <AppointmentTrends bookings={filteredBookings} />
+              <RevenueChart bookings={filteredBookings} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-80 w-full">
+              <ServicePopularity bookings={filteredBookings} />
+              <AppointmentStatusChart bookings={filteredBookings} />
+            </div>
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <ServicePopularity bookings={filteredBookings} />
-            <AppointmentStatusChart bookings={filteredBookings} />
-          </div>
-          
+
 
         </>
       )}

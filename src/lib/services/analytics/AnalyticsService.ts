@@ -143,7 +143,6 @@ export class AnalyticsService {
 		pendingAppointments: number;
 		confirmedAppointments: number;
 		totalRevenue: number;
-		uniqueCustomers: string[];
 	} {
 		const totalAppointments = bookings.length;
 		const completedAppointments = bookings.filter(b => b.status === 'completed').length;
@@ -155,16 +154,13 @@ export class AnalyticsService {
 			.filter(b => b.status === 'completed' && (b.finalPrice || b.totalPrice))
 			.reduce((sum, booking) => sum + ((booking.finalPrice || booking.totalPrice) || 0), 0);
 
-		const uniqueCustomers = Array.from(new Set(bookings.map(b => b.clientName)));
-
 		return {
 			totalAppointments,
 			completedAppointments,
 			canceledAppointments,
 			pendingAppointments,
 			confirmedAppointments,
-			totalRevenue,
-			uniqueCustomers
+			totalRevenue
 		};
 	}
 

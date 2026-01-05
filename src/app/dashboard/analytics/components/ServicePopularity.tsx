@@ -23,14 +23,6 @@ const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
 
     const { labels, data } = AnalyticsService.getServicePopularityData(bookings);
 
-    const backgroundColors = [
-      'rgba(59, 130, 246, 0.7)', 
-      'rgba(16, 185, 129, 0.7)', 
-      'rgba(245, 158, 11, 0.7)', 
-      'rgba(239, 68, 68, 0.7)',  
-      'rgba(139, 92, 246, 0.7)',  
-    ];
-    
     const ctx = chartRef.current.getContext('2d');
     if (ctx) {
       chartInstance.current = new Chart(ctx, {
@@ -41,9 +33,9 @@ const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
             {
               label: 'Bookings',
               data,
-              backgroundColor: backgroundColors,
-              borderWidth: 0,
+              backgroundColor: '#3b82f6',
               borderRadius: 4,
+              borderSkipped: false,
             },
           ],
         },
@@ -55,6 +47,13 @@ const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
               display: false,
             },
             tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: { size: 13, weight: 'bold' },
+              bodyFont: { size: 12 },
+              borderColor: '#3b82f6',
+              borderWidth: 1,
+              displayColors: false,
               callbacks: {
                 label: function(context) {
                   return `${context.parsed.y} bookings`;
@@ -67,11 +66,20 @@ const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
               grid: {
                 display: false,
               },
+              ticks: {
+                color: '#9ca3af',
+                font: { size: 11 },
+              },
             },
             y: {
               beginAtZero: true,
               ticks: {
                 precision: 0,
+                color: '#9ca3af',
+                font: { size: 11 },
+              },
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)',
               },
             },
           },
@@ -87,11 +95,9 @@ const ServicePopularity: React.FC<ServicePopularityProps> = ({ bookings }) => {
   }, [bookings]);
   
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-base font-medium text-gray-700">Most Popular Services</h3>
-      </div>
-      <div className="h-64">
+    <div className="bg-white rounded-lg p-6 flex flex-col h-full border border-gray-200">
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Popular Services</h3>
+      <div className="flex-1 min-h-0">
         <canvas ref={chartRef}></canvas>
       </div>
     </div>
