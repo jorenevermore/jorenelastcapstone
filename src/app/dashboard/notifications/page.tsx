@@ -107,9 +107,7 @@ export default function NotificationsPage() {
               <div className="flex items-start space-x-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-100">
                   <i className={`${
-                    notification.type === 'message_reply'
-                      ? 'fas fa-comment text-slate-600'
-                      : notification.type === 'booking'
+                    notification.type === 'booking'
                       ? 'fas fa-calendar text-gray-600'
                       : 'fas fa-user-plus text-slate-600'
                   }`}></i>
@@ -195,7 +193,7 @@ export default function NotificationsPage() {
                     disabled={processingId === (notification.data as any).barberId}
                     className="flex-1 bg-red-600 text-white py-2 px-3 rounded text-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
                   >
-                    {processingId === notification.id ? (
+                    {processingId === (notification.data as any).barberId ? (
                       <i className="fas fa-spinner fa-spin mr-1"></i>
                     ) : (
                       <i className="fas fa-times mr-1"></i>

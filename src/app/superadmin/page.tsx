@@ -1,10 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { db, storage } from '../../lib/firebase';
+import { SuperAdminServiceManagement } from './services/SuperAdminServiceManagement';
+import { SuperAdminSubscriptionManagement } from './services/SuperAdminSubscriptionService';
 import { ServicesTab, SubscriptionsTab, TabNavigation, LoadingSpinner, ErrorAlert } from './components';
-import { fetchServices, fetchSubscriptions } from './services/GlobalServicesAndSubscriptions';
 import type { GlobalService } from '../../types/services';
 import { SubscriptionPackage, TabType } from './types';
+
+const superAdminServiceManagement = new SuperAdminServiceManagement(db, storage);
+const superAdminSubscriptionManagement = new SuperAdminSubscriptionManagement(db);
 
 export default function SuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('services');
@@ -21,12 +26,18 @@ export default function SuperAdminDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const [servicesData, subscriptionsData] = await Promise.all([
-        fetchServices(),
-        fetchSubscriptions()
+      const [servicesResult, subscriptionsResult] = await Promise.all([
+        superAdminServiceManagement.getAllServices(),
+        superAdminSubscriptionManagement.getAllSubscriptions()
       ]);
-      setServices(servicesData);
-      setSubscriptions(subscriptionsData);
+      
+      if (servicesResult.success && servicesResult.data) {
+        setServices(servicesResult.data as GlobalService[]);
+      }
+      
+      if (subscriptionsResult.success && subscriptionsResult.data) {
+        setSubscriptions(subscriptionsResult.data as SubscriptionPackage[]);
+      }
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Failed to load data. Please try again.');

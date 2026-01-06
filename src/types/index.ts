@@ -3,7 +3,7 @@ export type { Booking } from './appointments';
 
 export type { Service, GlobalService, Style, StylesMap, ServiceItem, CreateBarbershopServiceInput, UpdateBarbershopServiceInput, CreateGlobalServiceInput, UpdateGlobalServiceInput } from './services';
 
-export type { Barber } from './barber';
+export type { Barber, UnavailableDate } from './barber';
 
 export type { Location, BarbershopProfile, CreateBarbershopInput, UpdateBarbershopInput } from './barbershop';
 

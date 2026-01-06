@@ -22,7 +22,6 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
 
     const { labels, data } = AnalyticsService.getAppointmentStatusData(bookings);
 
-    // Map status names to colors
     const statusColorMap: Record<string, string> = {
       'Completed': '#10b981',
       'Cancelled': '#ef4444',
@@ -31,7 +30,6 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
       'In Progress': '#8b5cf6',
       'Declined': '#6b7280',
       'No Show': '#f97316',
-      'Completed And Reviewed': '#059669',
     };
 
     const backgroundColors = labels.map(label => statusColorMap[label] || '#9ca3af');

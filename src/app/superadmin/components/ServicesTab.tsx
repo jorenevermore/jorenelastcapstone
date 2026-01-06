@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { addService, updateService, deleteService } from '../services/GlobalServicesAndSubscriptions';
+import { db, storage } from '../../../lib/firebase';
+import { SuperAdminServiceManagement } from '../services/SuperAdminServiceManagement';
 import type { GlobalService } from '../../../types/services';
 import { Modal } from './Modal';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -13,6 +14,7 @@ interface ServicesTabProps {
 }
 
 const INITIAL_SERVICE = { title: '', featuredImage: '' };
+const superAdminServiceManagement = new SuperAdminServiceManagement(db, storage);
 
 export const ServicesTab = ({ services, onRefresh }: ServicesTabProps) => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -38,7 +40,8 @@ export const ServicesTab = ({ services, onRefresh }: ServicesTabProps) => {
     try {
       setIsLoading(true);
       setError(null);
-      await addService(newService.title, imageFile);
+      const result = await superAdminServiceManagement.createService({ title: newService.title }, imageFile);
+      if (!result.success) throw new Error(result.message);
       resetForm();
       setShowAddModal(false);
       await onRefresh();
@@ -54,7 +57,8 @@ export const ServicesTab = ({ services, onRefresh }: ServicesTabProps) => {
     try {
       setIsLoading(true);
       setError(null);
-      await updateService(editingService.id, newService.title, imageFile, editingService.featuredImage);
+      const result = await superAdminServiceManagement.updateService(editingService.id, { title: newService.title }, imageFile, editingService.featuredImage);
+      if (!result.success) throw new Error(result.message);
       resetForm();
       setEditingService(null);
       setShowEditModal(false);
@@ -69,7 +73,8 @@ export const ServicesTab = ({ services, onRefresh }: ServicesTabProps) => {
   const handleDeleteService = async () => {
     if (!serviceToDelete) return;
     try {
-      await deleteService(serviceToDelete.id);
+      const result = await superAdminServiceManagement.deleteService(serviceToDelete.id);
+      if (!result.success) throw new Error(result.message);
       setShowDeleteModal(false);
       setServiceToDelete(null);
       await onRefresh();

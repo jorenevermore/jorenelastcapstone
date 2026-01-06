@@ -13,3 +13,10 @@ export interface Barber {
   createdAt?: string;
   isProfileCompleted?: boolean;
 }
+
+export interface UnavailableDate {
+  id: string;
+  barberId: string;
+  date: string; 
+  fromBarber: boolean;
+}

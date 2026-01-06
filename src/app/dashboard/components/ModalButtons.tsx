@@ -13,7 +13,7 @@ interface ModalButtonsProps {
 }
 
 const confirmTypeColors = {
-  primary: 'bg-amber-600 hover:bg-amber-700',
+  primary: 'text-white transition-colors disabled:opacity-50',
   danger: 'bg-red-500 hover:bg-red-600',
   success: 'bg-green-500 hover:bg-green-600',
   warning: 'bg-yellow-500 hover:bg-yellow-600'
@@ -40,7 +40,10 @@ export const ModalButtons = ({
       <button
         onClick={onConfirm}
         disabled={isLoading || disabled}
-        className={`flex-1 px-4 py-2 text-white rounded text-sm font-medium transition-colors disabled:opacity-50 ${confirmTypeColors[confirmType]}`}
+        className={`flex-1 px-4 py-2 rounded text-sm font-medium ${confirmTypeColors[confirmType]}`}
+        style={confirmType === 'primary' ? { backgroundColor: '#BF8F63' } : {}}
+        onMouseEnter={(e) => confirmType === 'primary' && !isLoading && !disabled && (e.currentTarget.style.backgroundColor = '#A67C52')}
+        onMouseLeave={(e) => confirmType === 'primary' && !isLoading && !disabled && (e.currentTarget.style.backgroundColor = '#BF8F63')}
       >
         {isLoading ? (
           <>

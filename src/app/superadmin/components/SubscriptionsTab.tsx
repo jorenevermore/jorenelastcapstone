@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { addSubscription, updateSubscription, deleteSubscription } from '../services/GlobalServicesAndSubscriptions';
+import { SuperAdminSubscriptionManagement } from '../services/SuperAdminSubscriptionService';
+import { db } from '../../../lib/firebase';
 import { SubscriptionPackage } from '../types';
 import { ConfirmationModal } from './ConfirmationModal';
 import { EmptyState } from './EmptyState';
@@ -19,6 +20,8 @@ const INITIAL_SUBSCRIPTION: Partial<SubscriptionPackage> = {
   amount: 0,
   overall_discount: { type: 'percentage', amount: 0 }
 };
+
+const subscriptionManagement = new SuperAdminSubscriptionManagement(db);
 
 export function SubscriptionsTab({ subscriptions, onRefresh }: SubscriptionsTabProps) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -43,7 +46,11 @@ export function SubscriptionsTab({ subscriptions, onRefresh }: SubscriptionsTabP
     try {
       setIsLoading(true);
       setError(null);
-      await addSubscription(newSubscription as Omit<SubscriptionPackage, 'id'>);
+      const result = await subscriptionManagement.createSubscription(newSubscription as Omit<SubscriptionPackage, 'id'>);
+      if (!result.success) {
+        setError(result.message || 'Failed to add subscription');
+        return;
+      }
       resetForm();
       setShowAddModal(false);
       await onRefresh();
@@ -59,7 +66,11 @@ export function SubscriptionsTab({ subscriptions, onRefresh }: SubscriptionsTabP
     try {
       setIsLoading(true);
       setError(null);
-      await updateSubscription(editingSubscription.id, newSubscription as Omit<SubscriptionPackage, 'id'>);
+      const result = await subscriptionManagement.updateSubscription(editingSubscription.id, newSubscription as Omit<SubscriptionPackage, 'id'>);
+      if (!result.success) {  
+        setError(result.message || 'Failed to update subscription');
+        return;
+      }
       resetForm();
       setEditingSubscription(null);
       setShowEditModal(false);
@@ -74,12 +85,20 @@ export function SubscriptionsTab({ subscriptions, onRefresh }: SubscriptionsTabP
   const handleDeleteSubscription = async () => {
     if (!subscriptionToDelete) return;
     try {
-      await deleteSubscription(subscriptionToDelete.id);
+      setIsLoading(true);
+      setError(null);
+      const result = await subscriptionManagement.deleteSubscription(subscriptionToDelete.id);
+      if (!result.success) {
+        setError(result.message || 'Failed to delete subscription');
+        return;
+      }
       setShowDeleteModal(false);
       setSubscriptionToDelete(null);
       await onRefresh();
     } catch (err) {
       setError('Failed to delete subscription');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -128,7 +147,6 @@ export function SubscriptionsTab({ subscriptions, onRefresh }: SubscriptionsTabP
         </div>
       )}
 
-      {/* Add Modal */}
       <SubscriptionFormModal
         isOpen={showAddModal}
         title="Add New Subscription"
@@ -143,7 +161,6 @@ export function SubscriptionsTab({ subscriptions, onRefresh }: SubscriptionsTabP
         }}
       />
 
-      {/* Edit Modal */}
       <SubscriptionFormModal
         isOpen={showEditModal}
         title="Edit Subscription"
@@ -159,7 +176,6 @@ export function SubscriptionsTab({ subscriptions, onRefresh }: SubscriptionsTabP
         subscriptionId={editingSubscription?.id}
       />
 
-      {/* Delete Confirmation */}
       <ConfirmationModal
         isOpen={showDeleteModal}
         title="Delete Subscription"

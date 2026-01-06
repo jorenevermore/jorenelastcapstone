@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../lib/firebase';
 import Link from 'next/link';
@@ -16,15 +16,10 @@ export default function Dashboard() {
     bookings,
     upcomingAppointments,
     recentActivity,
-    stats: analyticsStats,
-    revenue,
-    todayCount,
     loading,
     error,
     fetchBookings
   } = useAnalytics();
-
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (user?.uid) {
@@ -32,35 +27,8 @@ export default function Dashboard() {
     }
   }, [user?.uid, fetchBookings]);
 
-  const refresh = async () => {
-    if (!user?.uid) return;
-    setIsRefreshing(true);
-    await fetchBookings(user.uid);
-    setIsRefreshing(false);
-  };
-
-  const stats = {
-    totalAppointments: analyticsStats.total,
-    pendingAppointments: analyticsStats.pending,
-    todayAppointments: todayCount,
-    completedAppointments: analyticsStats.completed,
-    canceledAppointments: analyticsStats.cancelled,
-    totalRevenue: revenue.totalRevenue
-  };
-
   return (
     <div className="p-4">
-      <div className="flex justify-end items-center">
-        <button
-          onClick={refresh}
-          disabled={isRefreshing}
-          className="p-2 hover:bg-gray-100 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          title="Refresh dashboard"
-        >
-          <i className={`fas fa-sync-alt text-gray-600 ${isRefreshing ? 'animate-spin' : ''}`}></i>
-        </button>
-      </div>
-
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
           <p>{error}</p>
@@ -75,77 +43,6 @@ export default function Dashboard() {
       ) : (
         <>
           <StatsCards bookings={bookings} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Total Appointments</p>
-                  <h3 className="text-2xl font-bold text-gray-900">{stats.totalAppointments}</h3>
-                </div>
-                <div className="p-2 rounded-lg bg-gray-100">
-                  <i className="fas fa-calendar-check text-gray-600"></i>
-                </div>
-              </div>
-              <div className="mt-2 flex items-center text-xs">
-                <span className="text-gray-500">
-                  {stats.pendingAppointments} pending
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Today's Appointments</p>
-                  <h3 className="text-2xl font-bold text-gray-900">{stats.todayAppointments}</h3>
-                </div>
-                <div className="p-2 rounded-lg bg-gray-100">
-                  <i className="fas fa-calendar-day text-gray-600"></i>
-                </div>
-              </div>
-              <div className="mt-2 flex items-center text-xs">
-                <span className="text-gray-500">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Total Revenue</p>
-                  <h3 className="text-2xl font-bold text-gray-900">₱{stats.totalRevenue.toLocaleString()}</h3>
-                </div>
-                <div className="p-2 rounded-lg bg-gray-100">
-                  <i className="fas fa-coins text-gray-600"></i>
-                </div>
-              </div>
-              <div className="mt-2 flex items-center text-xs">
-                <span className="text-gray-500">
-                  From {stats.completedAppointments} completed appointments
-                </span>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Completion Rate</p>
-                  <h3 className="text-2xl font-bold text-gray-900">
-                    {BookingUtilService.calculateCompletionRate(stats.completedAppointments, stats.totalAppointments)}%
-                  </h3>
-                </div>
-                <div className="p-2 rounded-lg bg-gray-100">
-                  <i className="fas fa-chart-line text-gray-600"></i>
-                </div>
-              </div>
-              <div className="mt-2 flex items-center text-xs">
-                <span className="text-gray-500">
-                  {stats.completedAppointments} completed • {stats.canceledAppointments} canceled
-                </span>
-              </div>
-            </div>
-          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
