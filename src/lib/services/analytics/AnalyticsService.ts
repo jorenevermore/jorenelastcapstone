@@ -7,11 +7,13 @@ import { AppointmentService } from '../appointment/AppointmentService';
 import { DashboardService } from '../dashboard/DashboardService';
 
 export class AnalyticsService {
+
 	private appointmentService: AppointmentService;
 
 	constructor(db: Firestore) {
 		this.appointmentService = new AppointmentService(db);
 	}
+	
 	static calculateStats(bookings: Booking[]): AnalyticsStats {
     const completed = bookings.filter(booking => booking.status === 'completed').length;
     const cancelled = bookings.filter(booking => booking.status === 'cancelled').length;
@@ -36,7 +38,7 @@ export class AnalyticsService {
     const averageRevenue = completedBookings.length > 0 ? (totalRevenue / completedBookings.length).toFixed(2) : '0';
 
  		return {
-			totalRevenue,
+			totalRevenue,	
 			averageRevenue,
 			completedCount: completedBookings.length,
 		};
@@ -46,8 +48,8 @@ export class AnalyticsService {
 		const { todayCount } = countBookingsByDateCategory(bookings);
 		return todayCount;
 	}
-
-	static calculateRates(totalAppointments: number, completedAppointments: number, canceledAppointments: number): { completionRate: number; cancellationRate: number } {
+	static calculateAppointmentRates(totalAppointments: number, completedAppointments: number, canceledAppointments: number): { completionRate: number; cancellationRate: number } {
+		
 		const completionRate = totalAppointments > 0
 			? Math.round((completedAppointments / totalAppointments) * 100)
 			: 0;
@@ -59,27 +61,31 @@ export class AnalyticsService {
 		return { completionRate, cancellationRate };
 	}
 
-	static getAppointmentTrendsData(bookings: Booking[]): { labels: string[]; data: number[] } {
-		// Group bookings by date
-		const bookingsByDate = bookings.reduce<Record<string, number>>((acc, booking) => {
-			const date = getDateISO(booking.date);
-			acc[date] = (acc[date] || 0) + 1;
-			return acc;
-		}, {});
+		static getAppointmentTrendsData(bookings: Booking[]): { labels: string[]; data: number[] } {
 
-		// Sort dates
-		const sortedDates = Object.keys(bookingsByDate).sort();
+			 const appointmentsPerDay = bookings.reduce<Record<string, number>>(
+				(countPerDay, booking) => {
+				const day = getDateISO(booking.date);
+				countPerDay[day] = (countPerDay[day] ?? 0) + 1;
+				return countPerDay;
+					},
+					{}
+  				);
 
-		// Prepare data for chart
-		const data = sortedDates.map(date => bookingsByDate[date]);
+				// Put the days in order	
+				const daysInOrder = Object.keys(appointmentsPerDay).sort();
 
-		// Format dates for display
-		const labels = sortedDates.map(date => formatDateShort(date));
+				// Numbers for the chart
+				const data = daysInOrder.map(day => appointmentsPerDay[day]);
 
-		return { labels, data };
-	}
+				// Labels for the chart
+				const labels = daysInOrder.map(day => formatDateShort(day));
+
+				return { labels, data };
+			}
 
 	static getRevenueData(bookings: Booking[]): { labels: string[]; data: number[] } {
+	
 		// Group revenue by date
 		const revenueByDate = bookings
 			.filter(b => b.status === 'completed')
@@ -163,7 +169,7 @@ export class AnalyticsService {
 			totalRevenue
 		};
 	}
-
+	
 	static getRevenueMetrics(bookings: Booking[]): {
 		totalRevenue: number;
 		averageRevenue: number;

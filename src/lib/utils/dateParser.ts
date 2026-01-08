@@ -147,6 +147,7 @@ export const filterBookingsByDate = (bookings: Booking[], date: Date): Booking[]
 };
 
 export const countBookingsByDateCategory = (bookings: Booking[]): { todayCount: number; pastCount: number; upcomingCount: number } => {
+  
   const todayISO = getTodayISO();
 
   const todayCount = bookings.filter(booking => getDateISO(booking.date) === todayISO).length;

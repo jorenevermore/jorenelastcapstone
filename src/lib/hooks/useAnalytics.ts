@@ -11,7 +11,7 @@ const analyticsService = new AnalyticsService(db);
 export interface UseAnalyticsReturn {
   bookings: Booking[];
   upcomingAppointments: Booking[];
-  recentActivity: Booking[];
+  recentActivity: Booking[];	
   stats: AnalyticsStats;
   revenue: RevenueStats;
   todayCount: number;

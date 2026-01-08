@@ -19,8 +19,9 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
   pendingAppointments,
   confirmedAppointments,
   totalRevenue
-}) => {
-  const { completionRate } = AnalyticsService.calculateRates(
+  }) => {
+    
+  const { completionRate } = AnalyticsService.calculateAppointmentRates(
     totalAppointments,
     completedAppointments,
     canceledAppointments
@@ -63,6 +64,8 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
         </div>
         <div className="mt-3 flex items-center text-xs text-gray-600">
           <span className="font-semibold text-gray-700">{completedAppointments}</span>
+               <span className="mx-1">out of</span>
+                <span className="font-semibold text-gray-700">{totalAppointments}</span>
           <span className="mx-1">completed</span>
         </div>
       </div>
@@ -82,7 +85,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
         <div className="mt-3 flex items-center text-xs text-gray-600">
           <span>From</span>
           <span className="mx-1 font-semibold text-gray-700">{completedAppointments}</span>
-          <span>completed</span>
+          <span>completed appointments.</span>
         </div>
       </div>
     </div>
