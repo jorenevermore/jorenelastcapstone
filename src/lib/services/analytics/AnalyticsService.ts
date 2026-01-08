@@ -38,7 +38,7 @@ export class AnalyticsService {
     const averageRevenue = completedBookings.length > 0 ? (totalRevenue / completedBookings.length).toFixed(2) : '0';
 
  		return {
-			totalRevenue,	
+			totalRevenue,		
 			averageRevenue,
 			completedCount: completedBookings.length,
 		};
@@ -63,14 +63,16 @@ export class AnalyticsService {
 
 		static getAppointmentTrendsData(bookings: Booking[]): { labels: string[]; data: number[] } {
 
-			 const appointmentsPerDay = bookings.reduce<Record<string, number>>(
+			 const appointmentsPerDay = bookings.reduce<Record<string, number>>(  // reduce loop mo return og 1 result
 				(countPerDay, booking) => {
 				const day = getDateISO(booking.date);
+
 				countPerDay[day] = (countPerDay[day] ?? 0) + 1;
+
 				return countPerDay;
-					},
-					{}
-  				);
+				},
+				{}
+  			);
 
 				// Put the days in order	
 				const daysInOrder = Object.keys(appointmentsPerDay).sort();

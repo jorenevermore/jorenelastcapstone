@@ -1,4 +1,3 @@
-
 import type { Booking } from '../../../types/appointments';
 import type { ServiceResponse } from '../../../types/response';
 import {
@@ -12,49 +11,30 @@ import {
   Firestore,
 } from 'firebase/firestore';
 
-const VALID_STATUSES = ['pending', 'confirmed', 'in-progress', 'completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show'] as const;
-
 export class AppointmentService {
   private readonly COLLECTION = 'bookings';
 
   constructor(private db: Firestore) {}
 
-  private validateBookingId(bookingId: string): boolean {
-    return !!(bookingId && bookingId.trim().length > 0);
-  }
-
-  private validateBarbershopId(barbershopId: string): boolean {
-    return !!(barbershopId && barbershopId.trim().length > 0);
-  }
-
-  private validateStatus(status: string): boolean {
-    return VALID_STATUSES.includes(status as any);
-  }
-
   async getBookingsByBarbershop(barbershopId: string): Promise<ServiceResponse> {
+    
     try {
-      if (!this.validateBarbershopId(barbershopId)) {
-        return {
-          success: false,
-          message: 'Invalid barbershop ID provided'
-        };
-      }
-
       const bookingsQuery = query(
         collection(this.db, this.COLLECTION),
         where('barbershopId', '==', barbershopId),
       );
+
       const snapshot = await getDocs(bookingsQuery);
 
-      const bookings = snapshot.docs.map((doc) => ({
-        ...doc.data(),
-        id: doc.id,
+      const bookingsFromBarbershop = snapshot.docs.map((bookingsDoc) => ({
+        ...bookingsDoc.data(),
+        id: bookingsDoc.id,
       })) as Booking[];
 
       return {
         success: true,
         message: 'Bookings retrieved successfully',
-        data: bookings,
+        data: bookingsFromBarbershop,
       };
     } catch (error) {
       console.error('Error fetching bookings:', error);
@@ -62,26 +42,8 @@ export class AppointmentService {
     }
   }
 
-  async updateBookingStatus(
-    bookingId: string,
-    status: Booking['status'],
-    reason?: string,
-  ): Promise<ServiceResponse> {
+  async updateBookingStatus(bookingId: string,status: Booking['status'],reason?: string,): Promise<ServiceResponse> {
     try {
-      if (!this.validateBookingId(bookingId)) {
-        return {
-          success: false,
-          message: 'Invalid booking ID provided'
-        };
-      }
-
-      if (!this.validateStatus(status)) {
-        return {
-          success: false,
-          message: `Invalid status '${status}'. Must be one of: ${VALID_STATUSES.join(', ')}`
-        };
-      }
-
       const updateData: Partial<Booking> = { status };
 
       if (reason && status === 'cancelled') {
@@ -106,13 +68,6 @@ export class AppointmentService {
 
   async deleteBooking(bookingId: string): Promise<ServiceResponse> {
     try {
-      if (!this.validateBookingId(bookingId)) {
-        return {
-          success: false,
-          message: 'Invalid booking ID provided'
-        };
-      }
-
       await deleteDoc(doc(this.db, this.COLLECTION, bookingId));
 
       return {
