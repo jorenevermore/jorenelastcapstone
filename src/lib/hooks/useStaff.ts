@@ -17,10 +17,8 @@ export interface UseStaffReturn {
   deleteBarber: (barberId: string) => Promise<void>;
   getPendingAffiliations: (barbershopId: string) => Promise<Barber[]>;
   updateAffiliationStatus: (barberId: string, status: 'approved' | 'rejected') => Promise<void>;
-  subscribeToPendingAffiliations: (
-    barbershopId: string,
-    onUpdate: (barbers: Barber[]) => void,
-    onError?: (error: Error) => void
+  subscribeToPendingAffiliations: (barbershopId: string, onUpdate: (barbers: Barber[]) => void,
+   onError?: (error: Error) => void
   ) => Unsubscribe;
   isLoading: boolean;
   error: string | null;

@@ -19,7 +19,7 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
     const todayBookings = bookings.filter(booking => getDateISO(booking.date) === todayISO);
 
     const stats = queueService.getQueueStats(todayBookings);
-    const activeBookings = queueService.getActiveBookings(todayBookings);
+    const activeBookings = queueService.getActiveBookings(bookings);
     const sortedQueue = queueService.sortByQueuePriority(activeBookings);
     return { stats, sortedQueue };
   }, [bookings, queueService]);
@@ -86,18 +86,16 @@ const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardPr
             {topInQueue.map((booking) => (
               <div
                 key={booking.id}
-                className={`px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer ${
-                  booking.isEmergency ? 'bg-red-50/30' : ''
-                }`}
+                className={`px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer ${booking.isEmergency ? 'bg-red-50/30' : ''
+                  }`}
                 onClick={() => window.location.href = `/dashboard/appointments/${booking.id}`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center flex-1 min-w-0 gap-2">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs ${
-                      booking.isEmergency
-                        ? 'bg-red-600 text-white'
-                        : 'bg-blue-600 text-white'
-                    }`}>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs ${booking.isEmergency
+                      ? 'bg-red-600 text-white'
+                      : 'bg-blue-600 text-white'
+                      }`}>
                       {booking.queuePosition}
                     </div>
                     <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 flex-shrink-0 text-xs font-medium">

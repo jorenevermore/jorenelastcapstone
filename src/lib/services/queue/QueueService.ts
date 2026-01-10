@@ -1,6 +1,7 @@
 
 import type { Booking } from '../../../types/appointments';
 import type { QueueStats } from '../../../types/queue';
+import { getTodayISO, getDateISO } from '../../utils/dateParser';
 
 const INACTIVE_STATUS = [
   'completed',
@@ -27,20 +28,25 @@ export class QueueService {
   }
 
   sortByQueuePriority(bookings: Booking[]): Booking[] {
-    const sortedBookings = [...bookings].sort((bookingA, bookingB) => {
 
-      const dateDifference = new Date(bookingA.date).getTime() - new Date(bookingB.date).getTime();
-      if (dateDifference !== 0) return dateDifference;
+    const todayISO = getTodayISO();
+
+    const todayBookings = bookings.filter(
+      booking => getDateISO(booking.date) === todayISO
+    );
+
+    const sortedBookings = [...todayBookings].sort((bookingA, bookingB) => {
 
       const timeDifference = parseInt(bookingA.time) - parseInt(bookingB.time);
+
       if (timeDifference !== 0) return timeDifference;
 
       if (bookingA.isEmergency !== bookingB.isEmergency) {
         return bookingA.isEmergency ? -1 : 1;
       }
 
-      const createdTimeA = parseInt(bookingA.createdAt || '0'); 
-      const createdTimeB = parseInt(bookingB.createdAt || '0'); 
+      const createdTimeA = parseInt(bookingA.createdAt || '0');
+      const createdTimeB = parseInt(bookingB.createdAt || '0');
       return createdTimeA - createdTimeB;
     });
 

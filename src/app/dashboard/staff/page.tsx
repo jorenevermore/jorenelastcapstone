@@ -167,7 +167,8 @@ export default function StaffPage() {
     try {
       const dates = await getUnavailableDates(barber.barberId);
       availability.setUnavailableDates(dates);
-    } catch (err) {
+    } catch (error) {
+      console.error('Error loading unavailable dates:', error);
       availability.setError('Failed to load unavailable dates.');
     } finally {
       availability.setLoading(false);
@@ -261,7 +262,7 @@ export default function StaffPage() {
       <ConfirmationModal
         isOpen={showDeleteConfirmation}
         title="Delete Barber"
-        message={`Are you sure you want to delete ${barberToDelete?.fullName}?`}
+        message={`Are you sure you want to remove ${barberToDelete?.fullName}?`}
         confirmText="Delete"
         onClose={() => {
           setShowDeleteConfirmation(false);
