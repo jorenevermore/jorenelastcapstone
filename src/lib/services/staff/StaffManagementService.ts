@@ -1,261 +1,155 @@
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  type Unsubscribe,
+  type Firestore,
+  arrayUnion,
+  arrayRemove,
+  type QueryDocumentSnapshot,
+  type DocumentData
+} from 'firebase/firestore';
 
-import { collection, getDocs, query, where, doc, getDoc, addDoc, updateDoc, deleteDoc, onSnapshot, Unsubscribe, Firestore, arrayUnion, arrayRemove } from 'firebase/firestore';
 import type { Barber } from '../../../types/barber';
-import type { ServiceResponse } from '../../../types/response';
 
 export class StaffManagementService {
   private readonly COLLECTION = 'barbersprofile';
 
   constructor(private db: Firestore) {}
 
-  private mapDocToBarber(doc: any): Barber {
-    const data = doc.data() as Omit<Barber, 'barberId'>;
-    return { ...data, barberId: doc.id };
+  private mapDocToBarber(docSnap: QueryDocumentSnapshot<DocumentData>): Barber {
+    const data = docSnap.data() as Omit<Barber, 'barberId'>;
+    return { ...data, barberId: docSnap.id };
   }
 
-  async getBarbersByBarbershopId(barbershopId: string): Promise<ServiceResponse> {
-    try {
-      const barbersCollection = collection(this.db, this.COLLECTION);
-      const barbersQuery = query(
-        barbersCollection,
-        where('affiliatedBarbershopId', '==', barbershopId)
-      );
-      const barberSnapshot = await getDocs(barbersQuery);
+  async getAffiliatedBarbersByBarbershopId(barbershopId: string): Promise<Barber[]> {
+    const colRef = collection(this.db, this.COLLECTION);
+    const q = query(colRef, where('affiliatedBarbershopId', '==', barbershopId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => this.mapDocToBarber(d));
+  }
 
-      const barbers = barberSnapshot.docs.map(doc => this.mapDocToBarber(doc));
+  async getBarberById(barberId: string): Promise<Barber> {
+    const ref = doc(this.db, this.COLLECTION, barberId);
+    const snap = await getDoc(ref);
 
-      return {
-        success: true,
-        message: 'Barbers retrieved successfully',
-        data: barbers
-      };
-    } catch (error) {
-      console.error('Staff service error:', error);
-      return {
-        success: false,
-        message: 'Operation failed'
-      };
+    if (!snap.exists()) {
+      throw new Error('Barber not found');
     }
+
+    const data = snap.data() as Omit<Barber, 'barberId'>;
+    return { ...data, barberId: snap.id };
   }
 
-  async getBarberById(barberId: string): Promise<ServiceResponse> {
-    try {
-      const barberDoc = doc(this.db, this.COLLECTION, barberId);
-      const barberSnapshot = await getDoc(barberDoc);
+  async addBarberToBarbershop(
+    barbershopId: string,
+    barberData: Omit<Barber, 'barberId'>
+  ): Promise<Barber> {
+    const payload = {
+      ...barberData,
+      affiliatedBarbershopId: barberData.affiliatedBarbershopId ?? barbershopId,
+      createdAt: new Date().toISOString()
+    };
 
-      if (!barberSnapshot.exists()) {
-        return {
-          success: false,
-          message: 'Barber not found'
-        };
-      }
+    const docRef = await addDoc(collection(this.db, this.COLLECTION), payload);
 
-      const data = barberSnapshot.data() as Barber;
-      return {
-        success: true,
-        message: 'Barber retrieved successfully',
-        data: { ...data, barberId: barberSnapshot.id }
-      };
-    } catch (error) {
-      console.error('Staff service error:', error);
-      return {
-        success: false,
-        message: 'Operation failed'
-      };
+    await updateDoc(docRef, { barberId: docRef.id });
+
+    await updateDoc(doc(this.db, 'barbershops', barbershopId), {
+      barbers: arrayUnion(docRef.id)
+    });
+
+    return { ...payload, barberId: docRef.id } as Barber;
+  }
+
+  async removeBarberFromBarbershop(barbershopId: string, barberId: string): Promise<void> {
+    await updateDoc(doc(this.db, 'barbershops', barbershopId), {
+      barbers: arrayRemove(barberId)
+    });
+
+    await updateDoc(doc(this.db, this.COLLECTION, barberId), {
+      affiliationStatus: 'declined'
+    });
+  }
+
+  async updateBarber(barberId: string, barberData: Partial<Omit<Barber, 'barberId'>>): Promise<void> {
+    await updateDoc(doc(this.db, this.COLLECTION, barberId), barberData);
+  }
+
+  async deleteBarber(barberId: string): Promise<void> {
+    const ref = doc(this.db, this.COLLECTION, barberId);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      throw new Error('Barber not found');
     }
-  }
 
-  async addBarberToBarbershop(barbershopId: string, barberData: Omit<Barber, 'barberId'>): Promise<ServiceResponse> {
-    try {
-      const barbersCollection = collection(this.db, this.COLLECTION);
-      const barberWithTimestamp = {
-        ...barberData,
-        createdAt: new Date().toISOString()
-      };
-      const docRef = await addDoc(barbersCollection, barberWithTimestamp);
-      await updateDoc(docRef, { barberId: docRef.id });
+    const barberData = snap.data() as Barber;
 
-      const barbershopDoc = doc(this.db, 'barbershops', barbershopId);
-      await updateDoc(barbershopDoc, {
-        barbers: arrayUnion(docRef.id)
-      });
+    await deleteDoc(ref);
 
-      return {
-        success: true,
-        message: 'Barber added to barbershop successfully',
-        data: { ...barberWithTimestamp, barberId: docRef.id }
-      };
-    } catch (error) {
-      console.error('Staff service error:', error);
-      return {
-        success: false,
-        message: 'Operation failed'
-      };
-    }
-  }
-
-  async removeBarberFromBarbershop(barbershopId: string, barberId: string): Promise<ServiceResponse> {
-    try {
-      const barbershopDoc = doc(this.db, 'barbershops', barbershopId);
-      await updateDoc(barbershopDoc, {
+    if (barberData.affiliatedBarbershopId) {
+      await updateDoc(doc(this.db, 'barbershops', barberData.affiliatedBarbershopId), {
         barbers: arrayRemove(barberId)
       });
-
-      const barberDoc = doc(this.db, this.COLLECTION, barberId);
-      await updateDoc(barberDoc, {
-        affiliationStatus: 'declined'
-      });
-
-      return {
-        success: true,
-        message: 'Barber removed from barbershop successfully'
-      };
-    } catch (error) {
-      console.error('Staff service error:', error);
-      return {
-        success: false,
-        message: 'Operation failed'
-      };
     }
   }
 
-  async updateBarber(barberId: string, barberData: Partial<Omit<Barber, 'barberId'>>): Promise<ServiceResponse> {
-    try {
-      const barberDoc = doc(this.db, this.COLLECTION, barberId);
-      await updateDoc(barberDoc, barberData);
+  async getPendingAffiliations(barbershopId: string): Promise<Barber[]> {
+    const colRef = collection(this.db, this.COLLECTION);
+    const q = query(
+      colRef,
+      where('affiliatedBarbershopId', '==', barbershopId),
+      where('affiliationStatus', '==', 'pending')
+    );
 
-      return {
-        success: true,
-        message: 'Barber updated successfully'
-      };
-    } catch (error) {
-      console.error('Staff service error:', error);
-      return {
-        success: false,
-        message: 'Operation failed'
-      };
+    const snap = await getDocs(q);
+    return snap.docs.map(d => this.mapDocToBarber(d));
+  }
+
+  async updateAffiliationStatus(barberId: string, status: 'approved' | 'rejected'): Promise<void> {
+    const ref = doc(this.db, this.COLLECTION, barberId);
+    const snap = await getDoc(ref);
+
+    if (!snap.exists()) {
+      throw new Error('Barber not found');
+    }
+
+    const barberData = snap.data() as Barber;
+    const affiliationStatus = status === 'approved' ? 'confirmed' : 'declined';
+
+    await updateDoc(ref, { affiliationStatus });
+
+    if (barberData.affiliatedBarbershopId) {
+      const shopRef = doc(this.db, 'barbershops', barberData.affiliatedBarbershopId);
+      const op = status === 'approved' ? arrayUnion(barberId) : arrayRemove(barberId);
+      await updateDoc(shopRef, { barbers: op });
     }
   }
 
-  async deleteBarber(barberId: string): Promise<ServiceResponse> {
-    try {
-      const barberDoc = doc(this.db, this.COLLECTION, barberId);
-      const barberSnapshot = await getDoc(barberDoc);
-
-      if (!barberSnapshot.exists()) {
-        return {
-          success: false,
-          message: 'Barber not found'
-        };
-      }
-
-      const barberData = barberSnapshot.data() as Barber;
-
-      await deleteDoc(barberDoc);
-
-      if (barberData.affiliatedBarbershopId) {
-        const barbershopDoc = doc(this.db, 'barbershops', barberData.affiliatedBarbershopId);
-        await updateDoc(barbershopDoc, {
-          barbers: arrayRemove(barberId)
-        });
-      }
-
-      return {
-        success: true,
-        message: 'Barber deleted successfully'
-      };
-    } catch (error) {
-      console.error('Staff service error:', error);
-      return {
-        success: false,
-        message: 'Operation failed'
-      };
-    }
-  }
-
-  async getPendingAffiliations(barbershopId: string): Promise<ServiceResponse> {
-    try {
-      const barbersCollection = collection(this.db, this.COLLECTION);
-      const pendingAffiliationsQuery = query(
-        barbersCollection,
-        where('affiliatedBarbershopId', '==', barbershopId),
-        where('affiliationStatus', '==', 'pending')
-      );
-      const barberSnapshot = await getDocs(pendingAffiliationsQuery);
-
-      const barbers = barberSnapshot.docs.map(doc => this.mapDocToBarber(doc));
-
-      return {
-        success: true,
-        message: 'Pending affiliations retrieved successfully',
-        data: barbers
-      };
-    } catch (error) {
-      console.error('Staff service error:', error);
-      return {
-        success: false,
-        message: 'Operation failed'
-      };
-    }
-  }
-
-  async updateAffiliationStatus(barberId: string, status: 'approved' | 'rejected'): Promise<ServiceResponse> {
-    try {
-      const barberDoc = doc(this.db, this.COLLECTION, barberId);
-      const barberSnapshot = await getDoc(barberDoc);
-
-      if (!barberSnapshot.exists()) {
-        return {
-          success: false,
-          message: 'Barber not found'
-        };
-      }
-
-      const barberData = barberSnapshot.data() as Barber;
-      const affiliationStatus = status === 'approved' ? 'confirmed' : 'declined';
-
-      await updateDoc(barberDoc, { affiliationStatus });
-
-      if (barberData.affiliatedBarbershopId) {
-        const barbershopDoc = doc(this.db, 'barbershops', barberData.affiliatedBarbershopId);
-        const arrayOperation = status === 'approved' ? arrayUnion(barberId) : arrayRemove(barberId);
-        await updateDoc(barbershopDoc, { barbers: arrayOperation });
-      }
-
-      return {
-        success: true,
-        message: `Affiliation ${status} successfully`
-      };
-    } catch (error) {
-      console.error('Staff service error:', error);
-      return {
-        success: false,
-        message: 'Operation failed'
-      };
-    }
-  }
-
-  subscribeToPendingAffiliations(barbershopId: string,onUpdate: (barbers: Barber[]) => void,
-  onError?: (error: Error) => void
+  subscribeToPendingAffiliations(
+    barbershopId: string,
+    onUpdate: (barbers: Barber[]) => void,
+    onError?: (error: Error) => void
   ): Unsubscribe {
-    const barbersCollection = collection(this.db, this.COLLECTION);
-    const pendingAffiliationsQuery = query(
-      barbersCollection,
+    const colRef = collection(this.db, this.COLLECTION);
+    const q = query(
+      colRef,
       where('affiliatedBarbershopId', '==', barbershopId),
       where('affiliationStatus', '==', 'pending')
     );
 
     return onSnapshot(
-      pendingAffiliationsQuery,
-      (snapshot) => {
-        const barbers = snapshot.docs.map(doc => this.mapDocToBarber(doc));
-        onUpdate(barbers);
-      },
-      (error) => {
-        console.error('Error in pending affiliations listener:', error);
-        if (onError) onError(error as Error);
-      }
+      q,
+      (snap) => onUpdate(snap.docs.map(d => this.mapDocToBarber(d))),
+      (err) => onError?.(err as Error)
     );
   }
 }
-

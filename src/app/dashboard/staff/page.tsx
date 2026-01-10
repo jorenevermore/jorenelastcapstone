@@ -17,19 +17,20 @@ import UnavailableDatesModal from './components/UnavailableDatesModal';
 export default function StaffPage() {
   const [user] = useAuthState(auth);
   const { uploadFile } = useFileUpload();
+
   const [barbers, setBarbers] = useState<Barber[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [barberToDelete, setBarberToDelete] = useState<Barber | null>(null);
 
-  // Service hooks
   const {
-    getBarbersByBarbershopId,
+    getAffiliatedBarbersByBarbershopId,
     addBarberToBarbershop,
     removeBarberFromBarbershop,
-    updateBarber: updateBarberService,
-    deleteBarber: deleteBarberService
+    updateBarber,
+    deleteBarber
   } = useStaff();
 
   const {
@@ -38,71 +39,63 @@ export default function StaffPage() {
     getUnavailableDates
   } = useBarberAvailability();
 
-  // Custom hooks for form and modal state
   const form = useBarberForm();
   const availability = useUnavailableDatesModal();
 
-  // fetch barbershop details and barbers
   useEffect(() => {
-    const fetchBarbershopDetails = async () => {
+    const fetchBarbers = async () => {
+      if (!user) return;
+
       try {
-        if (user) {
-          const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
-          if (barbershopDoc.exists()) {
-            const result = await getBarbersByBarbershopId(user.uid);
-            if (result.success && result.data) {
-              setBarbers(result.data as Barber[]);
-            } else {
-              setError(result.message || 'Failed to load barbers');
-            }
-          } else {
-            setError("No barbershop found for this account. Please set up your barbershop first.");
-          }
+        setLoading(true);
+        setError(null);
+
+        const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
+        if (!barbershopDoc.exists()) {
+          setError('No barbershop found. Please set up your barbershop first.');
+          return;
         }
+
+        const barbers = await getAffiliatedBarbersByBarbershopId(user.uid);
+        setBarbers(barbers);
       } catch (err) {
-        console.error('Error fetching barbershop details:', err);
-        setError('Failed to load barbers. Please try again.');
+        console.error(err);
+        setError('Failed to load barbers.');
       } finally {
         setLoading(false);
       }
     };
 
-    setLoading(true);
-    setError(null);
-    fetchBarbershopDetails();
-  }, [user, getBarbersByBarbershopId]);
+    fetchBarbers();
+  }, [user, getAffiliatedBarbersByBarbershopId]);
 
-
-
-  // Handle form submission
   const handleSubmit = async (formData: any) => {
     if (!user) return;
 
     try {
       setLoading(true);
+      setError(null);
 
-      // Get barbershop details
       const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
       if (!barbershopDoc.exists()) {
-        setError('Barbershop details not found. Please set up your barbershop first.');
-        setLoading(false);
+        setError('Barbershop not found.');
         return;
       }
 
       const barbershopData = barbershopDoc.data();
 
-      let imageUrl = formData.imagePreview; // Keep existing image if no new one uploaded
+      let imageUrl = formData.imagePreview;
 
-      // Upload new image if one was selected
       if (formData.imageFile) {
         form.setIsUploading(true);
         const uploadResult = await uploadFile(formData.imageFile, 'staffs');
         form.setIsUploading(false);
+
         if (!uploadResult.success) {
-          setError(uploadResult.message || 'Failed to upload image');
-          setLoading(false);
+          setError(uploadResult.message || 'Image upload failed');
           return;
         }
+
         imageUrl = uploadResult.data as string;
       }
 
@@ -118,108 +111,72 @@ export default function StaffPage() {
       };
 
       if (formData.isEditing && formData.currentBarber) {
-        // Update existing barber
-        const result = await updateBarberService(formData.currentBarber.barberId, barberData);
+        await updateBarber(formData.currentBarber.barberId, barberData);
 
-        if (!result.success) {
-          setError(result.message || 'Failed to update barber');
-          return;
-        }
-
-        setBarbers(prev => prev.map(b =>
-          b.barberId === formData.currentBarber.barberId
-            ? { ...barberData, barberId: formData.currentBarber.barberId }
-            : b
-        ));
+        setBarbers(prev =>
+          prev.map(b =>
+            b.barberId === formData.currentBarber.barberId
+              ? { ...b, ...barberData }
+              : b
+          )
+        );
       } else {
-        // Add new barber
-        const result = await addBarberToBarbershop(user.uid, barberData);
-
-        if (!result.success || !result.data) {
-          setError(result.message || 'Failed to add barber');
-          return;
-        }
-
-        const newBarberId = result.data.barberId || (result.data as string);
-        setBarbers(prev => [...prev, { ...barberData, barberId: newBarberId }]);
+        const newBarber = await addBarberToBarbershop(user.uid, barberData);
+        setBarbers(prev => [...prev, newBarber]);
       }
 
       form.closeForm();
     } catch (err) {
-      console.error('Error saving barber:', err);
-      setError('Failed to save barber. Please try again.');
+      console.error(err);
+      setError('Failed to save barber.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle barber deletion - show confirmation first
   const handleDeleteBarber = (barber: Barber) => {
     setBarberToDelete(barber);
     setShowDeleteConfirmation(true);
   };
 
-  // Execute barber deletion after confirmation
   const confirmDeleteBarber = async () => {
-    if (!barberToDelete) return;
+    if (!barberToDelete || !user) return;
 
     try {
       setLoading(true);
+      setError(null);
 
-      if (user) {
-        // Remove the barber from the barbershop's barbers array using OOP hook
-        const removeResult = await removeBarberFromBarbershop(user.uid, barberToDelete.barberId);
-        if (!removeResult.success) {
-          setError(removeResult.message || 'Failed to remove barber from barbershop');
-          return;
-        }
-      }
+      await removeBarberFromBarbershop(user.uid, barberToDelete.barberId);
+      await deleteBarber(barberToDelete.barberId);
 
-      // Delete the barber document using OOP hook
-      const result = await deleteBarberService(barberToDelete.barberId);
-
-      if (!result.success) {
-        setError(result.message || 'Failed to delete barber');
-        return;
-      }
-
-      // Update local state - use functional update to avoid stale closure
       setBarbers(prev => prev.filter(b => b.barberId !== barberToDelete.barberId));
       setShowDeleteConfirmation(false);
       setBarberToDelete(null);
     } catch (err) {
-      console.error('Error deleting barber:', err);
-      setError('Failed to delete barber. Please try again.');
+      console.error(err);
+      setError('Failed to delete barber.');
     } finally {
       setLoading(false);
     }
   };
 
-
-
-  // Open unavailable dates modal
   const handleOpenUnavailableDatesModal = async (barber: Barber) => {
     availability.openModal(barber);
     availability.setLoading(true);
 
-    const result = await getUnavailableDates(barber.barberId);
-    availability.setLoading(false);
-
-    if (result.success && result.data) {
-      availability.setUnavailableDates(result.data);
-    } else {
-      availability.setError(result.message || 'Failed to load unavailable dates');
+    try {
+      const dates = await getUnavailableDates(barber.barberId);
+      availability.setUnavailableDates(dates);
+    } catch (err) {
+      availability.setError('Failed to load unavailable dates.');
+    } finally {
+      availability.setLoading(false);
     }
   };
 
-  // Add unavailable date
   const handleAddUnavailableDate = async () => {
-    if (!availability.selectedBarber) {
-      availability.setError('No barber selected');
-      return;
-    }
+    if (!availability.selectedBarber) return;
 
-    // Validate the date
     const validation = availability.validateDate(availability.selectedDate);
     if (!validation.valid) {
       availability.setError(validation.message || 'Invalid date');
@@ -228,42 +185,29 @@ export default function StaffPage() {
 
     try {
       availability.setLoading(true);
-      const dateObj = new Date(availability.selectedDate);
-      const isoDate = dateObj.toISOString();
 
-      const result = await addUnavailableDate(availability.selectedBarber.barberId, isoDate);
-      if (!result.success) {
-        availability.setError(result.message || 'Failed to add unavailable date');
-        return;
-      }
+      const isoDate = new Date(availability.selectedDate).toISOString();
+      const newDate = await addUnavailableDate(
+        availability.selectedBarber.barberId,
+        isoDate
+      );
 
-      if (result.data) {
-        availability.addDate(result.data);
-      }
-
+      availability.addDate(newDate);
       availability.setSelectedDate('');
     } catch (err) {
-      console.error('Error adding unavailable date:', err);
-      availability.setError('Failed to add unavailable date. Please try again.');
+      availability.setError('Failed to add unavailable date.');
     } finally {
       availability.setLoading(false);
     }
   };
 
-  // Remove unavailable date
   const handleRemoveUnavailableDate = async (dateId: string) => {
     try {
       availability.setLoading(true);
-      const result = await removeUnavailableDate(dateId);
-      if (!result.success) {
-        availability.setError(result.message || 'Failed to remove unavailable date');
-        return;
-      }
-
+      await removeUnavailableDate(dateId);
       availability.removeDate(dateId);
     } catch (err) {
-      console.error('Error removing unavailable date:', err);
-      availability.setError('Failed to remove unavailable date. Please try again.');
+      availability.setError('Failed to remove unavailable date.');
     } finally {
       availability.setLoading(false);
     }
@@ -271,42 +215,35 @@ export default function StaffPage() {
 
   return (
     <div className="p-6">
-      {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-black">Staff Management.</h1>
-        <button
-          className="btn btn-primary"
-          onClick={() => form.openForm()}
-        >
+        <h1 className="text-2xl font-bold">Staff Management</h1>
+        <button className="btn btn-primary" onClick={() => form.openForm()}>
           <i className="fas fa-plus mr-2"></i> Add Barber
         </button>
       </div>
 
-      {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          <p>{error}</p>
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+          {error}
         </div>
       )}
 
-      {/* Barber Form Component */}
       <BarberForm
         isOpen={form.isFormOpen}
         isLoading={loading}
         onClose={() => form.closeForm()}
         onSubmit={handleSubmit}
+        form={form}
       />
 
-      {/* Barbers Table Component */}
       <BarbersTable
         barbers={barbers}
         loading={loading && !form.isFormOpen}
-        onEdit={(barber) => form.editBarber(barber)}
-        onDelete={(barber) => handleDeleteBarber(barber)}
-        onOpenUnavailableDates={(barber) => handleOpenUnavailableDatesModal(barber)}
+        onEdit={barber => form.editBarber(barber)}
+        onDelete={handleDeleteBarber}
+        onOpenUnavailableDates={handleOpenUnavailableDatesModal}
       />
 
-      {/* Unavailable Dates Modal Component */}
       <UnavailableDatesModal
         isOpen={availability.showModal}
         barber={availability.selectedBarber}
@@ -315,17 +252,16 @@ export default function StaffPage() {
         error={availability.error}
         loading={availability.loading}
         onClose={() => availability.closeModal()}
-        onDateChange={(date) => availability.setSelectedDate(date)}
-        onDateChangeWithErrorClear={(date) => availability.setSelectedDateWithErrorClear(date)}
+        onDateChange={availability.setSelectedDate}
+        onDateChangeWithErrorClear={availability.setSelectedDateWithErrorClear}
         onAddDate={handleAddUnavailableDate}
         onRemoveDate={handleRemoveUnavailableDate}
       />
 
-      {/* Delete Confirmation Modal */}
       <ConfirmationModal
         isOpen={showDeleteConfirmation}
         title="Delete Barber"
-        message={`Are you sure you want to delete ${barberToDelete?.fullName}? This action cannot be undone.`}
+        message={`Are you sure you want to delete ${barberToDelete?.fullName}?`}
         confirmText="Delete"
         onClose={() => {
           setShowDeleteConfirmation(false);
