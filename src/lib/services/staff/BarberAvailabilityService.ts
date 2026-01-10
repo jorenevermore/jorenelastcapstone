@@ -13,56 +13,66 @@ import type { UnavailableDate } from '../../../types';
 export class BarberAvailabilityService {
   private readonly COLLECTION = 'barbers_unvailable_dates';
 
-  constructor(private db: Firestore) {}
+  constructor(private readonly db: Firestore) {}
 
-  async addUnavailableDate(barberId: string, date: string): Promise<UnavailableDate> {
-    const payload: Omit<UnavailableDate, 'id'> = {
-      barberId,
-      date,
-      fromBarber: false
-    };
+  async addUnavailableDate(barberId: string,date: string): Promise<UnavailableDate> {
 
-    const docRef = await addDoc(collection(this.db, this.COLLECTION), payload);
+    const unavailableDateData: Omit<UnavailableDate, 'id'> = { barberId,date,fromBarber: false};
+
+    const documentRef = await addDoc(
+      collection(this.db, this.COLLECTION),
+      unavailableDateData
+    );
 
     return {
-      id: docRef.id,
-      ...payload
+      id: documentRef.id,
+      ...unavailableDateData
     };
   }
 
   async getUnavailableDates(barberId: string): Promise<UnavailableDate[]> {
-    const colRef = collection(this.db, this.COLLECTION);
-    const q = query(
-      colRef,
+    const collectionRef = collection(this.db, this.COLLECTION);
+
+    const unavailableDatesQuery = query(
+      collectionRef,
       where('barberId', '==', barberId),
       where('fromBarber', '==', false)
     );
 
-    const snap = await getDocs(q);
+    const querySnapshot = await getDocs(unavailableDatesQuery);
 
-    const dates: UnavailableDate[] = snap.docs
-      .map(d => {
-        const data = d.data() as Omit<UnavailableDate, 'id'>;
-        return { id: d.id, ...data };
+    const unavailableDates: UnavailableDate[] = querySnapshot.docs
+      .map(docSnap => {
+        const data = docSnap.data() as Omit<UnavailableDate, 'id'>;
+        return { id: docSnap.id, ...data };
       })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      .sort(
+        (a, b) =>
+          new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
 
-    return dates;
+    return unavailableDates;
   }
 
-  async removeUnavailableDate(dateId: string): Promise<void> {
-    await deleteDoc(doc(this.db, this.COLLECTION, dateId));
+  async removeUnavailableDate(unavailableDateId: string): Promise<void> {
+    await deleteDoc(
+      doc(this.db, this.COLLECTION, unavailableDateId)
+    );
   }
 
-  async isBarberUnavailable(barberId: string, date: string): Promise<boolean> {
-    const colRef = collection(this.db, this.COLLECTION);
-    const q = query(
-      colRef,
+  async isBarberUnavailable(
+    barberId: string,
+    date: string
+  ): Promise<boolean> {
+    const collectionRef = collection(this.db, this.COLLECTION);
+
+    const unavailableDateQuery = query(
+      collectionRef,
       where('barberId', '==', barberId),
       where('date', '==', date)
     );
 
-    const snap = await getDocs(q);
-    return !snap.empty;
+    const querySnapshot = await getDocs(unavailableDateQuery);
+    return !querySnapshot.empty;
   }
 }
