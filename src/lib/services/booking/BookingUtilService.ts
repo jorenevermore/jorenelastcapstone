@@ -102,10 +102,8 @@ export class BookingUtilService {
     return formatDateLong(dateStr);
   }
 
-  static filterBookingsByDateCategory(
-    bookings: Booking[],
-    category: 'today' | 'upcoming' | 'all' | 'past'
-  ): Booking[] {
+  static filterBookingsByDateCategory(bookings: Booking[], category: 'today' | 'upcoming' | 'all' | 'past'): Booking[] {
+
     return filterBookingsByDateCategory(bookings, category);
   }
 
