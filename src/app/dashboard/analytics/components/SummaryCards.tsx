@@ -47,6 +47,9 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
           <span className="mx-1">•</span>
           <span className="font-semibold text-gray-700">{confirmedAppointments}</span>
           <span className="mx-1">confirmed</span>
+          <span className="mx-1">•</span>
+          <span className="font-semibold text-gray-700">{canceledAppointments}</span>
+          <span className="mx-1">cancelled</span>
         </div>
       </div>
 
@@ -74,7 +77,8 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({
         <div className="flex justify-between items-start">
           <div>
             <p className="text-xs text-gray-500 mb-1 font-medium">Total Revenue</p>
-            <h3 className="text-2xl font-bold text-gray-900">₱{totalRevenue.toLocaleString()}</h3>
+           <h3 className="text-2xl font-bold text-gray-900">
+           ₱{Number(totalRevenue).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</h3>
           </div>
           <div className="p-2 rounded-lg" style={{ backgroundColor: 'rgba(191, 143, 99, 0.15)' }}>
             <i className="text-sm" style={{ color: '#BF8F63' }}>

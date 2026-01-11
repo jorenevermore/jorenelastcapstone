@@ -7,52 +7,80 @@ import { auth } from '../../../lib/firebase';
 import { useNotificationsPage } from '../../../lib/hooks/useNotificationsPage';
 import { useStaff } from '../../../lib/hooks/useStaff';
 import { parseBookingDateTime, formatTimestamp } from '../../../lib/utils/dateParser';
-import ConfirmationModal from '../services/components/ConfirmationModal';
 
 export default function NotificationsPage() {
   const router = useRouter();
   const [user] = useAuthState(auth);
+
+  const barbershopId = user?.uid ?? null;
+
   const [processingId, setProcessingId] = useState<string | null>(null);
+
+  // modal state (local, fixed + minimal)
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [confirmationData, setConfirmationData] = useState<{ barberId: string; action: 'approved' | 'rejected'; barberName: string } | null>(null);
-  const {
-    notifications,
-    loading,
-    error,
-    fetchNotifications,
-    markAsRead
-  } = useNotificationsPage();
+  const [confirmationData, setConfirmationData] = useState<{
+    barberId: string;
+    action: 'approved' | 'rejected';
+    barberName: string;
+  } | null>(null);
+
+  const { notifications, loading, error, fetchNotifications, markAsRead } =
+    useNotificationsPage(barbershopId);
 
   const { updateAffiliationStatus } = useStaff();
 
-  const handleAffiliationAction = (barberId: string, action: 'approved' | 'rejected', barberName: string) => {
+  const openConfirmation = (
+    barberId: string,
+    action: 'approved' | 'rejected',
+    barberName: string
+  ) => {
     setConfirmationData({ barberId, action, barberName });
     setShowConfirmation(true);
   };
 
+  const closeConfirmation = () => {
+    setShowConfirmation(false);
+    setConfirmationData(null);
+  };
+
   const confirmAffiliationAction = async () => {
-    if (!confirmationData) return;
+    if (!confirmationData || !barbershopId) return;
 
     try {
       setProcessingId(confirmationData.barberId);
-      const result = await updateAffiliationStatus(confirmationData.barberId, confirmationData.action);
 
-      if (result.success) {
-        if (user) {
-          await fetchNotifications(user.uid);
-        }
-        markAsRead(`affiliation-${confirmationData.barberId}`);
-      } else {
-        console.error('Error updating affiliation status:', result.message);
-      }
-    } catch (error) {
-      console.error('Error updating affiliation status:', error);
+      await updateAffiliationStatus(
+        confirmationData.barberId,
+        confirmationData.action
+      );
+
+      await fetchNotifications(barbershopId);
+    } catch (err) {
+      console.error('Error updating affiliation status:', err);
     } finally {
       setProcessingId(null);
-      setShowConfirmation(false);
-      setConfirmationData(null);
+      closeConfirmation();
     }
   };
+
+  const modalTitle =
+    confirmationData?.action === 'approved'
+      ? 'Approve Affiliation'
+      : 'Reject Affiliation';
+
+  const modalMessage =
+    confirmationData?.action === 'approved'
+      ? `Approve ${confirmationData?.barberName}'s request to join your barbershop?`
+      : `Reject ${confirmationData?.barberName}'s request to join your barbershop?`;
+
+  const confirmLabel =
+    confirmationData?.action === 'approved' ? '✓': 'Cancel';
+
+const confirmClass =
+  confirmationData?.action === 'approved'
+    ? 'bg-green-600 hover:bg-green-700 active:bg-green-800'
+    : 'bg-red-600 hover:bg-red-700 active:bg-red-800';
+
 
   if (loading) {
     return (
@@ -87,141 +115,220 @@ export default function NotificationsPage() {
           <div className="text-6xl text-gray-300 mb-4">
             <i className="fas fa-bell-slash"></i>
           </div>
-          <h3 className="text-lg font-medium text-gray-700 mb-2">No notifications</h3>
-          <p className="text-gray-500">You're all caught up! New notifications will appear here.</p>
+          <h3 className="text-lg font-medium text-gray-700 mb-2">
+            No notifications
+          </h3>
+          <p className="text-gray-500">
+            You're all caught up! New notifications will appear here.
+          </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`border-b border-gray-200 p-4 hover:bg-gray-50 transition-colors cursor-pointer ${
-                !notification.read ? 'bg-blue-50/30' : ''
-              }`}
-              onClick={() => {
-                if (notification.type === 'booking') {
-                  router.push(`/dashboard/appointments`);
-                }
-              }}
-            >
-              <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-100">
-                  <i className={`${
-                    notification.type === 'booking'
-                      ? 'fas fa-calendar text-gray-600'
-                      : 'fas fa-user-plus text-slate-600'
-                  }`}></i>
-                </div>
-                <div className="flex-1 min-w-0">
-                  {notification.type === 'booking' && 'bookingId' in notification.data && (() => {
-                    const parsed = parseBookingDateTime((notification.data as any).date || '', (notification.data as any).time || '');
-                    return (
-                      <p className="text-sm text-gray-900">
-                        <span className="font-medium">{(notification.data as any).clientName}</span> booked a <span className="font-medium">{(notification.data as any).styleOrdered}</span> for {parsed.date} <span className="font-medium">({parsed.sessionLabel})</span>.
-                      </p>
-                    );
-                  })()}
-                  {notification.type === 'affiliation_request' && (
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">{(notification.data as any).fullName}</span> has sent an affiliation request to your barbershop.
-                    </p>
-                  )}
-                  {notification.type !== 'booking' && notification.type !== 'affiliation_request' && (
-                    <p className="text-sm text-gray-900">
-                      {notification.message}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    {notification.type === 'booking' ? 'Placed on: ' : ''}{formatTimestamp(notification.timestamp)}
-                  </p>
-                </div>
-                {!notification.read && (
-                  <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-2"></div>
-                )}
-              </div>
+        <div className="bg-white rounded-lg shadow-sm divide-y divide-gray-100">
+          {notifications.map(notification => {
+            const isBooking = notification.type === 'booking';
+            const isAffiliation = notification.type === 'affiliation_request';
 
-              {notification.type === 'affiliation_request' && 'fullName' in notification.data && (
-                <div className="mt-4 ml-13 bg-gray-50 rounded-lg p-4 space-y-2">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-gray-500 text-xs">Name</p>
-                      <p className="text-gray-900 font-medium">{notification.data.fullName}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Email</p>
-                      <p className="text-gray-900 font-medium">{notification.data.email}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Phone</p>
-                      <p className="text-gray-900 font-medium">{notification.data.contactNumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Address</p>
-                      <p className="text-gray-900 font-medium">{notification.data.address}</p>
-                    </div>
+            const affiliationBarberId = isAffiliation
+              ? (notification.data as any).barberId
+              : null;
+
+            const affiliationBarberName = isAffiliation
+              ? (notification.data as any).fullName
+              : '';
+
+            const isProcessingThis =
+              !!affiliationBarberId && processingId === affiliationBarberId;
+
+            return (
+              <div
+                key={notification.id}
+                className={`p-4 hover:bg-gray-50 transition-colors ${
+                  !notification.read ? 'bg-blue-50/30' : ''
+                }`}
+                onClick={() => {
+                  if (isBooking) {
+                    router.push(`/dashboard/appointments`);
+                    markAsRead(notification.id);
+                  }
+                }}
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-100">
+                    <i
+                      className={`${
+                        isBooking
+                          ? 'fas fa-calendar text-gray-600'
+                          : 'fas fa-user-plus text-slate-600'
+                      }`}
+                    ></i>
                   </div>
-                </div>
-              )}
 
-              {notification.type === 'affiliation_request' && (
-                <div className="flex space-x-2 mt-4 ml-13">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const barberId = (notification.data as any).barberId;
-                      const barberName = (notification.data as any).fullName;
-                      handleAffiliationAction(barberId, 'approved', barberName);
-                    }}
-                    disabled={processingId === (notification.data as any).barberId}
-                    className="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                  >
-                    {processingId === (notification.data as any).barberId ? (
-                      <i className="fas fa-spinner fa-spin mr-1"></i>
-                    ) : (
-                      <i className="fas fa-check mr-1"></i>
-                    )}
-                    Approve
-                  </button>
+                  <div className="flex-1 min-w-0">
+                    {isBooking &&
+                      'bookingId' in notification.data &&
+                      (() => {
+                        const parsed = parseBookingDateTime(
+                          (notification.data as any).date || '',
+                          (notification.data as any).time || ''
+                        );
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const barberId = (notification.data as any).barberId;
-                      const barberName = (notification.data as any).fullName;
-                      handleAffiliationAction(barberId, 'rejected', barberName);
-                    }}
-                    disabled={processingId === (notification.data as any).barberId}
-                    className="flex-1 bg-red-600 text-white py-2 px-3 rounded text-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-                  >
-                    {processingId === (notification.data as any).barberId ? (
-                      <i className="fas fa-spinner fa-spin mr-1"></i>
-                    ) : (
-                      <i className="fas fa-times mr-1"></i>
+                        return (
+                          <p className="text-sm text-gray-900">
+                            <span className="font-medium">
+                              {(notification.data as any).clientName}
+                            </span>{' '}
+                            booked a{' '}
+                            <span className="font-medium">
+                              {(notification.data as any).styleOrdered}
+                            </span>{' '}
+                            for {parsed.date}{' '}
+                            <span className="font-medium">
+                              ({parsed.sessionLabel})
+                            </span>
+                            .
+                          </p>
+                        );
+                      })()}
+
+                    {isAffiliation && (
+                      <p className="text-sm text-gray-900">
+                        <span className="font-medium">
+                          {(notification.data as any).fullName}
+                        </span>{' '}
+                        requested to join your barbershop.
+                      </p>
                     )}
-                    Reject
-                  </button>
+
+                    {!isBooking && !isAffiliation && (
+                      <p className="text-sm text-gray-900">
+                        {notification.message}
+                      </p>
+                    )}
+
+                    <p className="text-xs text-gray-400 mt-1">
+                      {isBooking ? 'Placed on: ' : ''}
+                      {formatTimestamp(notification.timestamp)}
+                    </p>
+                  </div>
+
+                  {isAffiliation ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (!affiliationBarberId) return;
+                          openConfirmation(
+                            affiliationBarberId,
+                            'approved',
+                            affiliationBarberName
+                          );
+                        }}
+                        disabled={isProcessingThis}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700
+                                   hover:bg-green-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessingThis ? (
+                          <i className="fas fa-spinner fa-spin"></i>
+                        ) : (
+                          <i className="fas fa-check"></i>
+                        )}
+                        Confirm
+                      </button>
+
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (!affiliationBarberId) return;
+                          openConfirmation(
+                            affiliationBarberId,
+                            'rejected',
+                            affiliationBarberName
+                          );
+                        }}
+                        disabled={isProcessingThis}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700
+                                   hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isProcessingThis ? (
+                          <i className="fas fa-spinner fa-spin"></i>
+                        ) : (
+                          <i className="fas fa-times"></i>
+                        )}
+                        Decline
+                      </button>
+                    </div>
+                  ) : (
+                    !notification.read && (
+                      <div className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-2"></div>
+                    )
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
 
-      <ConfirmationModal
-        isOpen={showConfirmation}
-        onClose={() => {
-          setShowConfirmation(false);
-          setConfirmationData(null);
-        }}
-        onConfirm={confirmAffiliationAction}
-        title={confirmationData?.action === 'approved' ? 'Approve Affiliation' : 'Reject Affiliation'}
-        message={confirmationData?.action === 'approved'
-          ? `Are you sure you want to approve ${confirmationData?.barberName}'s affiliation request?`
-          : `Are you sure you want to reject ${confirmationData?.barberName}'s affiliation request?`
-        }
-        confirmText={confirmationData?.action === 'approved' ? 'Approve' : 'Reject'}
-        type={confirmationData?.action === 'approved' ? 'info' : 'danger'}
-      />
+      {/* ✅ Fixed, minimal modal (no global component needed) */}
+      {showConfirmation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* overlay */}
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={closeConfirmation}
+          />
+
+          {/* modal */}
+          <div className="relative w-[92%] max-w-md rounded-xl bg-white shadow-xl">
+            {/* header */}
+            <div className="flex items-center justify-between px-6 pt-5">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {modalTitle}
+              </h3>
+
+              <button
+                onClick={closeConfirmation}
+                className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* body */}
+            <div className="px-6 pb-5 pt-3">
+              <div className="flex gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                  i
+                </div>
+
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  {modalMessage}
+                </p>
+              </div>
+
+              {/* actions */}
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  onClick={closeConfirmation}
+                  disabled={!!processingId}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={confirmAffiliationAction}
+                  disabled={!confirmationData || !!processingId}
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 disabled:cursor-not-allowed ${confirmClass}`}
+                >
+                  {processingId ? 'Processing…' : confirmLabel}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

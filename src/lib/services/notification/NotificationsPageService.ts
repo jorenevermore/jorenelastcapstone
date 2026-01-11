@@ -23,14 +23,17 @@ export class NotificationsPageService {
 
   async fetchNotifications(barbershopId: string): Promise<ServiceResponse> {
     try {
-      const affiliationsResult = await this.staffService.getPendingAffiliations(barbershopId);
-      const bookingsResult = await this.appointmentService.getBookingsByBarbershop(barbershopId);
 
-      const affiliationNotifications: Notification[] = (affiliationsResult.data || [])
+      const affiliations = await this.staffService.getPendingAffiliations(barbershopId);
+
+      const bookingsResult: any = await this.appointmentService.getBookingsByBarbershop(barbershopId);
+      const bookings = Array.isArray(bookingsResult) ? bookingsResult : (bookingsResult?.data || []);
+
+      const affiliationNotifications: Notification[] = (affiliations || [])
         .map(transformAffiliationToNotification)
         .slice(0, 20);
 
-      const bookingNotifications: Notification[] = (bookingsResult.data || [])
+      const bookingNotifications: Notification[] = (bookings || [])
         .map(transformBookingToNotification)
         .slice(0, 20);
 
@@ -54,4 +57,3 @@ export class NotificationsPageService {
     return this.realtimeService.markAsRead(notificationId);
   }
 }
-

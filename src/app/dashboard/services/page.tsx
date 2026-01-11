@@ -536,7 +536,7 @@ export default function ServicesPage() {
 
                         <button
                           onClick={() => handleRemoveService(service)}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          className="text-red-600 hover:text-red-900"
                           title="Delete"
                         >
                           <i className="fas fa-trash text-sm"></i>

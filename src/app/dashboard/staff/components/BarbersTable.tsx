@@ -77,14 +77,14 @@ export default function BarbersTable({
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
-                    className="text-blue-600 hover:text-blue-900 mr-3"
+                   className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                     onClick={() => onOpenUnavailableDates(barber)}
                     title="Manage unavailable dates"
                   >
                     <i className="fas fa-calendar-times"></i>
                   </button>
                   <button
-                    className="text-gray-600 hover:text-black mr-3"
+                   className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors"
                     onClick={() => onEdit(barber)}
                     title="Edit barber"
                   >
