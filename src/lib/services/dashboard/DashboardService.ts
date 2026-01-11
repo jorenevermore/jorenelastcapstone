@@ -22,13 +22,15 @@ export class DashboardService {
     );
 
     const upcomingAppointments = bookingsWithQueuePositions
-      .filter(booking => {
-        const isTerminalStatus = OK_NA.includes(booking.status);
+       .filter(booking => {
+        const isOkayNa = OK_NA.includes(booking.status);
         const bookingDateISO = getDateISO(booking.date);
 
-        return bookingDateISO >= todayISO && !isTerminalStatus;
+        return bookingDateISO >= todayISO && !isOkayNa;
       })
+
       .sort((bookingA, bookingB) => {
+        
         const dateDifference =
           new Date(bookingA.date).getTime() - new Date(bookingB.date).getTime();
         if (dateDifference !== 0) return dateDifference;

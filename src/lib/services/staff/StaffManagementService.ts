@@ -32,30 +32,33 @@ export class StaffManagementService {
     return { ...barberData, barberId: docSnapshot.id };    
   }
 
-  async getAffiliatedBarbersByBarbershopId(barbershopId: string): Promise<Barber[]> {
+    async getBarbersFromBarbershop(barbershopId: string): Promise<Barber[]> {
 
-    const collectionRef = collection(this.db, this.COLLECTION);
-    const barbersQuery = query(
-      collectionRef,
-      where('affiliatedBarbershopId', '==', barbershopId)
-    );
+    const barbershopRef = doc(this.db, 'barbershops', barbershopId);
+    const barbershopSnap = await getDoc(barbershopRef);
 
-    const queryResult = await getDocs(barbersQuery);
+    if (!barbershopSnap.exists()) {
+      throw new Error('Barbershop not found');
+    }
 
-    return queryResult.docs.map(doc => this.mapDocToBarber(doc));
+    const { barbers = [] } = barbershopSnap.data() as { barbers?: string[] };
+
+      if (barbers.length === 0) return [];
+      return Promise.all(barbers.map(barberId => this.getBarberById(barberId)));
   }
+
 
   async getBarberById(barberId: string): Promise<Barber> {
 
     const barberRef = doc(this.db, this.COLLECTION, barberId);
-    const documentSnapshot = await getDoc(barberRef);
+    const documentSnap = await getDoc(barberRef);
 
-    if (!documentSnapshot.exists()) {
+    if (!documentSnap.exists){
       throw new Error('Barber not found');
     }
 
-    const barberData = documentSnapshot.data() as Omit<Barber, 'barberId'>;
-    return { ...barberData, barberId: documentSnapshot.id };
+    const barberData = documentSnap.data() as Omit<Barber, 'barberId'>;
+    return { ...barberData, barberId: documentSnap.id };
   }
 
   async addBarberToBarbershop(barbershopId: string,barberData: Omit<Barber, 'barberId'>): Promise<Barber> {
@@ -97,13 +100,13 @@ export class StaffManagementService {
   async deleteBarber(barberId: string): Promise<void> {
 
     const barberRef = doc(this.db, this.COLLECTION, barberId);
-    const documentSnapshot = await getDoc(barberRef);
+    const documentSnap = await getDoc(barberRef);
 
-    if (!documentSnapshot.exists()) {
+    if (!documentSnap.exists()) {
       throw new Error('Barber not found');
     }
 
-    const barberData = documentSnapshot.data() as Barber;
+    const barberData = documentSnap.data() as Barber;
 
     await deleteDoc(barberRef);
 
@@ -134,13 +137,13 @@ export class StaffManagementService {
   async updateAffiliationStatus(barberId: string,status: 'approved' | 'rejected'): Promise<void> {
     
     const barberRef = doc(this.db, this.COLLECTION, barberId);
-    const documentSnapshot = await getDoc(barberRef);
+    const documentSnap = await getDoc(barberRef);
 
-    if (!documentSnapshot.exists()) {
+    if (!documentSnap.exists()) {
       throw new Error('Barber not found');
     }
 
-    const barberData = documentSnapshot.data() as Barber;
+    const barberData = documentSnap.data() as Barber;
     const affiliationStatus = status === 'approved' ? 'confirmed' : 'declined';
 
     await updateDoc(barberRef, { affiliationStatus });

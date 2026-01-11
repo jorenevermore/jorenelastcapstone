@@ -8,6 +8,7 @@ import type { Barber } from '../../types/barber';
 export type { Notification };
 
 export const sortNotificationsByTimestamp = (notifs: Notification[]): Notification[] => {
+ 
   return [...notifs].sort((a, b) => {
 
     let timeA: number;

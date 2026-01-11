@@ -26,7 +26,7 @@ export default function StaffPage() {
   const [barberToDelete, setBarberToDelete] = useState<Barber | null>(null);
 
   const {
-    getAffiliatedBarbersByBarbershopId,
+    getBarbersFromBarbershop,
     addBarberToBarbershop,
     removeBarberFromBarbershop,
     updateBarber,
@@ -56,7 +56,7 @@ export default function StaffPage() {
           return;
         }
 
-        const barbers = await getAffiliatedBarbersByBarbershopId(user.uid);
+        const barbers = await getBarbersFromBarbershop(user.uid);
         setBarbers(barbers);
       } catch (err) {
         console.error(err);
@@ -67,7 +67,7 @@ export default function StaffPage() {
     };
 
     fetchBarbers();
-  }, [user, getAffiliatedBarbersByBarbershopId]);
+  }, [user, getBarbersFromBarbershop]);
 
   const handleSubmit = async (formData: any) => {
     if (!user) return;

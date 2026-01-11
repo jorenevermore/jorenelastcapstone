@@ -15,17 +15,17 @@ export class AnalyticsService {
 	}
 	
 	static calculateStats(bookings: Booking[]): AnalyticsStats {
-    const completed = bookings.filter(booking => booking.status === 'completed').length;
-    const cancelled = bookings.filter(booking => booking.status === 'cancelled').length;
-    const pending = bookings.filter(booking => booking.status === 'pending').length;
-    const confirmed = bookings.filter(booking => booking.status === 'confirmed').length;
-    const inProgress = bookings.filter(booking => booking.status === 'in-progress').length;
-    const declined = bookings.filter(booking => booking.status === 'declined').length;
-    const noShow = bookings.filter(booking => booking.status === 'no-show').length;
+		const completed = bookings.filter(booking => booking.status === 'completed').length;
+		const cancelled = bookings.filter(booking => booking.status === 'cancelled').length;
+		const pending = bookings.filter(booking => booking.status === 'pending').length;
+		const confirmed = bookings.filter(booking => booking.status === 'confirmed').length;
+		const inProgress = bookings.filter(booking => booking.status === 'in-progress').length;
+		const declined = bookings.filter(booking => booking.status === 'declined').length;
+		const noShow = bookings.filter(booking => booking.status === 'no-show').length;
 
-    const total = bookings.length;
-    const completionRate = total > 0 ? ((completed / total) * 100).toFixed(2) : '0';
-    const cancellationRate = total > 0 ? ((cancelled / total) * 100).toFixed(2) : '0';
+		const total = bookings.length;
+		const completionRate = total > 0 ? ((completed / total) * 100).toFixed(2) : '0';
+		const cancellationRate = total > 0 ? ((cancelled / total) * 100).toFixed(2) : '0';
 
 		return {completed,cancelled,pending,confirmed,inProgress,declined,noShow,total,completionRate,
 		cancellationRate,
@@ -33,9 +33,9 @@ export class AnalyticsService {
 	}
 
 	static calculateRevenue(bookings: Booking[]): RevenueStats {
-    const completedBookings = bookings.filter(booking => booking.status === 'completed');
-    const totalRevenue = completedBookings.reduce((sum, booking) => sum + (booking.finalPrice || booking.totalPrice || 0), 0);
-    const averageRevenue = completedBookings.length > 0 ? (totalRevenue / completedBookings.length).toFixed(2) : '0';
+		const completedBookings = bookings.filter(booking => booking.status === 'completed');
+		const totalRevenue = completedBookings.reduce((sum, booking) => sum + (booking.finalPrice || booking.totalPrice || 0), 0);
+		const averageRevenue = completedBookings.length > 0 ? (totalRevenue / completedBookings.length).toFixed(2) : '0';
 
  		return {
 			totalRevenue,		
@@ -172,10 +172,8 @@ export class AnalyticsService {
 		};
 	}
 	
-	static getRevenueMetrics(bookings: Booking[]): {
-		totalRevenue: number;
-		averageRevenue: number;
-	} {
+	static getRevenueMetrics(bookings: Booking[]): {totalRevenue: number;averageRevenue: number;} 
+		{
 		const completedBookings = bookings.filter(b => b.status === 'completed' && (b.finalPrice || b.totalPrice));
 		const totalRevenue = completedBookings.reduce((sum, booking) => sum + ((booking.finalPrice || booking.totalPrice) || 0), 0);
 		const averageRevenue = completedBookings.length > 0 ? totalRevenue / completedBookings.length : 0;

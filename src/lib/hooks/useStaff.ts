@@ -9,7 +9,7 @@ export type { Barber } from '../../types';
 const staffService = new StaffManagementService(db);
 
 export interface UseStaffReturn {
-  getAffiliatedBarbersByBarbershopId: (barbershopId: string) => Promise<Barber[]>;
+  getBarbersFromBarbershop: (barbershopId: string) => Promise<Barber[]>;
   getBarberById: (barberId: string) => Promise<Barber>;
   addBarberToBarbershop: (barbershopId: string, barberData: Omit<Barber, 'barberId'>) => Promise<Barber>;
   removeBarberFromBarbershop: (barbershopId: string, barberId: string) => Promise<void>;
@@ -29,11 +29,11 @@ export function useStaff(): UseStaffReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const getAffiliatedBarbersByBarbershopId = useCallback(async (barbershopId: string) => {
+  const getBarbersFromBarbershop = useCallback(async (barbershopId: string) => {
     setIsLoading(true);
     setError(null);
     try {
-      return await staffService.getAffiliatedBarbersByBarbershopId(barbershopId);
+      return await staffService.getBarbersFromBarbershop(barbershopId, );
     } catch (error: any) {
       setError(error?.message ?? 'Failed to fetch barbers');
       throw error;
@@ -143,7 +143,7 @@ export function useStaff(): UseStaffReturn {
   const clearError = useCallback(() => setError(null), []);
 
   return {
-    getAffiliatedBarbersByBarbershopId,
+    getBarbersFromBarbershop,
     getBarberById,
     addBarberToBarbershop,
     removeBarberFromBarbershop,
