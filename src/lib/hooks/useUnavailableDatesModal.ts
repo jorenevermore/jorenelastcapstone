@@ -38,7 +38,7 @@ export const useUnavailableDatesModal = () => {
     setUnavailableDates(unavailableDates.filter(d => d.id !== dateId));
   };
 
-  // Validate date - must be today or in the future, and not a duplicate
+  // must be today or in the future, and not a duplicate
   const validateDate = (dateString: string): { valid: boolean; message?: string } => {
     if (!dateString) {
       return { valid: false, message: 'Please select a date' };
@@ -49,12 +49,12 @@ export const useUnavailableDatesModal = () => {
     today.setHours(0, 0, 0, 0);
     selectedDateObj.setHours(0, 0, 0, 0);
 
-    // Check if date is in the past
+    // check if date is in the past
     if (selectedDateObj < today) {
       return { valid: false, message: 'Cannot add past dates. Please select today or a future date.' };
     }
 
-    // Check for duplicates
+    // check for duplicates
     const isDuplicate = unavailableDates.some(d => {
       const existingDate = new Date(d.date);
       existingDate.setHours(0, 0, 0, 0);

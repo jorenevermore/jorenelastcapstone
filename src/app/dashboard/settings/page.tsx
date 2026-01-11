@@ -23,7 +23,7 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 w-full">
-      <h1 className="text-2xl font-bold text-black mb-6">Manage your barbershop.</h1>
+      <h1 className="text-2xl font-bold text-black mb-6">Manage your barbershop's profile here.</h1>
 
       <SettingsForm
         barbershop={barbershopData}

@@ -12,11 +12,11 @@ export const useNotificationsPage = (barbershopId: string | null | undefined) =>
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchNotifications = useCallback(async (shopId: string) => {
+  const fetchNotifications = useCallback(async (barbershopId: string) => {
     setLoading(true);
     setError(null);
 
-    const result = await notificationsPageService.fetchNotifications(shopId);
+    const result = await notificationsPageService.fetchNotifications(barbershopId);
 
     if (result.success && result.data) {
       setNotifications(result.data);
@@ -38,12 +38,11 @@ export const useNotificationsPage = (barbershopId: string | null | undefined) =>
   }, [barbershopId, fetchNotifications]);
 
   const markAsRead = useCallback(async (notificationId: string): Promise<boolean> => {
-    const current = notifications.find(n => n.id === notificationId);
+    const current = notifications.find(notification => notification.id === notificationId);
     if (current?.read) return true;
 
-    // optimistic update
     setNotifications(prev =>
-      prev.map(n => (n.id === notificationId ? { ...n, read: true } : n))
+      prev.map(notification => (notification.id === notificationId ? { ...notification, read: true } : notification))
     );
 
     const result = await notificationsPageService.markAsRead(notificationId);
@@ -51,7 +50,7 @@ export const useNotificationsPage = (barbershopId: string | null | undefined) =>
     if (!result.success) {
       // rollback
       setNotifications(prev =>
-        prev.map(n => (n.id === notificationId ? { ...n, read: false } : n))
+        prev.map(notification => (notification.id === notificationId ? { ...notification, read: false } : notification))
       );
       setError(result.message || 'Failed to mark notification as read');
       return false;

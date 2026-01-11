@@ -449,8 +449,8 @@ export default function ServicesPage() {
                     {filteredAddedServices.length}
                   </span>
                 </div>
-                <p className="text-gray-500 text-sm mt-2">
-                  Manage your barbershop services and styles
+                <p className="text-gray-500 text-xs mt-1">
+                  Manage your barbershop services and styles.
                 </p>
               </div>
             </div>

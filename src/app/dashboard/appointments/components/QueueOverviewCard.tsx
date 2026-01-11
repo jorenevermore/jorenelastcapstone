@@ -11,7 +11,7 @@ interface QueueOverviewCardProps {
   isRealtime?: boolean;
 }
 
-const QueueOverviewCard = ({ bookings, isRealtime = false }: QueueOverviewCardProps) => {
+const QueueOverviewCard = ({ bookings, isRealtime = true }: QueueOverviewCardProps) => {
   const queueService = new QueueService();
 
   const { stats, sortedQueue } = useMemo(() => {

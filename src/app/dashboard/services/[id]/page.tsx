@@ -34,13 +34,15 @@ export default function ServiceDetailsPage() {
   const serviceId = params?.id as string;
 
   useEffect(() => {
+    
     const fetchService = async () => {
       try {
         setLoading(true);
         setError(null);
 
         if (user && serviceId) {
-          // Fetch the barbershop document
+          
+          // fetch the barbershop document
           const barbershopDoc = await getDoc(doc(db, 'barbershops', user.uid));
 
           if (barbershopDoc.exists()) {
@@ -61,12 +63,12 @@ export default function ServiceDetailsPage() {
                 where('barberOrBarbershop', '==', user.uid)
               );
 
-              const stylesSnapshot = await getDocs(stylesQuery);
-              const stylesData: Style[] = [];
+              const stylesSnapshot = await getDocs(stylesQuery)
 
-              stylesSnapshot.forEach(doc => {
-                stylesData.push({ ...doc.data() as Style, docId: doc.id });
-              });
+              const stylesData = stylesSnapshot.docs.map(doc => (
+                {...doc.data() as Style,
+                docId: doc.id
+              }));
 
               setStyles(stylesData);
             } else {

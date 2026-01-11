@@ -166,7 +166,7 @@ export default function AppointmentsPage() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-10 gap-4 mb-6">
             <div className="lg:col-span-7">
-              <QueueOverviewCard bookings={bookings as Booking[]} isRealtime={true} />
+              <QueueOverviewCard bookings={bookings as Booking[]} />
             </div>
             <div className="lg:col-span-3 max-h-[60vh] overflow-y-auto">
               <DailyViewCard

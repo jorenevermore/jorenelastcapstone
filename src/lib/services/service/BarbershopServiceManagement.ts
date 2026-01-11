@@ -4,6 +4,7 @@ import type { ServiceResponse } from '../../../types/response';
 import type { Service, Style } from '../../../types/services';
 
 export class BarbershopServiceManagement {
+  
   private readonly COLLECTION = 'services';
 
   constructor(private db: Firestore) {}
@@ -66,7 +67,7 @@ export class BarbershopServiceManagement {
       const querySnapshot = await getDocs(stylesQuery);
       const styles: Style[] = [];
 
-      querySnapshot.forEach((styleDoc) => {
+      querySnapshot.forEach((styleDoc) => { 
         styles.push({
           docId: styleDoc.id,
           ...styleDoc.data()

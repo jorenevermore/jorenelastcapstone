@@ -23,6 +23,7 @@ export class AnalyticsService {
 		const declined = bookings.filter(booking => booking.status === 'declined').length;
 		const noShow = bookings.filter(booking => booking.status === 'no-show').length;
 
+
 		const total = bookings.length;
 		const completionRate = total > 0 ? ((completed / total) * 100).toFixed(2) : '0';
 		const cancellationRate = total > 0 ? ((cancelled / total) * 100).toFixed(2) : '0';
@@ -34,7 +35,7 @@ export class AnalyticsService {
 
 	static calculateRevenue(bookings: Booking[]): RevenueStats {
 		const completedBookings = bookings.filter(booking => booking.status === 'completed');
-		const totalRevenue = completedBookings.reduce((sum, booking) => sum + (booking.finalPrice || booking.totalPrice || 0), 0);
+		const totalRevenue = completedBookings.reduce((runningTotal, booking) =>  runningTotal + (booking.finalPrice ?? booking.totalPrice ?? 0),0);
 		const averageRevenue = completedBookings.length > 0 ? (totalRevenue / completedBookings.length).toFixed(2) : '0';
 
  		return {

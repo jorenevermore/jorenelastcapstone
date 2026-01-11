@@ -17,7 +17,7 @@ export const useRealtimeNotifications = () => {
   const markAsRead = useCallback(async (notificationId: string): Promise<boolean> => {
     let isAlreadyRead = false;
     setNotifications(prev => {
-      const notification = prev.find(n => n.id === notificationId);
+      const notification = prev.find(notification => notification.id === notificationId);
       isAlreadyRead = notification?.read || false;
       return prev;
     });
@@ -25,7 +25,7 @@ export const useRealtimeNotifications = () => {
     if (isAlreadyRead) return true;
 
     setNotifications(prev =>
-      prev.map(n => n.id === notificationId ? { ...n, read: true } : n)
+      prev.map(notification => notification.id === notificationId ? { ...notification, read: true } : notification)
     );
 
     const result = await notificationService.markAsRead(notificationId);
@@ -40,16 +40,16 @@ export const useRealtimeNotifications = () => {
   }, []);
 
   const markAllAsRead = useCallback(async (): Promise<boolean> => {
-    const unreadNotifications = notifications.filter(n => !n.read);
+    const unreadNotifications = notifications.filter(notification => !notification.read);
     if (unreadNotifications.length === 0) return true;
 
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications(prev => prev.map(notification => ({ ...notification, read: true })));
 
     const result = await notificationService.markAllAsRead(notifications);
     if (!result.success) {
       setNotifications(prev =>
         prev.map(notification => {
-          const wasUnread = unreadNotifications.find(n => n.id === notification.id);
+          const wasUnread = unreadNotifications.find(notification => notification.id === notification.id);
           return wasUnread ? { ...notification, read: false } : notification;
         })
       );
@@ -60,7 +60,7 @@ export const useRealtimeNotifications = () => {
   }, [notifications]);
 
   const unreadCount = useMemo(() =>
-    notifications.filter(n => !n.read).length,
+    notifications.filter(notification => !notification.read).length,
     [notifications]
   );
 

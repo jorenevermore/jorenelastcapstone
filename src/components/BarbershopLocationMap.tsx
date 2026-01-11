@@ -20,7 +20,6 @@ const SimpleMap: React.FC<SimpleMapProps> = ({ onLocationSelect, initialLocation
   const DEFAULT_LOCATION = { lat: 10.3157, lng: 123.8854 };
   const ZOOM_LEVEL = 15;
 
-  // get users loc using googlemaps api
   const getUserExactLocation = () => {
     if (!navigator.geolocation) {
       setError('Geolocation is not supported by your browser');
