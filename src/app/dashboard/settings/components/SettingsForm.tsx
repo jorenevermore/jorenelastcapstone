@@ -23,10 +23,18 @@ export default function SettingsForm({
   onCancel,
   onChangePassword
 }: SettingsFormProps) {
-  const { uploadFile } = useFileUpload();
-  const [formData, setFormData] = useState({ name: barbershop.name, phone: barbershop.phone, email: barbershop.email });
+
+  const { replaceFile } = useFileUpload();
+
+  const [formData, setFormData] = useState({
+    name: barbershop.name,
+    phone: barbershop.phone,
+    email: barbershop.email
+  });
+
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(barbershop.featuredImage || null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,6 +42,7 @@ export default function SettingsForm({
     if (e.target.files?.[0]) {
       const file = e.target.files[0];
       setImageFile(file);
+
       const reader = new FileReader();
       reader.onload = (event) => setImagePreview(event.target?.result as string);
       reader.readAsDataURL(file);
@@ -45,17 +54,31 @@ export default function SettingsForm({
       setLoading(true);
       setError(null);
 
-      const updateData: any = { ...formData };
+      const updateData: Partial<BarbershopProfile> = {
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email
+      };
 
       if (imageFile) {
-        const result = await uploadFile(imageFile, 'barbershop');
+        const result = await replaceFile(
+          imageFile,
+          barbershop.featuredImage || null,
+          'barbershop'
+        );
+
         if (!result.success) {
           setError(result.message || 'Failed to upload image');
           return;
         }
+
+        updateData.featuredImage = result.data as string;
       }
 
       await updateDoc(doc(db, 'barbershops', barbershop.barbershopId), updateData);
+
+      setImageFile(null);
+
       onCancel();
     } catch (err) {
       setError('Failed to save changes');
@@ -73,8 +96,8 @@ export default function SettingsForm({
           <button
             className="px-3 py-1.5 text-white text-xs font-medium rounded transition-colors"
             style={{ backgroundColor: '#BF8F63' }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#A67C52'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#BF8F63'}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#A67C52')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#BF8F63')}
             onClick={onEdit}
           >
             Edit
@@ -144,6 +167,7 @@ export default function SettingsForm({
                   <p className="text-sm text-gray-900">{formData.phone}</p>
                 )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Business Email</label>
                 {isEditing ? (
@@ -178,9 +202,11 @@ export default function SettingsForm({
                   >
                     {loading ? 'Saving...' : 'Save'}
                   </button>
+
                   <button
                     className="px-3 py-1.5 bg-gray-300 hover:bg-gray-400 text-gray-900 text-xs font-medium rounded transition-colors"
                     onClick={onCancel}
+                    disabled={loading}
                   >
                     Cancel
                   </button>
@@ -189,8 +215,8 @@ export default function SettingsForm({
                 <button
                   className="px-3 py-1.5 text-white text-xs font-medium rounded transition-colors"
                   style={{ backgroundColor: '#BF8F63' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#A67C52'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#BF8F63'}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#A67C52')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#BF8F63')}
                   onClick={onChangePassword}
                 >
                   Change Password
@@ -203,4 +229,3 @@ export default function SettingsForm({
     </div>
   );
 }
-
