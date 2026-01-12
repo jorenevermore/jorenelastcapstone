@@ -9,7 +9,7 @@ const INACTIVE_STATUS = [
   'cancelled',
   'declined',
   'no-show',
-  'in-progress',
+  'inProgress',
   'pending'
 ];
 

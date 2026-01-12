@@ -2,7 +2,7 @@
 export type BookingStatus =
   | 'pending'
   | 'confirmed'
-  | 'in-progress'
+  | 'inProgress'
   | 'completed'
   | 'completedAndReviewed'
   | 'cancelled'
@@ -17,7 +17,7 @@ export interface Booking {
 const STATUS_COLORS: Readonly<Record<BookingStatus | 'default', string>> = {
   pending: 'bg-yellow-100 text-yellow-800',
   confirmed: 'bg-blue-100 text-blue-800',
-  'in-progress': 'bg-purple-100 text-purple-800',
+  'inProgress': 'bg-purple-100 text-purple-800',
   completed: 'bg-green-100 text-green-800',
   completedAndReviewed: 'bg-green-100 text-green-800',
   cancelled: 'bg-red-100 text-red-800',
@@ -29,7 +29,7 @@ const STATUS_COLORS: Readonly<Record<BookingStatus | 'default', string>> = {
 const STATUS_ICONS: Readonly<Record<BookingStatus | 'default', string>> = {
   pending: 'fas fa-clock',
   confirmed: 'fas fa-check-circle',
-  'in-progress': 'fas fa-spinner',
+  'inProgress': 'fas fa-spinner',
   completed: 'fas fa-check-double',
   completedAndReviewed: 'fas fa-check-double',
   cancelled: 'fas fa-times-circle',

@@ -28,7 +28,7 @@ export class BookingUtilService {
         return 'bg-yellow-100 text-yellow-800 border border-yellow-200';
       case 'confirmed':
         return 'bg-blue-100 text-blue-800 border border-blue-200';
-      case 'in-progress':
+      case 'inProgress':
         return 'bg-purple-100 text-purple-800 border border-purple-200';
       case 'completed':
         return 'bg-green-100 text-green-800 border border-green-200';
@@ -47,7 +47,7 @@ export class BookingUtilService {
         return 'bg-yellow-100 text-yellow-800';
       case 'confirmed':
         return 'bg-blue-100 text-blue-800';
-      case 'in-progress':
+      case 'inProgress':
         return 'bg-purple-100 text-purple-800';
       case 'completed':
         return 'bg-green-100 text-green-800';
@@ -66,7 +66,7 @@ export class BookingUtilService {
         return 'fas fa-clock';
       case 'confirmed':
         return 'fas fa-check-circle';
-      case 'in-progress':
+      case 'inProgress':
         return 'fas fa-spinner fa-spin';
       case 'completed':
         return 'fas fa-check-double';
@@ -131,7 +131,7 @@ export class BookingUtilService {
   } {
     const pending = bookings.filter(b => b.status === 'pending').length;
     const confirmed = bookings.filter(b => b.status === 'confirmed').length;
-    const inProgress = bookings.filter(b => b.status === 'in-progress').length;
+    const inProgress = bookings.filter(b => b.status === 'inProgress').length;
     const canceled = bookings.filter(b => b.status === 'cancelled').length;
     const completed = bookings.filter(b => b.status === 'completed').length;
     const noShow = bookings.filter(b => b.status === 'no-show').length;
@@ -157,7 +157,7 @@ export class BookingUtilService {
       case 'pending':
         return bookings.filter(b => b.status === 'pending');
       case 'ongoing':
-        return bookings.filter(b => ['confirmed', 'in-progress'].includes(b.status));
+        return bookings.filter(b => ['confirmed', 'inProgress'].includes(b.status));
       case 'completed':
         return bookings.filter(b => ['completed', 'completedAndReviewed', 'cancelled', 'declined', 'no-show'].includes(b.status));
       default:
@@ -186,7 +186,7 @@ export class BookingUtilService {
 
   static getStatusCounts(bookings: Booking[]): { pendingCount: number; ongoingCount: number; completedCount: number } {
     const pendingCount = bookings.filter(b => b.status === 'pending').length;
-    const ongoingCount = bookings.filter(b => ['confirmed', 'in-progress'].includes(b.status)).length;
+    const ongoingCount = bookings.filter(b => ['confirmed', 'inProgress'].includes(b.status)).length;
     const completedCount = bookings.filter(b => ['completed', 'cancelled', 'declined', 'no-show'].includes(b.status)).length;
 
     return { pendingCount, ongoingCount, completedCount };

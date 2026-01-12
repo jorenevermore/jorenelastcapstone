@@ -15,7 +15,12 @@ interface StatusActionsPanelProps {
   onPaymentConfirm?: (appointment: Booking) => Promise<void>;
 }
 
-export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, onPaymentConfirm }: StatusActionsPanelProps) => {
+export const StatusActionsPanel = ({
+  appointment,
+  isSubmitting,
+  onStatusUpdate,
+  onPaymentConfirm
+}: StatusActionsPanelProps) => {
   const [showDeclineConfirmation, setShowDeclineConfirmation] = useState(false);
   const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
   const [showNoShowConfirmation, setShowNoShowConfirmation] = useState(false);
@@ -31,15 +36,37 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
 
   const notificationService = new NotificationService(db);
 
-  const canUpdateStatus = ['pending', 'confirmed', 'in-progress'].includes(appointment.status);
+  const canUpdateStatus = ['pending', 'confirmed', 'inProgress'].includes(appointment.status);
 
-  // show notification feedback briefly
   const showNotificationFeedback = () => {
     setNotificationSent(true);
     setTimeout(() => setNotificationSent(false), 3000);
   };
 
-  // notify next in queue
+  const sendServiceStartedNotif = async (notifyClient: () => Promise<any>,notifyBarber: () => Promise<any> ) => {
+      setNotificationLoading(true);
+    try {
+      const notificationResults = await Promise.allSettled([
+        notifyClient(),
+        notifyBarber(),
+      ]);
+  
+      const hasSuccessfulNotification = notificationResults.some(result => {
+        return (
+          result.status === 'fulfilled' &&
+          result.value?.success === true
+        );
+      });
+  
+      if (hasSuccessfulNotification) {
+        showNotificationFeedback();
+      }
+    } finally {
+      setNotificationLoading(false);
+    }
+  };
+  
+
   const handleSendNextInQueueNotification = async () => {
     setNotificationLoading(true);
     const result = await notificationService.notifyNextInQueue(appointment);
@@ -47,15 +74,13 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
     if (result.success) showNotificationFeedback();
   };
 
-  // notify service started
   const handleSendServiceStartedNotification = async () => {
-    setNotificationLoading(true);
-    const result = await notificationService.notifyServiceStarted(appointment);
-    setNotificationLoading(false);
-    if (result.success) showNotificationFeedback();
+    await sendServiceStartedNotif(
+      () => notificationService.notifyServiceStarted(appointment),
+      () => notificationService.notifyServiceStartedBarber(appointment)
+    );
   };
 
-  // notify no-show status
   const handleSendNoShowNotification = async () => {
     setNotificationLoading(true);
     const result = await notificationService.notifyNoShow(appointment, noShowReason);
@@ -63,7 +88,6 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
     if (result.success) showNotificationFeedback();
   };
 
-  // notify appointment cancelled
   const handleSendCancelledNotification = async () => {
     setNotificationLoading(true);
     const result = await notificationService.notifyCancelled(appointment, cancelReason);
@@ -71,7 +95,6 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
     if (result.success) showNotificationFeedback();
   };
 
-  // notify service completed
   const handleSendCompletedNotification = async () => {
     setNotificationLoading(true);
     const result = await notificationService.notifyServiceCompleted(appointment);
@@ -79,10 +102,12 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
     if (result.success) showNotificationFeedback();
   };
 
-  // notify payment confirmed
   const handleSendPaymentNotification = async () => {
     setNotificationLoading(true);
-    const result = await notificationService.notifyPaymentConfirmed(appointment, appointment.finalPrice || appointment.totalPrice);
+    const result = await notificationService.notifyPaymentConfirmed(
+      appointment,
+      appointment.finalPrice || appointment.totalPrice
+    );
     setNotificationLoading(false);
     if (result.success) showNotificationFeedback();
   };
@@ -99,6 +124,7 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
           Sent
         </div>
       )}
+
       <div className="flex flex-wrap gap-2 justify-end">
         {appointment.status === 'pending' && (
           <>
@@ -120,6 +146,7 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
             </button>
           </>
         )}
+
         {appointment.status === 'confirmed' && (
           <>
             <button
@@ -130,19 +157,25 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
             >
               <i className="fas fa-bell mr-1"></i>Notify
             </button>
+
             <button
               className="px-3 py-1 text-white rounded text-xs font-medium transition-colors disabled:opacity-50"
               style={{ backgroundColor: '#BF8F63' }}
-              onMouseEnter={(e) => !isSubmitting && !notificationLoading && (e.currentTarget.style.backgroundColor = '#A67C52')}
-              onMouseLeave={(e) => !isSubmitting && !notificationLoading && (e.currentTarget.style.backgroundColor = '#BF8F63')}
+              onMouseEnter={(e) =>
+                !isSubmitting && !notificationLoading && (e.currentTarget.style.backgroundColor = '#A67C52')
+              }
+              onMouseLeave={(e) =>
+                !isSubmitting && !notificationLoading && (e.currentTarget.style.backgroundColor = '#BF8F63')
+              }
               onClick={async () => {
                 await handleSendServiceStartedNotification();
-                await onStatusUpdate('in-progress');
+                await onStatusUpdate('inProgress');
               }}
               disabled={isSubmitting || notificationLoading}
             >
               Start Service
             </button>
+
             <button
               className="px-3 py-1 bg-red-500 text-white rounded text-xs font-medium transition-colors hover:bg-red-600 disabled:opacity-50"
               onClick={() => setShowCancelConfirmation(true)}
@@ -150,6 +183,7 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
             >
               Cancel
             </button>
+
             <button
               className="px-3 py-1 bg-gray-500 text-white rounded text-xs font-medium transition-colors hover:bg-gray-600 disabled:opacity-50"
               onClick={() => setShowNoShowConfirmation(true)}
@@ -159,18 +193,17 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
             </button>
           </>
         )}
-        {appointment.status === 'in-progress' && (
+
+        {appointment.status === 'inProgress' && (
           <button
             className="px-3 py-1 bg-green-500 text-white rounded text-xs font-medium transition-colors hover:bg-green-600 disabled:opacity-50"
             onClick={() => {
-              // check if cash payment
               const isCashPayment = appointment.paymentMethod?.toLowerCase() === 'cash';
               const isNotPaid = !appointment.paymentStatus;
 
               if (isCashPayment && isNotPaid) {
                 setShowPaymentModal(true);
               } else {
-                // complete directly send notification
                 handleSendCompletedNotification();
                 onStatusUpdate('completed');
               }
@@ -181,6 +214,7 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
           </button>
         )}
       </div>
+
       <ConfirmationModal
         isOpen={showCancelConfirmation}
         title="Cancel Appointment"
@@ -193,11 +227,8 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
         }}
         type="danger"
       />
-      <StandardModal
-        isOpen={showCancelModal}
-        title="Cancel Appointment"
-        onClose={() => setShowCancelModal(false)}
-      >
+
+      <StandardModal isOpen={showCancelModal} title="Cancel Appointment" onClose={() => setShowCancelModal(false)}>
         <textarea
           value={cancelReason}
           onChange={(e) => setCancelReason(e.target.value)}
@@ -220,6 +251,7 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
           disabled={isSubmitting || notificationLoading}
         />
       </StandardModal>
+
       <ConfirmationModal
         isOpen={showDeclineConfirmation}
         title="Decline Appointment"
@@ -232,11 +264,8 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
         }}
         type="danger"
       />
-      <StandardModal
-        isOpen={showDeclineModal}
-        title="Decline Appointment"
-        onClose={() => setShowDeclineModal(false)}
-      >
+
+      <StandardModal isOpen={showDeclineModal} title="Decline Appointment" onClose={() => setShowDeclineModal(false)}>
         <textarea
           value={declineReason}
           onChange={(e) => setDeclineReason(e.target.value)}
@@ -257,7 +286,7 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
           disabled={isSubmitting}
         />
       </StandardModal>
-      
+
       <ConfirmationModal
         isOpen={showNoShowConfirmation}
         title="Mark as No-Show"
@@ -270,11 +299,8 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
         }}
         type="warning"
       />
-      <StandardModal
-        isOpen={showNoShowModal}
-        title="Mark as No-Show"
-        onClose={() => setShowNoShowModal(false)}
-      >
+
+      <StandardModal isOpen={showNoShowModal} title="Mark as No-Show" onClose={() => setShowNoShowModal(false)}>
         <textarea
           value={noShowReason}
           onChange={(e) => setNoShowReason(e.target.value)}
@@ -297,6 +323,7 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
           disabled={isSubmitting || notificationLoading}
         />
       </StandardModal>
+
       <PaymentModal
         isOpen={showPaymentModal}
         appointment={appointment}
@@ -315,4 +342,3 @@ export const StatusActionsPanel = ({ appointment, isSubmitting, onStatusUpdate, 
     </div>
   );
 };
-

@@ -19,7 +19,7 @@ export class AnalyticsService {
 		const cancelled = bookings.filter(booking => booking.status === 'cancelled').length;
 		const pending = bookings.filter(booking => booking.status === 'pending').length;
 		const confirmed = bookings.filter(booking => booking.status === 'confirmed').length;
-		const inProgress = bookings.filter(booking => booking.status === 'in-progress').length;
+		const inProgress = bookings.filter(booking => booking.status === 'inProgress').length;
 		const declined = bookings.filter(booking => booking.status === 'declined').length;
 		const noShow = bookings.filter(booking => booking.status === 'no-show').length;
 

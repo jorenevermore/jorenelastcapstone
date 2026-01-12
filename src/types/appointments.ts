@@ -13,7 +13,7 @@ export interface Booking {
   styleOrderedId: string;
   date: string;
   time: string;
-  status: 'pending' | 'confirmed' | 'in-progress' | 'completed' | 'completedAndReviewed' | 'cancelled' | 'declined' | 'no-show';
+  status: 'pending' | 'confirmed' | 'inProgress' | 'completed' | 'completedAndReviewed' | 'cancelled' | 'declined' | 'no-show';
   notificationStatus?: 'next-in-queue' | 'called-to-service';
   paymentStatus?: 'paid';
   reason?: string;
