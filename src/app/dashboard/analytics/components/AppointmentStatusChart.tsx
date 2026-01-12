@@ -27,7 +27,7 @@ const AppointmentStatusChart: React.FC<AppointmentStatusChartProps> = ({ booking
       'Cancelled': '#ef4444',
       'Pending': '#f59e0b',
       'Confirmed': '#3b82f6',
-      'In Progress': '#8b5cf6',
+      'InProgress': '#8b5cf6',
       'Declined': '#6b7280',
       'No Show': '#f97316',
     };

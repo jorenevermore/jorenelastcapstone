@@ -39,7 +39,7 @@ const StatsCards = ({ bookings }: StatsCardsProps) => {
         />
 
         <StatItem
-          label="In Progress"
+          label="InProgress"
           value={stats.inProgress}
           color="bg-purple-500"
           icon="fas fa-spinner"
